@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="w-[1200px] h-[800px] mx-auto bg-gray-50 rounded-lg shadow-lg flex">
+        <!-- Sidebar -->
+        <div class="w-1/4 bg-gray-100 border-r border-gray-200 flex flex-col">
+            <div class="p-4 border-b border-gray-200 shrink-0">
+                <button onclick="newChat()" class="btn btn-cta w-full">
+                    Nuova Chat
+                </button>
+            </div>
+            <div id="chat-list" class="flex-1 overflow-y-auto">
+                <!-- La lista delle chat sarà popolata qui -->
+            </div>
+        </div>
+
+        <!-- Area Principale della Chat -->
+        <div class="w-3/4 flex flex-col">
+            <!-- Barra delle Impostazioni -->
+            <div class="p-4 border-b border-gray-200 shrink-0">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Personalità del Bot</label>
+                        <div class="flex gap-4">
+                            <textarea id="system-prompt" rows="2"
+                                class="flex-1 rounded-[20px] bg-gray-100 border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 resize-none p-4"
+                                placeholder="Descrivi la personalità che vorresti per il bot..."></textarea>
+                            <button onclick="initializeChat()"
+                                class="btn btn-training h-fit">
+                                Inizializza
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm font-medium text-gray-700">Temperatura:</label>
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7"
+                            class="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="text-sm font-medium text-gray-700" id="temperature-value">0.7</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenitore dei Messaggi -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="chat-messages" class="p-6 space-y-6">
+                    <!-- I messaggi saranno popolati qui -->
+                </div>
+            </div>
+
+            <!-- Area di Input -->
+            <div class="p-4 border-t border-gray-200 bg-white shrink-0">
+                <div class="flex gap-4">
+                    <textarea id="user-input" rows="1"
+                        class="flex-1 rounded-[20px] bg-gray-100 border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 resize-none"
+                        placeholder="Scrivi un messaggio..."></textarea>
+                    <button onclick="sendMessage()"
+                        class="btn btn-cta">
+                        Invia
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .message {
+        padding: 1rem;
+        border-radius: 20px;
+        margin: 1rem 0;
+        max-width: 80%;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .user-message {
+        background-color: #10B981;
+        color: white;
+        margin-left: auto;
+    }
+
+    .bot-message {
+        background-color: #8B5CF6;
+        color: white;
+        margin-right: auto;
+    }
+
+    #chat-list > div {
+        padding: 1rem;
+        border-bottom: 1px solid #E5E7EB;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        color: #4B5563;
+    }
+
+    #chat-list > div:hover {
+        background-color: #F3F4F6;
+        color: #1F2937;
+    }
+
+    #chat-list > div.active {
+        background-color: #F3F4F6;
+        color: #1F2937;
+        font-weight: 500;
+    }
+
+    /* Scrollbar personalizzata */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: #F3F4F6;
+        border-radius: 4px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 4px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+    }
+</style>
+
+<script>
+    let currentChatId = null;
+    let chatMessages = [];
+
+    // Carica le chat all'avvio
+    loadChats();
+
+    async function loadChats() {
+        try {
+            const response = await fetch('/load_chats');
+            const chats = await response.json();
+            updateChatList(chats);
+        } catch (error) {
+            console.error('Errore nel caricamento delle chat:', error);
+        }
+    }
+
+    function updateChatList(chats) {
+        const chatList = document.getElementById('chat-list');
+        chatList.innerHTML = '';
+        
+        chats.forEach(chat => {
+            const div = document.createElement('div');
+            div.className = `p-3 hover:bg-gray-200 cursor-pointer ${chat.id === currentChatId ? 'bg-gray-200' : ''}`;
+            div.textContent = chat.title || 'Nuova conversazione';
+            div.onclick = () => loadChat(chat.id);
+            chatList.appendChild(div);
+        });
+    }
+
+    async function loadChat(chatId) {
+        try {
+            const response = await fetch(`/load_chat/${chatId}`);
+            const data = await response.json();
+            
+            currentChatId = chatId;
+            chatMessages = data.messages;
+            
+            // Aggiorna UI
+            document.getElementById('chat-messages').innerHTML = '';
+            chatMessages.forEach(msg => {
+                if (msg.role !== 'system') {
+                    addMessageToChat(msg.role, msg.content);
+                }
+            });
+            
+            // Aggiorna la lista chat
+            await loadChats();
+        } catch (error) {
+            console.error('Errore nel caricamento della chat:', error);
+        }
+    }
+
+    function newChat() {
+        currentChatId = null;
+        chatMessages = [];
+        document.getElementById('chat-messages').innerHTML = '';
+        document.getElementById('system-prompt').value = '';
+    }
+
+    async function initializeChat() {
+        const systemPrompt = document.getElementById('system-prompt').value.trim();
+        if (!systemPrompt) return;
+
+        try {
+            const response = await fetch('/initialize_chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    system_prompt: systemPrompt
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            currentChatId = data.chat_id;
+            chatMessages = data.messages;
+            
+            // Aggiorna UI
+            document.getElementById('chat-messages').innerHTML = '';
+            addMessageToChat('assistant', data.initial_message);
+            
+            // Ricarica lista chat
+            await loadChats();
+        } catch (error) {
+            console.error('Errore nell\'inizializzazione della chat:', error);
+            alert('Si è verificato un errore nell\'inizializzazione della chat');
+        }
+    }
+
+    async function sendMessage() {
+        const userInput = document.getElementById('user-input');
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        // Aggiungi il messaggio dell'utente alla chat
+        addMessageToChat('user', message);
+        userInput.value = '';
+
+        try {
+            // Aggiungi il messaggio dell'utente all'array dei messaggi
+            chatMessages.push({"role": "user", "content": message});
+
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: chatMessages,
+                    chat_id: currentChatId
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            // Aggiungi la risposta del bot all'array dei messaggi e alla chat
+            chatMessages.push({"role": "assistant", "content": data.message});
+            addMessageToChat('assistant', data.message);
+            
+            // Ricarica lista chat per aggiornare i titoli
+            await loadChats();
+        } catch (error) {
+            console.error('Errore nell\'invio del messaggio:', error);
+            alert('Si è verificato un errore nell\'invio del messaggio');
+        }
+    }
+
+    function addMessageToChat(role, content) {
+        const messagesDiv = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role === 'user' ? 'user-message' : 'bot-message'}`;
+        messageDiv.innerHTML = formatResponse(content);
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function formatResponse(text) {
+        return text.replace(/\n/g, '<br>');
+    }
+
+    // Gestisci il tasto Invio nell'area di testo
+    document.getElementById('user-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+</script>
+{% endblock %}

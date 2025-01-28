@@ -1,0 +1,137 @@
+{% extends "base_with_console.html" %}
+
+{% block main_content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-700 mb-8">Classificazione di Dati</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Carica i tuoi dati</h2>
+        <p class="text-gray-600 mb-4">Carica un file CSV con multiple colonne. L'ultima colonna sarà considerata come la classe target.</p>
+        
+        <form id="upload-form" class="mb-6">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="csv-file">
+                    File CSV
+                </label>
+                <input type="file" id="csv-file" accept=".csv" 
+                       class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <button type="submit" class="btn btn-training">
+                Carica e Addestra
+            </button>
+        </form>
+    </div>
+
+    <div id="prediction-section" class="bg-white p-6 rounded-lg shadow-md hidden">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Fai una previsione</h2>
+        <form id="prediction-form">
+            <div id="input-fields" class="mb-4">
+                <!-- I campi di input verranno generati dinamicamente qui -->
+            </div>
+            <button type="submit" class="btn btn-testing">
+                Prevedi
+            </button>
+        </form>
+
+        <div id="result" class="mt-6 hidden">
+            <h3 class="text-xl font-semibold text-indigo-600 mb-2">Risultato:</h3>
+            <p id="prediction-result" class="text-gray-700"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+let modelData = null;
+
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = document.getElementById('csv-file').files[0];
+    if (!file) {
+        alert('Seleziona un file CSV');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        logToConsole('Caricamento del file e addestramento del modello...');
+        const response = await fetch('/upload-classification', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        modelData = data;
+        document.getElementById('prediction-section').classList.remove('hidden');
+        
+        // Genera i campi di input dinamicamente
+        const inputFields = document.getElementById('input-fields');
+        inputFields.innerHTML = '';
+        data.columns.forEach(column => {
+            inputFields.innerHTML += `
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="${column}">
+                        ${column}
+                    </label>
+                    <input type="number" step="any" id="${column}" name="${column}"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+            `;
+        });
+
+        logToConsole('Modello addestrato con successo!');
+        logToConsole('Classi disponibili: ' + data.classes.join(', '));
+    } catch (error) {
+        logToConsole('Errore: ' + error.message);
+        alert('Errore: ' + error.message);
+    }
+});
+
+document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modelData) {
+        alert('Carica prima un modello');
+        return;
+    }
+
+    const inputValues = {};
+    modelData.columns.forEach(column => {
+        const value = document.getElementById(column).value;
+        if (!value) {
+            alert(`Inserisci un valore per ${column}`);
+            return;
+        }
+        inputValues[column] = parseFloat(value);
+    });
+
+    try {
+        logToConsole('Calcolo della previsione...');
+        const response = await fetch('/predict-classification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(inputValues)
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        document.getElementById('result').classList.remove('hidden');
+        document.getElementById('prediction-result').textContent = 
+            `Classe prevista: ${data.prediction}`;
+        logToConsole(`Previsione calcolata: ${data.prediction}`);
+    } catch (error) {
+        logToConsole('Errore: ' + error.message);
+        alert('Errore: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

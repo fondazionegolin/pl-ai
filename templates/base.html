@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML per Tutti</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Stili per i titoli e testi */
+        .page-title {
+            color: #1F2937;  /* Grigio molto scuro per i titoli */
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-subtitle {
+            color: #4B5563;  /* Grigio più chiaro per i sottotitoli */
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        /* Stili per i contenitori */
+        .content-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chat-container {
+            width: 70%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        /* Stili per la navbar */
+        .navbar-gradient {
+            background: linear-gradient(90deg, 
+                #F7FAFC 0%,    /* gray-50 */
+                #EDF2F7 50%,   /* gray-100 */
+                #E2E8F0 100%   /* gray-200 */
+            );
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Stili per il logo */
+        .gradient-text {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 2rem;
+            background: linear-gradient(
+                90deg,
+                #FF6B6B 0%,      /* Rosso corallo */
+                #4ECDC4 50%,     /* Turchese */
+                #45B7D1 100%     /* Azzurro */
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding-right: 1rem;
+        }
+
+        /* Stili per i link della navbar */
+        .nav-link {
+            @apply px-6 py-2 transition-all duration-300;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px !important;
+            font-weight: 900 !important;
+            line-height: 4rem;
+            position: relative;
+            padding-bottom: 1.5rem;
+            color: #4A5568;
+        }
+
+        .nav-link:hover {
+            color: #1A202C;
+            transform: translateY(-1px);
+        }
+
+        /* Active state */
+        .nav-link.active {
+            color: #2D3748;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        /* Colori specifici per i pallini */
+        .nav-link[href="/"].active::after {
+            background-color: #059669; /* emerald-600 */
+        }
+        
+        .nav-link[href="/regressione"].active::after {
+            background-color: #2563EB; /* blue-600 */
+        }
+        
+        .nav-link[href="/classificazione"].active::after {
+            background-color: #7C3AED; /* violet-600 */
+        }
+        
+        .nav-link[href="/classificazione-immagini"].active::after {
+            background-color: #DB2777; /* pink-600 */
+        }
+        
+        .nav-link[href="/chatbot"].active::after {
+            background-color: #D97706; /* amber-600 */
+        }
+        
+        .nav-link[href="/generazione-immagini"].active::after {
+            background-color: #4F46E5; /* indigo-600 */
+        }
+        
+        .nav-link[href="/learning"].active::after {
+            background-color: #0D9488; /* teal-600 */
+        }
+
+        /* Input file personalizzato */
+        input[type="file"] {
+            @apply file:mr-4 file:py-2 file:px-4 file:rounded-[20px] file:border-0 
+            file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+            hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer;
+        }
+
+        /* Stili per i bottoni */
+        .btn {
+            background-color: white;
+            padding: 1rem 2rem;  /* Aumentato padding */
+            border-radius: 1rem;  /* Bordi più curvi */
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin: 0.5rem;  /* Aggiunto margine intorno ai bottoni */
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Bottoni CTA essenziali */
+        .btn-cta:hover {
+            background-color: #8B5CF6;
+            color: white;
+        }
+
+        /* Bottoni per il training */
+        .btn-training:hover {
+            background-color: #10B981;
+            color: white;
+        }
+
+        /* Bottoni per il testing */
+        .btn-testing:hover {
+            background-color: #EF4444;
+            color: white;
+        }
+
+        /* Stili per le formule matematiche */
+        .MathJax {
+            font-size: 1.1em !important;
+        }
+        mjx-container {
+            padding: 0.5em 0;
+        }
+        /* Stili per il contenuto generato */
+        .prose {
+            max-width: none;
+            line-height: 1.6;
+        }
+        .prose p {
+            margin-bottom: 1.5em;
+        }
+        .prose pre {
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        .prose code {
+            font-family: ui-monospace, monospace;
+            font-size: 0.9em;
+            background-color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Navbar -->
+    <nav class="navbar-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="gradient-text">Play AI</span>
+                </div>
+                <div class="hidden sm:flex items-center">
+                    <div class="space-x-6">
+                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                            Home
+                        </a>
+                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">
+                            Regressione
+                        </a>
+                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">
+                            Classificazione Dati
+                        </a>
+                        <a href="/classificazione-immagini" class="nav-link {% if request.path == '/classificazione-immagini' %}active{% endif %}">
+                            Classificazione Immagini
+                        </a>
+                        <a href="/chatbot" class="nav-link {% if request.path == '/chatbot' %}active{% endif %}">
+                            Chatbot
+                        </a>
+                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">
+                            Generazione Immagini
+                        </a>
+                        <a href="/learning" class="nav-link {% if request.path == '/learning' %}active{% endif %}">
+                            Learning
+                        </a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex items-center sm:hidden">
+                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div class="mobile-menu sm:hidden hidden" id="mobile-menu">
+            <div class="pt-2 pb-3 space-y-1">
+                <a href="/" class="nav-link block px-3 py-2 {% if request.path == '/' %}active{% endif %}">Home</a>
+                <a href="/regressione" class="nav-link block px-3 py-2 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
+                <a href="/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/classificazione' %}active{% endif %}">Classificazione Dati</a>
+                <a href="/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
+                <a href="/chatbot" class="nav-link block px-3 py-2 {% if request.path == '/chatbot' %}active{% endif %}">Chatbot</a>
+                <a href="/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
+                <a href="/learning" class="nav-link block px-3 py-2 {% if request.path == '/learning' %}active{% endif %}">Learning</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="min-h-[calc(100vh-4rem)] pt-24">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

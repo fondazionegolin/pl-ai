@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% block main_content %}{% endblock %}
+
+    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-800 text-green-400 p-4 font-mono text-sm" style="height: 150px; overflow-y: auto;">
+        <div id="console-content"></div>
+    </div>
+
+    <script>
+        function logToConsole(message) {
+            const consoleContent = document.getElementById('console-content');
+            const timestamp = new Date().toLocaleTimeString();
+            consoleContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex pt-8"> 
+    <!-- Sidebar fissa -->
+    <div class="w-64 bg-white border-r border-gray-200 fixed h-full overflow-y-auto">
+        <div class="p-4">
+            <h2 class="text-lg font-semibold mb-4">Le tue lezioni</h2>
+            
+            <!-- Form per nuova lezione -->
+            <div class="mb-6">
+                <select id="topic-select" class="w-full p-2 border rounded mb-3 text-gray-700">
+                    <option value="">Seleziona un argomento...</option>
+                    <optgroup label="Fondamenti di ML">
+                        <option value="Introduzione al Machine Learning">Machine Learning di Base</option>
+                        <option value="Supervised vs Unsupervised Learning">Supervised vs Unsupervised</option>
+                        <option value="Feature Engineering">Feature Engineering</option>
+                        <option value="Overfitting e Underfitting">Overfitting e Underfitting</option>
+                    </optgroup>
+                    <optgroup label="Algoritmi">
+                        <option value="Regressione Lineare">Regressione Lineare</option>
+                        <option value="Regressione Logistica">Regressione Logistica</option>
+                        <option value="Support Vector Machines">Support Vector Machines</option>
+                        <option value="Decision Trees">Alberi Decisionali</option>
+                        <option value="Random Forest">Random Forest</option>
+                        <option value="K-Means Clustering">K-Means Clustering</option>
+                    </optgroup>
+                    <optgroup label="Deep Learning">
+                        <option value="Reti Neurali Artificiali">Reti Neurali</option>
+                        <option value="Convolutional Neural Networks">CNN</option>
+                        <option value="Recurrent Neural Networks">RNN</option>
+                        <option value="Transformer Architecture">Transformer</option>
+                    </optgroup>
+                </select>
+                
+                <input type="text" 
+                       id="custom-topic" 
+                       placeholder="O scrivi un argomento..." 
+                       class="w-full p-2 border rounded mb-3 text-gray-700">
+                
+                <button onclick="generateLesson()" 
+                        class="w-full btn btn-training">
+                    Genera Lezione
+                </button>
+            </div>
+            
+            <div id="topics-list" class="space-y-2">
+                <!-- Topics will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main content con margine sinistro per la sidebar -->
+    <div class="flex-1 ml-64 p-8 overflow-y-auto">
+        <!-- Welcome message -->
+        <div id="welcome" class="max-w-2xl mx-auto text-center py-12">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Benvenuto nel Learning Hub!</h1>
+            <p class="text-gray-600 mb-8">Seleziona un argomento dalla lista o genera una nuova lezione per iniziare.</p>
+        </div>
+        
+        <!-- Loading spinner -->
+        <div id="loading" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-xl">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+                <p class="mt-4 text-gray-700">Generazione in corso...</p>
+            </div>
+        </div>
+        
+        <!-- Content area -->
+        <div id="content" class="max-w-4xl mx-auto hidden">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+function showLoading() {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('welcome').classList.add('hidden');
+    document.getElementById('content').classList.add('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+}
+
+async function generateLesson() {
+    const selectedTopic = document.getElementById('topic-select').value;
+    const customTopic = document.getElementById('custom-topic').value;
+    const topic = selectedTopic || customTopic;
+    
+    if (!topic) {
+        alert('Per favore seleziona o inserisci un argomento');
+        return;
+    }
+    
+    try {
+        showLoading();
+        
+        const response = await fetch('/generate_content', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ topic: topic })
+        });
+        
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Aggiorna la lista dei topic e carica il nuovo contenuto
+        await loadTopics();
+        await loadTopic(data.id);
+        
+        // Pulisci i campi input
+        document.getElementById('topic-select').value = '';
+        document.getElementById('custom-topic').value = '';
+        
+    } catch (error) {
+        console.error('Error generating lesson:', error);
+        alert('Si è verificato un errore durante la generazione della lezione');
+    } finally {
+        hideLoading();
+    }
+}
+
+function updateTopicsList(data) {
+    if (!data || !data.topics || !Array.isArray(data.topics)) {
+        console.error('Invalid topics data:', data);
+        return;
+    }
+    
+    const topicsList = document.getElementById('topics-list');
+    topicsList.innerHTML = '';
+    
+    data.topics.forEach(topic => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer';
+        div.onclick = () => loadTopic(topic.id);
+        
+        const statusColors = {
+            'not_started': 'bg-red-500',
+            'in_progress': 'bg-orange-500',
+            'completed': 'bg-green-500'
+        };
+        
+        div.innerHTML = `
+            <span class="flex-1 text-gray-700">${topic.title}</span>
+            <span class="w-3 h-3 rounded-full ${statusColors[topic.status]}"></span>
+        `;
+        
+        topicsList.appendChild(div);
+    });
+}
+
+async function loadTopics() {
+    try {
+        const response = await fetch('/get_topics');
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        updateTopicsList(data);
+    } catch (error) {
+        console.error('Error loading topics:', error);
+    }
+}
+
+async function submitAnswer(unitId, questionIndex, answer, isCorrect) {
+    try {
+        const response = await fetch('/submit_answer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                unit_id: unitId,
+                question_index: questionIndex,
+                answer: answer,
+                is_correct: isCorrect
+            })
+        });
+        
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        if (result.status === 'success') {
+            loadTopics();  // Aggiorna la lista per riflettere il nuovo stato
+        }
+        return result;
+    } catch (error) {
+        console.error('Error submitting answer:', error);
+        return null;
+    }
+}
+
+function checkAnswer(questionIndex) {
+    const currentTopic = document.querySelector('#content').dataset.topicId;
+    const selectedAnswer = document.querySelector(`input[name="q${questionIndex}"]:checked`);
+    
+    if (!selectedAnswer) {
+        alert('Per favore seleziona una risposta');
+        return;
+    }
+    
+    const isCorrect = selectedAnswer.value === 'true';
+    const resultDiv = document.getElementById(`result-${questionIndex}`);
+    
+    submitAnswer(currentTopic, questionIndex, selectedAnswer.value, isCorrect)
+        .then(result => {
+            if (result) {
+                resultDiv.textContent = isCorrect ? 'Corretto! ' : 'Non corretto. Riprova!';
+                resultDiv.className = `mt-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`;
+            }
+        });
+}
+
+async function loadTopic(topicId) {
+    try {
+        showLoading();
+        
+        const response = await fetch(`/get_topic/${topicId}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        const contentDiv = document.getElementById('content');
+        contentDiv.dataset.topicId = topicId;
+        
+        let quizHtml = '';
+        if (data.quiz && Array.isArray(data.quiz)) {
+            quizHtml = data.quiz.map((q, index) => `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <p class="font-semibold mb-4">${q.question}</p>
+                    <div class="space-y-2">
+                        ${q.options.map((option, optIndex) => `
+                            <div class="flex items-center">
+                                <input type="radio" 
+                                       id="q${index}-${optIndex}" 
+                                       name="q${index}" 
+                                       value="${option.correct}"
+                                       ${data.progress && data.progress.answers && 
+                                         data.progress.answers[index] !== null && 
+                                         option.correct === (data.progress.answers[index] ? 'true' : 'false') ? 
+                                         'checked' : ''}
+                                       class="mr-2">
+                                <label for="q${index}-${optIndex}">${option.text}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button onclick="checkAnswer(${index})" 
+                            class="mt-4 bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
+                        Verifica
+                    </button>
+                    <div id="result-${index}" class="mt-2"></div>
+                </div>
+            `).join('');
+        }
+        
+        contentDiv.innerHTML = `
+            <h1 class="text-3xl font-bold mb-8">${data.title}</h1>
+            <div class="prose max-w-none mb-8">
+                ${data.content}
+            </div>
+            <div class="space-y-8">
+                ${quizHtml}
+            </div>
+        `;
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading topic:', error);
+        alert('Si è verificato un errore durante il caricamento della lezione');
+        hideLoading();
+    }
+}
+
+// Carica i topic all'avvio
+loadTopics();
+</script>
+{% endblock %}

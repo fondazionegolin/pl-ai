@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-white;
+  }
+  .btn-cta {
+    @apply text-violet-500 hover:bg-violet-500 hover:text-white hover:shadow-sm transform hover:-translate-y-0.5;
+  }
+  .btn-training {
+    @apply text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-sm transform hover:-translate-y-0.5;
+  }
+  
+  textarea, input[type="text"] {
+    @apply px-4 py-3;
+  }
+
+  .nav-link {
+    @apply border-transparent border-b-2 transition-all duration-200;
+  }
+  
+  .nav-link[href="/"] {
+    @apply text-emerald-600 hover:border-emerald-500;
+  }
+  
+  .nav-link[href="/regressione"] {
+    @apply text-blue-600 hover:border-blue-500;
+  }
+  
+  .nav-link[href="/classificazione"] {
+    @apply text-violet-600 hover:border-violet-500;
+  }
+  
+  .nav-link[href="/classificazione-immagini"] {
+    @apply text-pink-600 hover:border-pink-500;
+  }
+  
+  .nav-link[href="/chatbot"] {
+    @apply text-amber-600 hover:border-amber-500;
+  }
+  
+  .nav-link[href="/generazione-immagini"] {
+    @apply text-indigo-600 hover:border-indigo-500;
+  }
+  
+  .nav-link[href="/learning"] {
+    @apply text-teal-600 hover:border-teal-500;
+  }
+}
