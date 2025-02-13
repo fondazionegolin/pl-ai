@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PL-AI Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-800">PL-AI Platform</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="userEmail" class="text-gray-600"></span>
+                        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 ease-in-out">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- Regressione -->
+                <a href="/regressione" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">📈</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Regressione</h3>
+                        <p class="mt-2 text-gray-500">Analisi predittiva avanzata per dati numerici continui.</p>
+                    </div>
+                </a>
+
+                <!-- Classificazione -->
+                <a href="/classificazione" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">🎯</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione</h3>
+                        <p class="mt-2 text-gray-500">Categorizzazione automatica di dati in classi predefinite.</p>
+                    </div>
+                </a>
+
+                <!-- Classificazione Immagini -->
+                <a href="/classificazione-immagini" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">🖼️</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione Immagini</h3>
+                        <p class="mt-2 text-gray-500">Riconoscimento e categorizzazione automatica delle immagini.</p>
+                    </div>
+                </a>
+
+                <!-- Generazione Immagini -->
+                <a href="/generazione-immagini" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">🎨</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Generazione Immagini</h3>
+                        <p class="mt-2 text-gray-500">Creazione di immagini utilizzando modelli AI avanzati.</p>
+                    </div>
+                </a>
+
+                <!-- Chatbot -->
+                <a href="/chatbot" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">💬</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Chatbot</h3>
+                        <p class="mt-2 text-gray-500">Assistente virtuale intelligente per le tue esigenze.</p>
+                    </div>
+                </a>
+
+                <!-- Learning -->
+                <a href="/learning" class="block group">
+                    <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                        <div class="text-blue-600 text-3xl mb-4">📚</div>
+                        <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Learning</h3>
+                        <p class="mt-2 text-gray-500">Risorse educative per l'apprendimento dell'AI.</p>
+                    </div>
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white mt-auto">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500"> 2025 PL-AI Platform. Tutti i diritti riservati.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "{{ firebase_api_key }}",
+            authDomain: "{{ firebase_auth_domain }}",
+            projectId: "{{ firebase_project_id }}",
+            appId: "{{ firebase_app_id }}"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // DOM elements
+        const userEmail = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Verifica il token con il backend
+        async function verifyTokenWithBackend(token) {
+            try {
+                const response = await fetch('/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Token verification failed');
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Token verification error:', error);
+                return false;
+            }
+        }
+
+        // Handle logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                sessionStorage.removeItem('authToken');
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error signing out:', error);
+                alert('Errore durante il logout');
+            }
+        });
+
+        // Check auth state
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                try {
+                    const token = await user.getIdToken(true);
+                    const isValid = await verifyTokenWithBackend(token);
+                    
+                    if (!isValid) {
+                        throw new Error('Token verification failed');
+                    }
+
+                    // Salva il token e aggiorna l'interfaccia
+                    sessionStorage.setItem('authToken', token);
+                    userEmail.textContent = user.email;
+
+                    // Aggiungi il token a tutte le richieste fetch
+                    const originalFetch = window.fetch;
+                    window.fetch = async function(...args) {
+                        const [resource, config] = args;
+                        const token = sessionStorage.getItem('authToken');
+                        
+                        if (token) {
+                            args[1] = {
+                                ...config,
+                                headers: {
+                                    ...config?.headers,
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            };
+                        }
+                        
+                        const response = await originalFetch.apply(this, args);
+                        
+                        // Se riceviamo un 401, il token non è più valido
+                        if (response.status === 401) {
+                            const data = await response.json();
+                            // Pulisci lo storage e reindirizza
+                            sessionStorage.removeItem('authToken');
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            } else {
+                                window.location.href = '/';
+                            }
+                            return response;
+                        }
+                        
+                        return response;
+                    };
+
+                } catch (error) {
+                    console.error('Authentication error:', error);
+                    sessionStorage.removeItem('authToken');
+                    window.location.href = '/';
+                }
+            } else {
+                sessionStorage.removeItem('authToken');
+                window.location.href = '/';
+            }
+        });
+    </script>
+</body>
+</html>

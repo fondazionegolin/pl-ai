@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -14,9 +14,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 import tensorflow as tf
-from tensorflow.keras.models import Sequential, Model, load_model # type: ignore
-from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout  # type: ignore
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array # type: ignore
+from tensorflow.keras.models import Sequential, Model, load_model
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
@@ -24,6 +24,7 @@ import time
 # Import dei blueprint
 from routes.chatbot import chatbot
 from routes.learning import learning
+from routes.auth import auth_bp, login_required
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -31,9 +32,11 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')  # Aggiunta chiave segreta
 
 # Registrazione dei blueprint
-app.register_blueprint(chatbot, url_prefix='')  # No prefix per mantenere gli URL come prima
+app.register_blueprint(auth_bp, url_prefix='')
+app.register_blueprint(chatbot, url_prefix='')
 app.register_blueprint(learning, url_prefix='')
 
 # Variabili globali per i modelli
@@ -41,7 +44,7 @@ model = None
 le = None
 image_model = None
 class_names = []
-IMG_SIZE = 224  # Dimensione standard per le immagini
+IMG_SIZE = 224
 
 # Assicurati che la cartella uploads esista
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -66,25 +69,56 @@ class CustomCallback(tf.keras.callbacks.Callback):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    # Se l'utente ha un token valido nell'header, reindirizza alla dashboard
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        try:
+            token = auth_header.split(' ')[1]
+            auth.verify_id_token(token)
+            return redirect(url_for('dashboard'))
+        except:
+            pass
+    
+    # Altrimenti mostra la landing page
+    return render_template('landing.html',
+                         firebase_api_key=os.getenv('FIREBASE_API_KEY'),
+                         firebase_auth_domain=os.getenv('FIREBASE_AUTH_DOMAIN'),
+                         firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
+                         firebase_app_id=os.getenv('FIREBASE_APP_ID'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html',
+                         firebase_api_key=os.getenv('FIREBASE_API_KEY'),
+                         firebase_auth_domain=os.getenv('FIREBASE_AUTH_DOMAIN'),
+                         firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
+                         firebase_app_id=os.getenv('FIREBASE_APP_ID'),
+                         firebase_measurement_id=os.getenv('FIREBASE_MEASUREMENT_ID'),
+                         firebase_messaging_sender_id=os.getenv('FIREBASE_MESSAGING_SENDER_ID'))
 
 @app.route('/regressione')
+@login_required
 def regressione():
     return render_template('regressione.html')
 
 @app.route('/classificazione')
+@login_required
 def classificazione():
     return render_template('classificazione.html')
 
 @app.route('/classificazione-immagini')
+@login_required
 def classificazione_immagini():
     return render_template('classificazione_immagini.html')
 
 @app.route('/generazione-immagini')
+@login_required
 def generazione_immagini():
     return render_template('generazione_immagini.html')
 
 @app.route('/upload-regression', methods=['POST'])
+@login_required
 def upload_regression():
     if 'file' not in request.files:
         return jsonify({'error': 'Nessun file caricato'}), 400
@@ -115,6 +149,7 @@ def upload_regression():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/predict-regression', methods=['POST'])
+@login_required
 def predict_regression():
     try:
         data = request.json
@@ -128,6 +163,7 @@ def predict_regression():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/upload-classification', methods=['POST'])
+@login_required
 def upload_classification():
     global model, le
     if 'file' not in request.files:
@@ -158,6 +194,7 @@ def upload_classification():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/predict-classification', methods=['POST'])
+@login_required
 def predict_classification():
     global model, le
     try:
@@ -177,6 +214,7 @@ def predict_classification():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/train-image-classifier', methods=['POST'])
+@login_required
 def train_image_classifier():
     global image_model, class_names
     try:
@@ -307,6 +345,7 @@ def train_image_classifier():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/predict-image', methods=['POST'])
+@login_required
 def predict_image():
     global image_model, class_names
     try:
@@ -353,6 +392,7 @@ def predict_image():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/generate-image', methods=['POST'])
+@login_required
 def generate_image():
     try:
         data = request.json
@@ -438,6 +478,7 @@ def generate_image():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/translate-enhance-prompt', methods=['POST'])
+@login_required
 def translate_enhance_prompt():
     try:
         data = request.json

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PL-AI Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Hero Section -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-800">PL-AI Platform</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 ease-in-out">
+                            Accedi
+                        </button>
+                        <button id="registerBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 ease-in-out">
+                            Registrati
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="text-center">
+                <h2 class="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+                    <span class="block">Benvenuto nella</span>
+                    <span class="block text-blue-600">PL-AI Platform</span>
+                </h2>
+                <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                    Una piattaforma avanzata per l'intelligenza artificiale che offre strumenti potenti per regressione,
+                    classificazione, elaborazione di immagini e molto altro.
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- Regressione -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">📈</div>
+                    <h3 class="text-lg font-medium text-gray-900">Regressione</h3>
+                    <p class="mt-2 text-gray-500">Analisi predittiva avanzata per dati numerici continui.</p>
+                </div>
+
+                <!-- Classificazione -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">🎯</div>
+                    <h3 class="text-lg font-medium text-gray-900">Classificazione</h3>
+                    <p class="mt-2 text-gray-500">Categorizzazione automatica di dati in classi predefinite.</p>
+                </div>
+
+                <!-- Classificazione Immagini -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">🖼️</div>
+                    <h3 class="text-lg font-medium text-gray-900">Classificazione Immagini</h3>
+                    <p class="mt-2 text-gray-500">Riconoscimento e categorizzazione automatica delle immagini.</p>
+                </div>
+
+                <!-- Generazione Immagini -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">🎨</div>
+                    <h3 class="text-lg font-medium text-gray-900">Generazione Immagini</h3>
+                    <p class="mt-2 text-gray-500">Creazione di immagini utilizzando modelli AI avanzati.</p>
+                </div>
+
+                <!-- Chatbot -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">💬</div>
+                    <h3 class="text-lg font-medium text-gray-900">Chatbot</h3>
+                    <p class="mt-2 text-gray-500">Assistente virtuale intelligente per le tue esigenze.</p>
+                </div>
+
+                <!-- Learning -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="text-blue-600 text-2xl mb-4">📚</div>
+                    <h3 class="text-lg font-medium text-gray-900">Learning</h3>
+                    <p class="mt-2 text-gray-500">Risorse educative per l'apprendimento dell'AI.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white">
+            <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500"> 2025 PL-AI Platform. Tutti i diritti riservati.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center">Accedi</h2>
+            
+            <!-- Google Login Button -->
+            <button id="googleLoginBtn" class="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg mb-4 hover:bg-gray-50 transition-colors flex items-center justify-center">
+                <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2">
+                Continua con Google
+            </button>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">oppure</span>
+                </div>
+            </div>
+
+            <!-- Email/Password Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="loginEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="loginPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Accedi
+                </button>
+            </form>
+
+            <button id="closeLoginModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center">Registrati</h2>
+
+            <!-- Google Register Button -->
+            <button id="googleRegisterBtn" class="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg mb-4 hover:bg-gray-50 transition-colors flex items-center justify-center">
+                <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2">
+                Registrati con Google
+            </button>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">oppure</span>
+                </div>
+            </div>
+
+            <!-- Email/Password Form -->
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label for="registerEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="registerEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="registerPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Conferma Password</label>
+                    <input type="password" id="confirmPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                    Registrati
+                </button>
+            </form>
+
+            <button id="closeRegisterModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "{{ firebase_api_key }}",
+            authDomain: "{{ firebase_auth_domain }}",
+            projectId: "{{ firebase_project_id }}",
+            appId: "{{ firebase_app_id }}"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // DOM Elements
+        const loginModal = document.getElementById('loginModal');
+        const registerModal = document.getElementById('registerModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const closeRegisterModal = document.getElementById('closeRegisterModal');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const googleRegisterBtn = document.getElementById('googleRegisterBtn');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+
+        // Show/Hide Modals
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideModal(modal) {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        loginBtn.addEventListener('click', () => showModal(loginModal));
+        registerBtn.addEventListener('click', () => showModal(registerModal));
+        closeLoginModal.addEventListener('click', () => hideModal(loginModal));
+        closeRegisterModal.addEventListener('click', () => hideModal(registerModal));
+
+        // Close modal when clicking outside
+        loginModal.addEventListener('click', (e) => {
+            if (e.target === loginModal) hideModal(loginModal);
+        });
+        registerModal.addEventListener('click', (e) => {
+            if (e.target === registerModal) hideModal(registerModal);
+        });
+
+        // Handle Google Auth
+        async function handleGoogleAuth() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+                const token = await user.getIdToken(true);
+                
+                const response = await fetch('/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    sessionStorage.setItem('authToken', token);
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error('Token verification failed');
+                }
+            } catch (error) {
+                console.error('Google auth error:', error);
+                alert('Errore durante l\'autenticazione con Google');
+            }
+        }
+
+        googleLoginBtn.addEventListener('click', handleGoogleAuth);
+        googleRegisterBtn.addEventListener('click', handleGoogleAuth);
+
+        // Handle Email/Password Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const token = await userCredential.user.getIdToken(true);
+                
+                const response = await fetch('/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    sessionStorage.setItem('authToken', token);
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error('Token verification failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Errore durante il login: ' + error.message);
+            }
+        });
+
+        // Handle Email/Password Registration
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('Le password non coincidono');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const token = await userCredential.user.getIdToken(true);
+                
+                const response = await fetch('/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    sessionStorage.setItem('authToken', token);
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error('Token verification failed');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Errore durante la registrazione: ' + error.message);
+            }
+        });
+
+        // Check if user is already logged in
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                try {
+                    const token = await user.getIdToken(true);
+                    const response = await fetch('/verify-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        sessionStorage.setItem('authToken', token);
+                        window.location.href = '/dashboard';
+                    }
+                } catch (error) {
+                    console.error('Token verification error:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
