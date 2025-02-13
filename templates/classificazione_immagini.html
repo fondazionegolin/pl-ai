@@ -1,114 +1,298 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold text-gray-800">Classificazione Immagini</h2>
-            <div class="actions-container">
-                <form id="training-form" class="inline">
-                    <button type="submit" class="btn btn-training">
-                        Addestra Modello
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 p-6 flex justify-center">
+    <div class="container mx-auto px-4">
+        <!-- Animated Header -->
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-4">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 animate-gradient">
+                    Image Classification
+                </span>
+            </h1>
+            <p class="text-slate-600 text-lg">Train your custom image classifier with ease</p>
+        </div>
+
+        <!-- Main Content Container -->
+        <div class="flex gap-8 flex-col lg:flex-row justify-center items-start">
+            <!-- Training Container - 40% width -->
+            <div class="lg:w-[40vw] flex-shrink-0">
+                <div class="sticky top-8">
+                <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+                <div class="space-y-8">
+                    <!-- Add Class Section -->
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Add New Class
+                </h3>
+                <div class="flex gap-4">
+                    <input type="text" id="class-name" placeholder="Enter class name" 
+                           class="flex-1 px-6 py-4 rounded-xl border border-purple-100 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all duration-200 text-lg placeholder:text-slate-400">
+                    <button onclick="addClass()" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Add Class
+                    </button>
+                </div>
+                    </div>
+
+                    <!-- Classes Grid -->
+                    <div id="classes-container" class="grid grid-cols-1 gap-6">
+                <style>
+                    .image-container {
+                        height: 300px;
+                        overflow-y: auto;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 0.75rem;
+                        padding: 1rem;
+                        background: white;
+                        width: 100%;
+                    }
+                    .image-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                        gap: 1rem;
+                        padding: 0.5rem;
+                        width: 100%;
+                    }
+                    .thumbnail-container {
+                        width: 100%;
+                        height: 80px;
+                        overflow: hidden;
+                        border-radius: 0.375rem;
+                        border: 1px solid #e5e7eb;
+                        aspect-ratio: 5/4;
+                    }
+                    .thumbnail-container img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                </style>
+                <!-- Classes will be added here dynamically -->
+                    </div>
+
+                    <!-- Training Section -->
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Model Training</h2>
+                        <p class="text-slate-600">Train your model with collected images</p>
+                    </div>
+                </div>
+                
+                <form id="training-form" class="w-full md:w-auto">
+                    <button type="submit" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Train Model
                     </button>
                 </form>
-                <form id="prediction-form" class="prediction-form inline">
-                    <input type="file" id="test-image" accept="image/*" class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                    <button type="submit" class="btn btn-testing">
-                        Classifica
+                    </div>
+                </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Classification Container - 30% width -->
+            <div class="lg:w-[30vw] flex-shrink-0">
+                <div class="sticky top-8">
+                    <div class="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+                <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 h-full">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Classify Image
+                </h3>
+                <div class="mb-6">
+                    <div class="flex gap-4 mb-4">
+                        <button onclick="toggleRealtimeClassification()" id="realtime-toggle" class="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Avvia Classificazione Real-time
+                        </button>
+                    </div>
+                    <div id="realtime-preview" class="hidden">
+                        <video id="realtime-video" class="w-full max-w-2xl mx-auto rounded-xl shadow-lg" autoplay playsinline></video>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold mb-4">Classificazione da File</h4>
+                    <form id="prediction-form" class="flex flex-col md:flex-row gap-4">
+                        <input type="file" id="test-image" accept="image/*" 
+                               class="flex-1 block w-full text-slate-600 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 transition-all duration-300">
+                        <button type="submit" class="px-8 py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        Classify
                     </button>
                 </form>
             </div>
-        </div>
-        
-        <!-- Form per aggiungere una nuova classe -->
-        <div class="mb-4">
-            <input type="text" id="class-name" placeholder="Nome della classe" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-            <button onclick="addClass()" class="btn btn-cta">
-                Aggiungi Classe
-            </button>
-        </div>
 
-        <!-- Container per le classi -->
-        <div id="classes-container">
-            <!-- Le classi verranno aggiunte qui dinamicamente -->
-        </div>
-
-        <div id="prediction-result" class="hidden mt-4">
-            <h3 class="text-xl font-semibold text-indigo-600 mb-2">Risultato:</h3>
-            <div id="predictions-container" class="space-y-2">
-                <!-- I risultati delle predizioni verranno inseriti qui -->
+            <!-- Results Section -->
+            <div id="prediction-result" class="hidden">
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Results</h3>
+                    <div id="predictions-container" class="space-y-4">
+                        <!-- Prediction results will be inserted here -->
+                    </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Notification Container -->
+<div class="notification-container" id="notification-container"></div>
+
 <style>
-    .class-container {
-        height: 300px;  
-        overflow-y: auto;
-        border: 1px solid #e5e7eb;
+    /* Notification styles */
+    .notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+
+    .notification {
+        background: white;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
         border-radius: 0.5rem;
-        padding: 0.75rem;  
-        margin-bottom: 0.75rem;  
-        width: 100%;
-    }
-    
-    .image-preview {
-        width: 60px;  
-        height: 60px;  
-        object-fit: cover;
-        margin: 0.25rem;
-        border-radius: 0.25rem;
-    }
-    
-    .image-grid {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.25rem;  
-        margin-top: 0.5rem;
-        min-height: 100px;  
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+        border-left: 4px solid;
+    }
+
+    .notification.success {
+        border-color: #10B981;
+    }
+
+    .notification.error {
+        border-color: #EF4444;
+    }
+
+    .notification.info {
+        border-color: #3B82F6;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .animate-gradient {
+        background-size: 200% auto;
+        animation: gradient 4s linear infinite;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .class-container {
+        @apply bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300;
+    }
+
+    .image-preview {
+        @apply w-20 h-20 object-cover rounded-lg shadow-sm hover:shadow-md transition-all duration-300;
+    }
+
+    .image-grid {
+        @apply flex flex-wrap gap-2 mt-4 min-h-[100px] p-4 bg-gray-50/50 rounded-xl;
     }
 
     .webcam-section {
-        display: flex;
-        gap: 0.75rem;
-        margin-top: 0.5rem;
+        @apply flex flex-col md:flex-row gap-4 mt-4;
     }
 
     .webcam-preview {
-        width: 160px;
-        height: 120px;
-        border-radius: 0.25rem;
-        background-color: #f3f4f6;
+        @apply w-full md:w-64 h-48 rounded-xl bg-gray-100 shadow-inner;
     }
 
     .webcam-images {
-        flex: 1;
-        overflow-y: auto;
+        @apply flex-1 overflow-y-auto;
     }
 
     .webcam-controls {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-    }
-
-    .actions-container {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-top: 1rem;
-        justify-content: flex-end;
-    }
-
-    .prediction-form {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+        @apply flex gap-2 mt-4;
     }
 </style>
 
 <script>
+// Funzione per mostrare le notifiche
+window.showNotification = function(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    let icon = '';
+    switch(type) {
+        case 'success':
+            icon = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            break;
+        case 'error':
+            icon = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            break;
+        default:
+            icon = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    }
+    
+    notification.innerHTML = `
+        ${icon}
+        <span class="flex-1">${message}</span>
+        <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+};
+
 // Variabili globali
 window.classes = new Map();
 window.captureIntervals = new Map();
@@ -118,11 +302,11 @@ window.classImages = new Map();
 window.addClass = function() {
     const className = document.getElementById('class-name').value.trim();
     if (!className) {
-        alert('Inserisci un nome per la classe');
+        showNotification('Inserisci un nome per la classe', 'error');
         return;
     }
     if (window.classes.has(className)) {
-        alert('Questa classe esiste già');
+        showNotification('Questa classe esiste già', 'error');
         return;
     }
 
@@ -134,8 +318,11 @@ window.addClass = function() {
     classDiv.className = 'class-container mb-4';
     classDiv.setAttribute('data-class', className);
     classDiv.innerHTML = `
-        <div class="flex justify-between items-center mb-2">
-            <h3 class="text-lg font-semibold">${className}</h3>
+        <div class="max-w-4xl mx-auto px-4 py-8 flex justify-between items-center mb-2">
+            <div class="flex items-center gap-3">
+                <h3 class="text-lg font-semibold">${className}</h3>
+                <span class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-full" id="counter-${className}">0/1000</span>
+            </div>
             <div class="flex gap-2">
                 <input type="file" accept="image/*" multiple onchange="handleImageUpload(event, '${className}')" class="hidden" id="file-input-${className}">
                 <button onclick="document.getElementById('file-input-${className}').click()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
@@ -174,6 +361,7 @@ window.addClass = function() {
     
     classesContainer.appendChild(classDiv);
     document.getElementById('class-name').value = '';
+    showNotification(`Classe ${className} aggiunta con successo`, 'success');
     updateImageGrid(className);
 };
 
@@ -185,6 +373,12 @@ window.removeClass = function(className) {
     if (classDiv) {
         classDiv.remove();
     }
+    // Rimuovi anche il contatore se esiste
+    const counter = document.getElementById(`counter-${className}`);
+    if (counter) {
+        counter.remove();
+    }
+    showNotification(`Classe ${className} rimossa`, 'info');
 };
 
 // Funzione per gestire l'upload delle immagini
@@ -212,13 +406,27 @@ window.updateImageGrid = function(className) {
     const imageGrid = document.getElementById(`image-grid-${className}`);
     const images = window.classImages.get(className) || [];
     
-    imageGrid.innerHTML = '';
-    images.forEach(imageData => {
-        const img = document.createElement('img');
-        img.src = imageData;
-        img.className = 'image-preview';
-        imageGrid.appendChild(img);
-    });
+    imageGrid.innerHTML = `
+        <div class="image-container">
+            <div class="image-grid">
+                ${images.map(imageData => `
+                    <div class="thumbnail-container">
+                        <img src="${imageData}" alt="${className} image">
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    // Aggiorna il contatore
+    const counter = document.getElementById(`counter-${className}`);
+    if (counter) {
+        counter.textContent = `${images.length}/1000`;
+        if (images.length >= 1000) {
+            counter.classList.add('bg-green-100', 'text-green-700');
+            counter.classList.remove('bg-gray-100', 'text-gray-700');
+        }
+    }
 };
 
 // Funzioni per la webcam
@@ -233,7 +441,7 @@ window.toggleWebcam = async function(className) {
             container.classList.remove('hidden');
         } catch (err) {
             console.error('Errore accesso webcam:', err);
-            alert('Errore nell\'accesso alla webcam');
+            showNotification('Errore nell\'accesso alla webcam', 'error');
         }
     } else {
         stopWebcam(className);
@@ -245,9 +453,22 @@ window.startAutoCapture = function(className) {
         return;
     }
 
+    const images = window.classImages.get(className) || [];
+    if (images.length >= 1000) {
+        logToConsole(`Limite massimo di 1000 immagini raggiunto per la classe ${className}`);
+        return;
+    }
+
     const interval = setInterval(() => {
+        const currentImages = window.classImages.get(className) || [];
+        if (currentImages.length >= 1000) {
+            logToConsole(`Limite massimo di 1000 immagini raggiunto per la classe ${className}`);
+            stopWebcam(className);
+            return;
+        }
         captureImage(className);
-    }, 100);
+        logToConsole(`Acquisita immagine ${currentImages.length + 1}/1000 per la classe ${className}`);
+    }, 167); // Circa 6 frame al secondo (1000ms / 6 ≈ 167ms)
 
     window.captureIntervals.set(className, interval);
     logToConsole(`Avviata acquisizione automatica per la classe ${className}`);
@@ -272,13 +493,27 @@ window.stopWebcam = function(className) {
 window.captureImage = function(className) {
     const video = document.getElementById(`webcam-video-${className}`);
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    
+    // Riduci la risoluzione a 224x224 (dimensione comune per modelli di classificazione)
+    const targetSize = 224;
+    const aspectRatio = video.videoWidth / video.videoHeight;
+    
+    if (aspectRatio > 1) {
+        canvas.width = targetSize;
+        canvas.height = targetSize / aspectRatio;
+    } else {
+        canvas.width = targetSize * aspectRatio;
+        canvas.height = targetSize;
+    }
     
     const context = canvas.getContext('2d');
+    // Abilita la smoothing per una migliore qualità del ridimensionamento
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const imageData = canvas.toDataURL('image/jpeg');
+    // Usa una qualità JPEG più bassa (0.6 = 60%) per ridurre la dimensione del file
+    const imageData = canvas.toDataURL('image/jpeg', 0.6);
     if (!window.classImages.has(className)) {
         window.classImages.set(className, []);
     }
@@ -295,13 +530,116 @@ window.captureImage = function(className) {
 };
 
 // Event listeners
+// Funzione per la classificazione in tempo reale
+window.realtimeClassificationInterval = null;
+
+window.toggleRealtimeClassification = async function() {
+    const video = document.getElementById('realtime-video');
+    const preview = document.getElementById('realtime-preview');
+    const button = document.getElementById('realtime-toggle');
+
+    if (window.realtimeClassificationInterval) {
+        // Stop classificazione
+        clearInterval(window.realtimeClassificationInterval);
+        window.realtimeClassificationInterval = null;
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        preview.classList.add('hidden');
+        button.innerHTML = `
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            Avvia Classificazione Real-time
+        `;
+        button.classList.remove('from-red-600', 'to-red-700', 'hover:from-red-700', 'hover:to-red-800');
+        button.classList.add('from-green-600', 'to-teal-600', 'hover:from-green-700', 'hover:to-teal-700');
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        preview.classList.remove('hidden');
+        button.innerHTML = `
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Stop Classificazione Real-time
+        `;
+        button.classList.remove('from-green-600', 'to-teal-600', 'hover:from-green-700', 'hover:to-teal-700');
+        button.classList.add('from-red-600', 'to-red-700', 'hover:from-red-700', 'hover:to-red-800');
+
+        // Avvia classificazione ogni 500ms (2 fps)
+        window.realtimeClassificationInterval = setInterval(async () => {
+            const canvas = document.createElement('canvas');
+            const targetSize = 224;
+            const aspectRatio = video.videoWidth / video.videoHeight;
+            
+            if (aspectRatio > 1) {
+                canvas.width = targetSize;
+                canvas.height = targetSize / aspectRatio;
+            } else {
+                canvas.width = targetSize * aspectRatio;
+                canvas.height = targetSize;
+            }
+            
+            const context = canvas.getContext('2d');
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.6);
+            
+            try {
+                const formData = new FormData();
+                const blob = await (await fetch(imageData)).blob();
+                formData.append('image', blob, 'realtime-frame.jpg');
+
+                const response = await fetch('/predict-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const container = document.getElementById('predictions-container');
+                container.innerHTML = '';
+                document.getElementById('prediction-result').classList.remove('hidden');
+
+                data.predictions.forEach(pred => {
+                    const predDiv = document.createElement('div');
+                    predDiv.className = 'mb-2';
+                    predDiv.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">${pred.class}</span>
+                            <span class="text-sm font-medium text-gray-700">${pred.confidence.toFixed(2)}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${pred.confidence}%"></div>
+                        </div>
+                    `;
+                    container.appendChild(predDiv);
+                });
+            } catch (error) {
+                console.error('Errore nella classificazione:', error);
+            }
+        }, 500);
+
+    } catch (error) {
+        alert('Errore nell\'accesso alla webcam');
+        console.error(error);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Training form handler
     document.getElementById('training-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         if (window.classes.size === 0) {
-            alert('Aggiungi almeno una classe con delle immagini');
+            showNotification('Aggiungi almeno una classe con delle immagini', 'error');
             return;
         }
 
@@ -319,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!hasImages) {
-            alert('Aggiungi almeno un\'immagine per classe');
+            showNotification('Aggiungi almeno un\'immagine per classe', 'error');
             return;
         }
 
@@ -336,9 +674,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             logToConsole(`Training completato con successo!\nAccuracy: ${(data.training_accuracy * 100).toFixed(2)}%\nValidation Accuracy: ${(data.validation_accuracy * 100).toFixed(2)}%`);
+            showNotification(`Training completato con successo! Accuracy: ${(data.training_accuracy * 100).toFixed(2)}%`, 'success');
         } catch (error) {
             logToConsole('Errore: ' + error.message);
-            alert('Errore: ' + error.message);
+            showNotification('Errore: ' + error.message, 'error');
         }
     });
 
@@ -347,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const file = document.getElementById('test-image').files[0];
         if (!file) {
-            alert('Seleziona un\'immagine da classificare');
+            showNotification('Seleziona un\'immagine da classificare', 'error');
             return;
         }
 
@@ -386,11 +725,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             logToConsole(`Previsione completata: ${data.top_prediction} (${data.predictions[0].confidence.toFixed(2)}%)`);
+            showNotification(`Previsione completata: ${data.top_prediction} (${data.predictions[0].confidence.toFixed(2)}%)`, 'success');
         } catch (error) {
             logToConsole('Errore: ' + error.message);
-            alert('Errore: ' + error.message);
+            showNotification('Errore: ' + error.message, 'error');
         }
     });
 });
 </script>
-{% endblock %}
+{% endblock %} 

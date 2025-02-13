@@ -3,15 +3,22 @@
 {% block content %}
     {% block main_content %}{% endblock %}
 
-    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-800 text-green-400 p-4 font-mono text-sm" style="height: 150px; overflow-y: auto;">
-        <div id="console-content"></div>
+    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 p-4 font-mono text-sm" style="height: 300px; overflow-y: auto; z-index: 1000;">
+        <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+            <span class="font-bold">Console di Training</span>
+            <button onclick="document.getElementById('console-content').innerHTML = ''" class="text-gray-400 hover:text-white">Clear</button>
+        </div>
+        <div id="console-content" class="space-y-1"></div>
     </div>
 
     <script>
         function logToConsole(message) {
             const consoleContent = document.getElementById('console-content');
             const timestamp = new Date().toLocaleTimeString();
-            consoleContent.innerHTML += `[${timestamp}] ${message}<br>`;
+            const logEntry = document.createElement('div');
+            logEntry.className = 'py-1';
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            consoleContent.appendChild(logEntry);
             consoleContent.scrollTop = consoleContent.scrollHeight;
         }
     </script>

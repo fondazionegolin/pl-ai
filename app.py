@@ -14,9 +14,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 import tensorflow as tf
-from tensorflow.keras.models import Sequential, Model, load_model
-from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.models import Sequential, Model, load_model # type: ignore
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout  # type: ignore
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array # type: ignore
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time

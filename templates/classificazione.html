@@ -1,53 +1,155 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-gray-700 mb-8">Classificazione di Dati</h1>
+<!-- Notification System -->
+<div id="notification" class="fixed top-4 right-4 max-w-sm w-full hidden transform transition-all duration-300 z-50">
+    <div class="bg-white rounded-xl shadow-xl border border-gray-100 p-4">
+        <div class="flex items-start">
+            <div id="notification-icon" class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+                <!-- Icon will be injected by JS -->
+            </div>
+            <div class="flex-1 pt-0.5">
+                <p id="notification-text" class="text-sm font-medium text-gray-900"></p>
+            </div>
+            <div class="ml-4 flex-shrink-0 flex">
+                <button onclick="hideNotification()" class="rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Chiudi</span>
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Header con gradiente -->
+    <h1 class="p-4 text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        Classificazione di Dati
+    </h1>
 
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Carica i tuoi dati</h2>
-        <p class="text-gray-600 mb-4">Carica un file CSV con multiple colonne. L'ultima colonna sarà considerata come la classe target.</p>
+    <!-- Sezione Upload -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 hover:shadow-2xl transition-all duration-300">
+        <div class="flex items-center mb-6">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mr-4">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-800">Carica i tuoi dati</h2>
+        </div>
+        
+        <p class="text-gray-600 mb-6 leading-relaxed">
+            Carica un file CSV con multiple colonne. L'ultima colonna sarà considerata come la classe target.
+        </p>
         
         <form id="upload-form" class="mb-6">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="csv-file">
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2" for="csv-file">
                     File CSV
                 </label>
-                <input type="file" id="csv-file" accept=".csv" 
-                       class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                <div class="relative">
+                    <input type="file" id="csv-file" accept=".csv" 
+                           class="block w-full text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all duration-300">
+                </div>
             </div>
-            <button type="submit" class="btn btn-training">
+            <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg hover:shadow-xl transition-all duration-300">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
                 Carica e Addestra
             </button>
         </form>
     </div>
 
-    <div id="prediction-section" class="bg-white p-6 rounded-lg shadow-md hidden">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Fai una previsione</h2>
-        <form id="prediction-form">
-            <div id="input-fields" class="mb-4">
+    <!-- Sezione Predizione -->
+    <div id="prediction-section" class="bg-white rounded-2xl shadow-xl p-8 hidden border border-gray-100 hover:shadow-2xl transition-all duration-300">
+        <div class="flex items-center mb-6">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-800">Fai una previsione</h2>
+        </div>
+
+        <form id="prediction-form" class="mb-6">
+            <div id="input-fields" class="space-y-4">
                 <!-- I campi di input verranno generati dinamicamente qui -->
             </div>
-            <button type="submit" class="btn btn-testing">
+            <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg hover:shadow-xl transition-all duration-300 mt-6">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
                 Prevedi
             </button>
         </form>
 
-        <div id="result" class="mt-6 hidden">
-            <h3 class="text-xl font-semibold text-indigo-600 mb-2">Risultato:</h3>
-            <p id="prediction-result" class="text-gray-700"></p>
+        <div id="result" class="mt-8 hidden">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Risultato:</h3>
+                <p id="prediction-result" class="text-lg text-indigo-700 font-medium"></p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+// Notification System
+function showNotification(message, type = 'info') {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notification-text');
+    const notificationIcon = document.getElementById('notification-icon');
+
+    // Set message
+    notificationText.textContent = message;
+
+    // Set style based on type
+    let iconHtml = '';
+    switch(type) {
+        case 'error':
+            notificationIcon.className = 'flex-shrink-0 w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3';
+            iconHtml = `<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>`;
+            break;
+        case 'success':
+            notificationIcon.className = 'flex-shrink-0 w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3';
+            iconHtml = `<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>`;
+            break;
+        default: // info
+            notificationIcon.className = 'flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3';
+            iconHtml = `<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>`;
+    }
+    notificationIcon.innerHTML = iconHtml;
+
+    // Show notification
+    notification.classList.remove('hidden', 'translate-y-2', 'opacity-0');
+    notification.classList.add('translate-y-0', 'opacity-100');
+
+    // Auto hide after 5 seconds
+    setTimeout(hideNotification, 5000);
+}
+
+function hideNotification() {
+    const notification = document.getElementById('notification');
+    notification.classList.add('translate-y-2', 'opacity-0');
+    setTimeout(() => {
+        notification.classList.add('hidden');
+    }, 300);
+}
+
 let modelData = null;
 
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = document.getElementById('csv-file').files[0];
     if (!file) {
-        alert('Seleziona un file CSV');
+        showNotification('Seleziona un file CSV', 'error');
         return;
     }
 
@@ -74,40 +176,45 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         inputFields.innerHTML = '';
         data.columns.forEach(column => {
             inputFields.innerHTML += `
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="${column}">
+                <div class="space-y-2">
+                    <label class="block text-gray-700 font-medium" for="${column}">
                         ${column}
                     </label>
                     <input type="number" step="any" id="${column}" name="${column}"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-colors duration-200">
                 </div>
             `;
         });
 
         logToConsole('Modello addestrato con successo!');
         logToConsole('Classi disponibili: ' + data.classes.join(', '));
+        showNotification('Modello addestrato con successo!', 'success');
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
+        showNotification('Errore: ' + error.message, 'error');
     }
 });
 
 document.getElementById('prediction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!modelData) {
-        alert('Carica prima un modello');
+        showNotification('Carica prima un modello', 'error');
         return;
     }
 
     const inputValues = {};
+    let hasError = false;
     modelData.columns.forEach(column => {
         const value = document.getElementById(column).value;
         if (!value) {
-            alert(`Inserisci un valore per ${column}`);
+            showNotification(`Inserisci un valore per ${column}`, 'error');
+            hasError = true;
             return;
         }
         inputValues[column] = parseFloat(value);
     });
+
+    if (hasError) return;
 
     try {
         logToConsole('Calcolo della previsione...');
@@ -128,9 +235,10 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         document.getElementById('prediction-result').textContent = 
             `Classe prevista: ${data.prediction}`;
         logToConsole(`Previsione calcolata: ${data.prediction}`);
+        showNotification('Previsione calcolata con successo!', 'success');
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
+        showNotification('Errore: ' + error.message, 'error');
     }
 });
 </script>

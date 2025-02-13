@@ -1,57 +1,178 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-gray-700 mb-8">Regressione Lineare</h1>
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Header con gradiente -->
+    <h1 class="p-4 text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        Regressione Lineare
+    </h1>
 
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Carica i tuoi dati</h2>
-        <p class="text-gray-600 mb-4">Carica un file CSV con due colonne. La prima colonna sarà usata per prevedere la seconda.</p>
+    <!-- Sezione Upload -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 hover:shadow-2xl transition-all duration-300">
+        <div class="flex items-center mb-6">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mr-4">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-800">Carica i tuoi dati</h2>
+        </div>
+        
+        <p class="text-gray-600 mb-6 leading-relaxed">
+            Carica un file CSV con due colonne. La prima colonna sarà usata per prevedere la seconda.
+        </p>
         
         <form id="upload-form" class="mb-6">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="csv-file">
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2" for="csv-file">
                     File CSV
                 </label>
-                <input type="file" id="csv-file" accept=".csv" 
-                       class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                <div class="relative">
+                    <input type="file" id="csv-file" accept=".csv" 
+                           class="block w-full text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all duration-300">
+                </div>
             </div>
-            <button type="submit" class="btn btn-training">
+            <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg hover:shadow-xl transition-all duration-300">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
                 Carica e Addestra
             </button>
         </form>
     </div>
 
-    <div id="prediction-section" class="bg-white p-6 rounded-lg shadow-md hidden">
-        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Fai una previsione</h2>
-        <form id="prediction-form">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="input-value">
+    <!-- Sezione Predizione -->
+    <div id="prediction-section" class="bg-white rounded-2xl shadow-xl p-8 hidden border border-gray-100 hover:shadow-2xl transition-all duration-300">
+        <div class="flex items-center mb-6">
+            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-800">Fai una previsione</h2>
+        </div>
+
+        <form id="prediction-form" class="mb-6">
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2" for="input-value">
                     <span id="input-label">Valore di input</span>
                 </label>
                 <input type="number" step="any" id="input-value" 
-                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                       class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-colors duration-200">
             </div>
-            <button type="submit" class="btn btn-testing">
+            <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg hover:shadow-xl transition-all duration-300">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
                 Prevedi
             </button>
         </form>
 
-        <div id="result" class="mt-6 hidden">
-            <h3 class="text-xl font-semibold text-indigo-600 mb-2">Risultato:</h3>
-            <p id="prediction-result" class="text-gray-700"></p>
+        <div id="result" class="mt-8 hidden">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-3">Risultato:</h3>
+                <p id="prediction-result" class="text-lg text-indigo-700 font-medium"></p>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Notification Container -->
+<div class="notification-container" id="notification-container"></div>
+
+<style>
+    /* Notification styles */
+    .notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+
+    .notification {
+        background: white;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+        border-left: 4px solid;
+    }
+
+    .notification.success {
+        border-color: #10B981;
+    }
+
+    .notification.error {
+        border-color: #EF4444;
+    }
+
+    .notification.info {
+        border-color: #3B82F6;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
 <script>
+// Funzione per mostrare le notifiche
+window.showNotification = function(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    let icon = '';
+    switch(type) {
+        case 'success':
+            icon = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            break;
+        case 'error':
+            icon = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            break;
+        default:
+            icon = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    }
+    
+    notification.innerHTML = `
+        ${icon}
+        <span class="flex-1">${message}</span>
+        <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+};
+
 let modelData = null;
 
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = document.getElementById('csv-file').files[0];
     if (!file) {
-        alert('Seleziona un file CSV');
+        showNotification('Seleziona un file CSV', 'error');
         return;
     }
 
@@ -74,24 +195,25 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         document.getElementById('prediction-section').classList.remove('hidden');
         document.getElementById('input-label').textContent = data.columns[0];
         logToConsole('Modello addestrato con successo!');
+        showNotification('Modello addestrato con successo!', 'success');
         logToConsole(`Coefficiente: ${data.coefficiente.toFixed(4)}`);
         logToConsole(`Intercetta: ${data.intercetta.toFixed(4)}`);
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
+        showNotification('Errore: ' + error.message, 'error');
     }
 });
 
 document.getElementById('prediction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!modelData) {
-        alert('Carica prima un modello');
+        showNotification('Carica prima un modello', 'error');
         return;
     }
 
     const inputValue = document.getElementById('input-value').value;
     if (!inputValue) {
-        alert('Inserisci un valore');
+        showNotification('Inserisci un valore', 'error');
         return;
     }
 
@@ -118,9 +240,10 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         document.getElementById('prediction-result').textContent = 
             `${modelData.columns[1]}: ${data.prediction.toFixed(4)}`;
         logToConsole(`Previsione calcolata: ${data.prediction.toFixed(4)}`);
+        showNotification(`Previsione calcolata: ${data.prediction.toFixed(4)}`, 'success');
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
+        showNotification('Errore: ' + error.message, 'error');
     }
 });
 </script>

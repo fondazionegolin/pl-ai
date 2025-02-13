@@ -42,13 +42,13 @@
     }
 </style>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="p-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <!-- Hero Section -->
-    <div class="text-center mb-20 floating">
-        <h1 class="page-title text-5xl sm:text-6xl font-bold mb-6 gradient-text bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500">
+    <div class="text-center mb-20">
+        <h1 class="p-4 page-title text-5xl sm:text-6xl font-bold mb-6 gradient-text bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500">
             Machine Learning per Tutti
         </h1>
-        <p class="page-subtitle text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed transform hover:scale-105 transition-transform duration-300">
+        <p class="p-4 page-subtitle text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed transform transition-transform duration-300">
             Scopri il potere dell'intelligenza artificiale attraverso esempi pratici e interattivi.
             La nostra piattaforma ti guida nell'apprendimento del machine learning, 
             rendendo concetti complessi accessibili a tutti.
@@ -174,18 +174,18 @@
     </div>
 
     <!-- Call to Action -->
-    <div class="pulsing bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-12 text-white text-center transform hover:scale-[1.02] transition-transform duration-300">
+    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-12 text-white text-center transform transition-transform duration-300">
         <h2 class="text-3xl font-bold mb-6">Inizia il tuo viaggio nell'AI</h2>
         <p class="text-xl mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
             Scegli uno dei nostri moduli interattivi e immergiti nel mondo dell'intelligenza artificiale.
             Non serve esperienza di programmazione, solo curiosità e voglia di imparare!
         </p>
-        <a href="#features" class="btn btn-cta inline-flex items-center">
+        <button class="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl">
             Esplora i moduli
-            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 ml-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
-        </a>
+        </button>
     </div>
 </div>
 {% endblock %}
