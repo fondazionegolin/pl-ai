@@ -1,11 +1,11 @@
 from flask import Blueprint, render_template, request, jsonify
-from routes.auth import login_required
+from routes.auth import login_required, verify_token_and_get_user
 from openai import OpenAI
 import os
 import json
-import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
+from routes.firebase_db import FirebaseDB
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -13,24 +13,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 chatbot = Blueprint('chatbot', __name__)
 
 # Inizializza il database
-def init_db():
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database.sqlite')
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chats
-                 (id TEXT PRIMARY KEY,
-                  messages TEXT,
-                  title TEXT,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    conn.commit()
-    conn.close()
-
-# Chiama init_db all'avvio
-init_db()
-
-def get_db():
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database.sqlite')
-    return sqlite3.connect(db_path)
+FirebaseDB.init_collections()
 
 @chatbot.route('/chatbot')
 @login_required
@@ -57,12 +40,12 @@ def chat():
         
         # Se abbiamo un chat_id, salviamo la conversazione
         if chat_id:
-            conn = get_db()
-            c = conn.cursor()
-            c.execute('UPDATE chats SET messages = ?, title = ? WHERE id = ?',
-                     (json.dumps(messages), get_chat_title(messages), chat_id))
-            conn.commit()
-            conn.close()
+            # Ottieni l'ID dell'utente dal token
+            user_data = verify_token_and_get_user()
+            if not user_data:
+                return jsonify({'error': 'Utente non autenticato'}), 401
+            
+            FirebaseDB.save_chat(chat_id, messages, user_data['uid'], get_chat_title(messages))
         
         return jsonify({
             'message': response.choices[0].message.content,
@@ -86,13 +69,13 @@ def initialize_chat():
             {"role": "assistant", "content": "Ciao! Sono pronto ad aiutarti con il machine learning!"}
         ]
         
-        # Salva la nuova chat nel database
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('INSERT INTO chats (id, messages, title) VALUES (?, ?, ?)',
-                 (chat_id, json.dumps(messages), "Nuova conversazione"))
-        conn.commit()
-        conn.close()
+        # Ottieni l'ID dell'utente dal token
+        user_data = verify_token_and_get_user()
+        if not user_data:
+            return jsonify({'error': 'Utente non autenticato'}), 401
+            
+        # Salva la nuova chat su Firebase
+        FirebaseDB.save_chat(chat_id, messages, user_data['uid'], "Nuova conversazione")
         
         return jsonify({
             'messages': messages,
@@ -106,18 +89,18 @@ def initialize_chat():
 @login_required
 def load_chats():
     try:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('SELECT id, messages, title, created_at FROM chats ORDER BY created_at DESC')
-        chats = []
-        for row in c.fetchall():
-            chats.append({
-                'id': row[0],
-                'title': row[2] or get_chat_title(json.loads(row[1])),
-                'timestamp': row[3]
-            })
-        conn.close()
-        return jsonify(chats)
+        # Ottieni l'ID dell'utente dal token
+        user_data = verify_token_and_get_user()
+        if not user_data:
+            return jsonify({'error': 'Utente non autenticato'}), 401
+            
+        chats = FirebaseDB.get_all_chats(user_data['uid'])
+        formatted_chats = [{
+            'id': chat['id'],
+            'title': chat['title'] or get_chat_title(chat['messages']),
+            'timestamp': chat['created_at']
+        } for chat in chats]
+        return jsonify(formatted_chats)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -125,14 +108,14 @@ def load_chats():
 @login_required
 def load_chat(chat_id):
     try:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('SELECT messages FROM chats WHERE id = ?', (chat_id,))
-        result = c.fetchone()
-        conn.close()
-        
-        if result:
-            return jsonify({'messages': json.loads(result[0])})
+        # Ottieni l'ID dell'utente dal token
+        user_data = verify_token_and_get_user()
+        if not user_data:
+            return jsonify({'error': 'Utente non autenticato'}), 401
+            
+        chat = FirebaseDB.get_chat(chat_id, user_data['uid'])
+        if chat:
+            return jsonify({'messages': chat['messages']})
         return jsonify({'error': 'Chat non trovata'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
