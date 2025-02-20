@@ -5,31 +5,278 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PL-AI Platform{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .navbar-gradient {
+            background: linear-gradient(to right, #2563eb, #1d4ed8);
+            color: white;
+        }
+
+        .gradient-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-link {
+            color: #e5e7eb;
+            font-weight: 500;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 150ms ease-in-out;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-gray-50">
-    <div class="min-h-screen p-8">
-        <!-- Back Button -->
-        <div class="max-w-4xl mx-auto mb-4">
-            <a href="/dashboard" class="inline-flex items-center text-gray-600 hover:text-gray-900">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Torna alla Dashboard
-            </a>
+    <!-- Navbar -->
+    <nav class="navbar-gradient shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="gradient-text">Play AI</span>
+                </div>
+                <div class="hidden sm:flex items-center">
+                    <div class="space-x-8">
+                        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                            Dashboard
+                        </a>
+                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">
+                            Regressione
+                        </a>
+                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">
+                            Classificazione Dati
+                        </a>
+                        <a href="/classificazione-immagini" class="nav-link {% if request.path == '/classificazione-immagini' %}active{% endif %}">
+                            Classificazione Immagini
+                        </a>
+                        <a href="/chatbot" class="nav-link {% if request.path == '/chatbot' %}active{% endif %}">
+                            Chatbot
+                        </a>
+                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">
+                            Generazione Immagini
+                        </a>
+                        <a href="/learning" class="nav-link {% if request.path == '/learning' %}active{% endif %}">
+                            Learning
+                        </a>
+                    </div>
+                </div>
+                <!-- Profile Menu -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative" id="profileMenu">
+                        <button type="button" onclick="toggleProfileMenu()" class="flex items-center focus:outline-none">
+                            <img id="navProfilePic" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
+                                 alt="Profile" 
+                                 class="h-10 w-10 rounded-full object-cover border-2 border-white hover:border-blue-500 transition duration-150">
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-50 transform origin-top-right transition duration-150">
+                            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-cog mr-2"></i> Impostazioni
+                            </a>
+                            <hr class="my-1 border-gray-200">
+                            <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Main Content -->
+        <!-- Mobile menu -->
+        <div class="mobile-menu sm:hidden hidden" id="mobile-menu">
+            <div class="pt-2 pb-3 space-y-1">
+                <a href="/" class="nav-link block px-3 py-2 {% if request.path == '/' %}active{% endif %}">Home</a>
+                <a href="/regressione" class="nav-link block px-3 py-2 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
+                <a href="/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/classificazione' %}active{% endif %}">Classificazione Dati</a>
+                <a href="/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
+                <a href="/chatbot" class="nav-link block px-3 py-2 {% if request.path == '/chatbot' %}active{% endif %}">Chatbot</a>
+                <a href="/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
+                <a href="/learning" class="nav-link block px-3 py-2 {% if request.path == '/learning' %}active{% endif %}">Learning</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="min-h-[calc(100vh-4rem)] p-8">
         {% block content %}{% endblock %}
     </div>
 
+
+    <!-- Console ridimensionabile -->
+    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 font-mono text-sm transition-all duration-300 ease-in-out" style="height: 300px; max-height: 25vh; z-index: 1000;">
+        <!-- Header della console con pulsanti -->
+        <div class="flex justify-between items-center p-2 bg-gray-800 border-b border-gray-700 cursor-move" id="console-header">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold">Console di Training</span>
+                <button onclick="toggleConsole()" class="text-gray-400 hover:text-white focus:outline-none">
+                    <svg id="toggle-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+            <button onclick="document.getElementById('console-content').innerHTML = ''" class="text-gray-400 hover:text-white focus:outline-none">
+                Clear
+            </button>
+        </div>
+
+        <!-- Contenuto della console -->
+        <div id="console-content" class="p-4 space-y-1 overflow-y-auto" style="height: calc(100% - 40px);"></div>
+
+        <!-- Maniglia per il ridimensionamento -->
+        <div id="console-resizer" class="absolute top-0 left-0 right-0 h-1 cursor-ns-resize bg-gray-700 hover:bg-blue-500 transition-colors"></div>
+    </div>
+
+    <script>
+        // Funzione per il log nella console
+        function logToConsole(message) {
+            const consoleContent = document.getElementById('console-content');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'py-1';
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            consoleContent.appendChild(logEntry);
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        }
+
+        // Funzione per mostrare/nascondere la console
+        function toggleConsole() {
+            const console = document.getElementById('console');
+            const icon = document.getElementById('toggle-icon');
+            const isMinimized = console.style.height === '40px';
+
+            if (isMinimized) {
+                console.style.height = '300px';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                console.style.height = '40px';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        }
+
+        // Gestione del ridimensionamento
+        const consoleResizer = document.getElementById('console-resizer');
+        const console = document.getElementById('console');
+        let startY;
+        let startHeight;
+
+        function initResize(e) {
+            startY = e.clientY;
+            startHeight = parseInt(document.defaultView.getComputedStyle(console).height, 10);
+            document.documentElement.addEventListener('mousemove', resize);
+            document.documentElement.addEventListener('mouseup', stopResize);
+        }
+
+        function resize(e) {
+            const newHeight = startHeight - (e.clientY - startY);
+            const maxHeight = window.innerHeight * 0.25; // 25% dell'altezza della viewport
+            console.style.height = Math.min(Math.max(newHeight, 40), maxHeight) + 'px';
+        }
+
+        function stopResize() {
+            document.documentElement.removeEventListener('mousemove', resize);
+            document.documentElement.removeEventListener('mouseup', stopResize);
+        }
+
+        consoleResizer.addEventListener('mousedown', initResize);
+
+        // Gestione del trascinamento dell'header
+        const consoleHeader = document.getElementById('console-header');
+        let isDragging = false;
+        let currentY;
+        let initialY;
+        let yOffset = 0;
+
+        function setTranslate(yPos) {
+            console.style.transform = `translateY(${yPos}px)`;
+        }
+
+        function initDrag(e) {
+            initialY = e.clientY - yOffset;
+            isDragging = true;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentY = e.clientY - initialY;
+                yOffset = currentY;
+
+                // Limita il trascinamento verso l'alto
+                if (currentY < 0) {
+                    setTranslate(currentY);
+                }
+            }
+        }
+
+        function stopDrag() {
+            initialY = currentY;
+            isDragging = false;
+
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        consoleHeader.addEventListener('mousedown', initDrag);
+    </script>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        // Profile Menu Functions
+        function toggleProfileMenu() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Chiudi il menu quando si clicca fuori
+        document.addEventListener('click', function(event) {
+            const profileMenu = document.getElementById('profileMenu');
+            const dropdown = document.getElementById('profileDropdown');
+            
+            if (profileMenu && !profileMenu.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Verifica l'autenticazione prima di mostrare il contenuto
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Nascondi il contenuto finché non verifichiamo l'autenticazione
+            document.body.style.display = 'none';
+            
+            // Verifica l'autenticazione
+            const isAuthenticated = await checkAuth();
+            
+            // Se non siamo sulla landing page e non siamo autenticati, reindirizza
+            if (!isLandingPage() && !isAuthenticated) {
+                window.location.replace('/');
+            } else {
+                // Mostra il contenuto solo se autenticati o sulla landing page
+                document.body.style.display = 'block';
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

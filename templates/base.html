@@ -240,6 +240,32 @@
                         </a>
                     </div>
                 </div>
+                <!-- Profile Menu -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative" id="profileMenu">
+                        <button type="button" onclick="toggleProfileMenu()" class="flex items-center focus:outline-none">
+                            <img id="navProfilePic" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
+                                 alt="Profile" 
+                                 class="h-10 w-10 rounded-full object-cover border-2 border-white hover:border-blue-500 transition duration-150">
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-50 transform origin-top-right transition duration-150">
+                            <a href="/settings" data-protected="true" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                                <i class="fas fa-cog mr-2"></i> Impostazioni
+                            </a>
+                            <hr class="my-1 border-gray-200">
+                            <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Button -->
                 <div class="-mr-2 flex items-center sm:hidden">
                     <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -270,10 +296,81 @@
     </main>
 
     <script>
+        function toggleProfileMenu() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Chiudi il menu quando si clicca fuori
+        document.addEventListener('click', function(event) {
+            const profileMenu = document.getElementById('profileMenu');
+            const dropdown = document.getElementById('profileDropdown');
+            
+            if (profileMenu && !profileMenu.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
         }
+    </script>
+
+    <!-- Console dei Log -->
+    <div id="logConsole" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 font-mono text-sm transition-all duration-300 ease-in-out overflow-y-auto max-h-48 p-4 opacity-80 hover:opacity-100">
+        <div class="flex justify-between items-center mb-2">
+            <div class="flex space-x-2">
+                <button onclick="clearLogs()" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">Clear</button>
+                <button onclick="toggleConsole()" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Toggle</button>
+            </div>
+            <span class="text-xs text-gray-400">Console</span>
+        </div>
+        <div id="logContent" class="space-y-1 overflow-x-auto whitespace-pre"></div>
+    </div>
+
+    <script>
+        let consoleVisible = true;
+        
+        function toggleConsole() {
+            const console = document.getElementById('logConsole');
+            consoleVisible = !consoleVisible;
+            console.style.transform = consoleVisible ? 'translateY(0)' : 'translateY(100%)';
+        }
+
+        function clearLogs() {
+            document.getElementById('logContent').innerHTML = '';
+        }
+
+        function logToConsole(message) {
+            const logContent = document.getElementById('logContent');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = message;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+    </script>
+
+    <!-- Authentication -->
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        // Verifica l'autenticazione prima di mostrare il contenuto
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Nascondi il contenuto finché non verifichiamo l'autenticazione
+            document.body.style.display = 'none';
+            
+            // Verifica l'autenticazione
+            const isAuthenticated = await checkAuth();
+            
+            // Se non siamo sulla landing page e non siamo autenticati, reindirizza
+            if (!isLandingPage() && !isAuthenticated) {
+                window.location.replace('/');
+            } else {
+                // Mostra il contenuto solo se autenticati o sulla landing page
+                document.body.style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>

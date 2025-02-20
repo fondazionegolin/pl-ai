@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
+from routes.auth import login_required
 from openai import OpenAI
 import os
 import json
@@ -32,15 +33,19 @@ def get_db():
     return sqlite3.connect(db_path)
 
 @chatbot.route('/chatbot')
+@login_required
 def chatbot_page():
+    pass
     return render_template('chatbot.html')
 
 @chatbot.route('/chat', methods=['POST'])
+@login_required
 def chat():
     try:
         data = request.json
         messages = data.get('messages', [])
         chat_id = data.get('chat_id')
+        pass
         
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -67,6 +72,7 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 @chatbot.route('/initialize_chat', methods=['POST'])
+@login_required
 def initialize_chat():
     try:
         data = request.json
@@ -97,6 +103,7 @@ def initialize_chat():
         return jsonify({'error': str(e)}), 500
 
 @chatbot.route('/load_chats', methods=['GET'])
+@login_required
 def load_chats():
     try:
         conn = get_db()
@@ -115,6 +122,7 @@ def load_chats():
         return jsonify({'error': str(e)}), 500
 
 @chatbot.route('/load_chat/<chat_id>', methods=['GET'])
+@login_required
 def load_chat(chat_id):
     try:
         conn = get_db()

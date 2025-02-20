@@ -2,90 +2,137 @@
 
 {% block title %}Regressione - PL-AI Platform{% endblock %}
 
+{% block extra_head %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Regressione Lineare</h1>
-        <p class="text-gray-600">Carica un dataset CSV con due colonne per creare un modello di regressione lineare.</p>
+    <div class="relative bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 mb-8 text-white overflow-hidden">
+        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full"></div>
+        <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full"></div>
+        <div class="relative z-10">
+            <h1 class="text-4xl font-extrabold mb-4">Regressione Lineare</h1>
+            <p class="text-blue-100 text-lg">Carica un dataset CSV con due colonne per creare un modello di regressione lineare.</p>
+        </div>
     </div>
 
     <!-- Main Content -->
-    <div class="bg-white rounded-lg shadow-lg p-8">
-        <!-- File Upload Section -->
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">1. Carica il Dataset</h2>
-            <div class="flex items-center space-x-4">
-                <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <label for="csvFile" class="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition duration-150">
-                    Seleziona File CSV
-                </label>
-                <span id="fileName" class="text-gray-600"></span>
-            </div>
-            <p class="mt-2 text-sm text-gray-500">Il file deve contenere due colonne: variabile indipendente (X) e variabile dipendente (Y)</p>
-        </div>
-
-        <!-- Model Results Section -->
-        <div id="modelResults" class="hidden mb-8">
-            <h2 class="text-xl font-semibold mb-4">2. Risultati del Modello</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h3 class="font-medium mb-2">Coefficiente</h3>
-                    <p id="coefficient" class="text-2xl font-bold text-blue-600"></p>
+    <div class="grid grid-cols-12 gap-6">
+        <!-- Left Column: Upload and Model Results -->
+        <div class="col-span-4 space-y-6">
+            <!-- File Upload Section -->
+            <div class="relative bg-white rounded-2xl shadow-xl p-6 transform transition duration-500 hover:scale-[1.02]">
+                <div class="absolute -top-4 -left-4 bg-gradient-to-br from-blue-500 to-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-upload text-white text-xl"></i>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h3 class="font-medium mb-2">Intercetta</h3>
-                    <p id="intercept" class="text-2xl font-bold text-blue-600"></p>
+                <div class="pl-8">
+                    <h2 class="text-xl font-bold text-gray-900 mt-2">1. Carica il Dataset</h2>
+                    <div class="flex flex-col space-y-4 mt-4">
+                        <input type="file" id="csvFile" accept=".csv" class="hidden">
+                        <label for="csvFile" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl cursor-pointer hover:from-blue-700 hover:to-indigo-700 transition duration-300 text-center font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                            Seleziona File CSV
+                        </label>
+                        <span id="fileName" class="text-gray-600 text-sm italic"></span>
+                        <p class="text-sm text-gray-500 leading-relaxed">Il file deve contenere due colonne: variabile indipendente (X) e variabile dipendente (Y)</p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Prediction Section -->
-        <div id="predictionSection" class="hidden mb-8">
-            <h2 class="text-xl font-semibold mb-4">3. Fai una Predizione</h2>
-            <div class="flex items-end space-x-4">
-                <div class="flex-1">
-                    <label for="predictionInput" class="block text-sm font-medium text-gray-700 mb-1">Valore X</label>
-                    <input type="number" id="predictionInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <!-- Model Results Section -->
+            <div id="modelResults" class="hidden relative bg-white rounded-2xl shadow-xl p-6 transform transition duration-500 hover:scale-[1.02]">
+                <div class="absolute -top-4 -left-4 bg-gradient-to-br from-green-500 to-teal-600 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-chart-line text-white text-xl"></i>
                 </div>
-                <button id="predictBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-150">
-                    Predici
-                </button>
+                <div class="pl-8">
+                    <h2 class="text-xl font-bold text-gray-900 mt-2">2. Risultati del Modello</h2>
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">Coefficiente (m)</h3>
+                            <p id="coefficient" class="text-lg font-bold text-gray-900"></p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">Intercetta (q)</h3>
+                            <p id="intercept" class="text-lg font-bold text-gray-900"></p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">R² Score</h3>
+                            <p id="r2Score" class="text-lg font-bold text-gray-900"></p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">Equazione</h3>
+                            <p id="equation" class="text-lg font-bold text-blue-600"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="predictionResult" class="mt-4 hidden">
-                <h3 class="font-medium mb-2">Risultato della Predizione</h3>
-                <p id="predictionValue" class="text-2xl font-bold text-green-600"></p>
+
+            <!-- Prediction Section -->
+            <div id="predictionSection" class="hidden relative bg-white rounded-2xl shadow-xl p-6 transform transition duration-500 hover:scale-[1.02]">
+                <div class="absolute -top-4 -left-4 bg-gradient-to-br from-purple-500 to-pink-600 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-magic text-white text-xl"></i>
+                </div>
+                <div class="pl-8">
+                    <h2 class="text-xl font-bold text-gray-900 mt-2">3. Fai una Predizione</h2>
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <label for="predictionInput" class="block text-sm font-medium text-gray-500">Inserisci un valore X</label>
+                            <input type="number" id="predictionInput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <button id="predictBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-600 hover:to-pink-700 transition duration-300 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                            Predici Y
+                        </button>
+                        <div id="predictionResult" class="hidden">
+                            <h3 class="text-sm font-medium text-gray-500">Risultato</h3>
+                            <p id="predictionValue" class="text-lg font-bold text-purple-600"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Plot Section -->
-        <div id="plotSection" class="hidden">
-            <h2 class="text-xl font-semibold mb-4">4. Visualizzazione</h2>
-            <div id="regressionPlot" class="w-full h-96 border border-gray-200 rounded-lg"></div>
+        <!-- Right Column: Dataset Preview and Plot -->
+        <div class="col-span-8 space-y-6">
+            <!-- Dataset Preview Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Anteprima Dataset</h2>
+                <div id="datasetPreview" class="overflow-x-auto">
+                    <p class="text-gray-500 text-center py-4">Carica un file CSV per visualizzare l'anteprima</p>
+                </div>
+            </div>
+
+            <!-- Plot Section -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Visualizzazione</h2>
+                <div id="plot" class="w-full h-96"></div>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_scripts %}
 <script>
     // DOM Elements
     const csvFile = document.getElementById('csvFile');
     const fileName = document.getElementById('fileName');
+    const datasetPreview = document.getElementById('datasetPreview');
     const modelResults = document.getElementById('modelResults');
+    const predictionSection = document.getElementById('predictionSection');
     const coefficient = document.getElementById('coefficient');
     const intercept = document.getElementById('intercept');
-    const predictionSection = document.getElementById('predictionSection');
+    const r2Score = document.getElementById('r2Score');
+    const equation = document.getElementById('equation');
     const predictionInput = document.getElementById('predictionInput');
     const predictBtn = document.getElementById('predictBtn');
     const predictionResult = document.getElementById('predictionResult');
     const predictionValue = document.getElementById('predictionValue');
-    const plotSection = document.getElementById('plotSection');
-    const regressionPlot = document.getElementById('regressionPlot');
 
+    // Global variables
     let currentModel = null;
 
-    // File Upload Handler
+    // Handle file selection
     csvFile.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -96,64 +143,94 @@
         formData.append('file', file);
 
         try {
-            const response = await fetch('/upload-regression', {
+            const response = await fetch('/upload_regression', {
                 method: 'POST',
                 body: formData
             });
 
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
+            if (!response.ok) throw new Error('Upload failed');
 
-            // Save model parameters
-            currentModel = {
-                coefficiente: data.coefficiente,
-                intercetta: data.intercetta
+            const data = await response.json();
+            
+            // Update dataset preview
+            datasetPreview.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">X</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Y</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${data.preview.map(row => `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row[0]}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row[1]}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Update model results
+            currentModel = data.model;
+            modelResults.classList.remove('hidden');
+            predictionSection.classList.remove('hidden');
+            
+            coefficient.textContent = data.model.coefficient.toFixed(4);
+            intercept.textContent = data.model.intercept.toFixed(4);
+            r2Score.textContent = (data.model.r2_score * 100).toFixed(2) + '%';
+            equation.textContent = `y = ${data.model.coefficient.toFixed(2)}x + ${data.model.intercept.toFixed(2)}`;
+
+            // Create scatter plot
+            const trace1 = {
+                x: data.preview.map(row => row[0]),
+                y: data.preview.map(row => row[1]),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Dati',
+                marker: {
+                    color: 'rgb(31, 119, 180)',
+                    size: 8
+                }
             };
 
-            // Show results
-            modelResults.classList.remove('hidden');
-            coefficient.textContent = data.coefficiente.toFixed(4);
-            intercept.textContent = data.intercetta.toFixed(4);
-            predictionSection.classList.remove('hidden');
-            plotSection.classList.remove('hidden');
-
-            // Create plot
-            const xValues = Array.from({length: 100}, (_, i) => i - 50);
-            const yValues = xValues.map(x => data.coefficiente * x + data.intercetta);
-
-            const trace1 = {
-                x: xValues,
-                y: yValues,
-                type: 'scatter',
+            const trace2 = {
+                x: data.preview.map(row => row[0]),
+                y: data.preview.map(row => row[0] * data.model.coefficient + data.model.intercept),
                 mode: 'lines',
-                name: 'Linea di Regressione',
+                type: 'scatter',
+                name: 'Regressione',
                 line: {
-                    color: 'rgb(37, 99, 235)'
+                    color: 'rgb(255, 127, 14)',
+                    width: 2
                 }
             };
 
             const layout = {
-                title: 'Linea di Regressione',
+                title: 'Regressione Lineare',
                 xaxis: {
                     title: 'X'
                 },
                 yaxis: {
                     title: 'Y'
-                }
+                },
+                hovermode: 'closest',
+                plot_bgcolor: 'white',
+                paper_bgcolor: 'white'
             };
 
-            Plotly.newPlot('regressionPlot', [trace1], layout);
+            Plotly.newPlot('plot', [trace1, trace2], layout);
 
         } catch (error) {
             console.error('Error:', error);
-            alert('Errore durante il caricamento del file');
+            alert('Si è verificato un errore durante il caricamento del file.');
         }
     });
 
-    // Prediction Handler
+    // Handle prediction
     predictBtn.addEventListener('click', async () => {
         if (!currentModel) return;
 
@@ -164,45 +241,26 @@
         }
 
         try {
-            const response = await fetch('/predict-regression', {
+            const response = await fetch('/predict_regression', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     value: value,
-                    coefficiente: currentModel.coefficiente,
-                    intercetta: currentModel.intercetta
+                    model: currentModel
                 })
             });
 
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
+            if (!response.ok) throw new Error('Prediction failed');
 
+            const data = await response.json();
             predictionResult.classList.remove('hidden');
             predictionValue.textContent = data.prediction.toFixed(4);
 
-            // Add point to plot
-            const trace2 = {
-                x: [value],
-                y: [data.prediction],
-                type: 'scatter',
-                mode: 'markers',
-                name: 'Predizione',
-                marker: {
-                    size: 10,
-                    color: 'rgb(22, 163, 74)'
-                }
-            };
-
-            Plotly.addTraces('regressionPlot', trace2);
-
         } catch (error) {
             console.error('Error:', error);
-            alert('Errore durante la predizione');
+            alert('Si è verificato un errore durante la predizione.');
         }
     });
 </script>

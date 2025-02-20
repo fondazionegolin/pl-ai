@@ -1,0 +1,162 @@
+{% extends "base_clean.html" %}
+
+{% block title %}Impostazioni Profilo - PL-AI Platform{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="relative bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 mb-8 text-white overflow-hidden">
+        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full"></div>
+        <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full"></div>
+        <div class="relative z-10">
+            <h1 class="text-4xl font-extrabold mb-4">Impostazioni Profilo</h1>
+            <p class="text-blue-100 text-lg">Gestisci le tue informazioni personali e le preferenze</p>
+        </div>
+    </div>
+
+    <!-- Message Container -->
+    <div id="message" class="fixed top-4 right-4 transform transition-all duration-500 translate-x-full opacity-0 z-50">
+        <div class="flex items-center p-4 rounded-xl shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+            <div class="flex-shrink-0 mr-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="flex-1 max-w-xs">
+                <p class="text-sm font-medium" id="messageText"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Settings Form -->
+    <div class="relative bg-white rounded-2xl shadow-xl p-8 transform transition duration-500 hover:scale-[1.02]">
+        <div class="absolute -top-4 -left-4 bg-gradient-to-br from-purple-500 to-pink-600 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-user-circle text-white text-xl"></i>
+        </div>
+        
+        <div class="pl-8">
+            <!-- Profile Picture Section -->
+            <div class="mb-8 text-center">
+                <div class="relative inline-block">
+                    <img id="profilePicture" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
+                         alt="Profile Picture" 
+                         class="w-32 h-32 rounded-full border-4 border-gray-200 object-cover">
+                    <label for="pictureInput" class="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition duration-150">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="pictureInput" accept="image/*" class="hidden">
+                </div>
+            </div>
+
+            <!-- Profile Form -->
+            <form id="profileForm" class="space-y-6">
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- Nome -->
+                    <div>
+                        <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
+                        <input type="text" id="firstName" name="firstName" 
+                               class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               value="{{ first_name if first_name }}">
+                    </div>
+                    
+                    <!-- Cognome -->
+                    <div>
+                        <label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">Cognome</label>
+                        <input type="text" id="lastName" name="lastName" 
+                               class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               value="{{ last_name if last_name }}">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="email" name="email" 
+                           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                           value="{{ email if email }}" readonly>
+                    <p class="mt-1 text-sm text-gray-500">L'email non può essere modificata</p>
+                </div>
+
+                <!-- Bio -->
+                <div>
+                    <label for="bio" class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                    <textarea id="bio" name="bio" rows="4" 
+                              class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">{{ bio if bio }}</textarea>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition duration-300 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                        Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Profile Picture Upload
+    const pictureInput = document.getElementById('pictureInput');
+    const profilePicture = document.getElementById('profilePicture');
+    const profileForm = document.getElementById('profileForm');
+
+    pictureInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('picture', file);
+
+            try {
+                const response = await fetch('/api/profile/picture', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    profilePicture.src = data.url;
+                    // Aggiorna l'immagine nella navbar
+                    const navProfilePic = document.querySelector('#navProfilePic');
+                    if (navProfilePic) {
+                        navProfilePic.src = data.url;
+                    }
+                }
+            } catch (error) {
+                console.error('Error uploading profile picture:', error);
+            }
+        }
+    });
+
+    // Profile Form Submit
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            bio: document.getElementById('bio').value
+        };
+
+        try {
+            const response = await fetch('/api/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                // Mostra messaggio di successo
+                alert('Profilo aggiornato con successo!');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+        }
+    });
+</script>
+{% endblock %}

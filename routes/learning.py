@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
+from routes.auth import login_required
 import json
 import re
 import os
@@ -26,7 +27,9 @@ def init_db():
     conn.close()
 
 @learning.route('/learning')
+@login_required
 def learning_page():
+    pass
     init_db()  # Assicurati che il database sia inizializzato
     return render_template('learning.html')
 
@@ -131,6 +134,7 @@ def clean_and_format_markdown(content):
     return html
 
 @learning.route('/get_topics', methods=['GET'])
+@login_required
 def get_topics():
     try:
         conn = get_db()
@@ -170,6 +174,7 @@ def get_topics():
         return jsonify({'error': str(e)}), 500
 
 @learning.route('/get_topic/<topic_id>', methods=['GET'])
+@login_required
 def get_topic(topic_id):
     try:
         conn = get_db()
@@ -234,6 +239,7 @@ def get_topic(topic_id):
         return jsonify({'error': str(e)}), 500
 
 @learning.route('/generate_content', methods=['POST'])
+@login_required
 def generate_content():
     try:
         data = request.json

@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
+from firebase_admin import firestore
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -24,15 +25,28 @@ import time
 # Import dei blueprint
 from routes.chatbot import chatbot
 from routes.learning import learning
-from routes.auth import auth_bp, login_required
+from routes.auth import auth_bp, login_required, get_current_user, update_user_profile, allowed_file
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Initialize Firebase only once at module level
+_firebase_initialized = False
+
+def initialize_firebase():
+    global _firebase_initialized
+    if not _firebase_initialized:
+        load_dotenv()
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        _firebase_initialized = True
+        pass
+    return client
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')  # Aggiunta chiave segreta
+
+# Initialize Firebase
+client = initialize_firebase()
 
 # Registrazione dei blueprint
 app.register_blueprint(auth_bp, url_prefix='')
@@ -69,17 +83,23 @@ class CustomCallback(tf.keras.callbacks.Callback):
 
 @app.route('/')
 def home():
-    # Se l'utente ha un token valido nell'header, reindirizza alla dashboard
+    pass
+    
+    # Controlla se c'è un token nell'header
     auth_header = request.headers.get('Authorization')
     if auth_header:
+        pass
         try:
             token = auth_header.split(' ')[1]
             auth.verify_id_token(token)
-            return redirect(url_for('dashboard'))
-        except:
             pass
+        except Exception as e:
+            pass
+    else:
+        pass
     
-    # Altrimenti mostra la landing page
+    # Mostra sempre la landing page
+    pass
     return render_template('landing.html',
                          firebase_api_key=os.getenv('FIREBASE_API_KEY'),
                          firebase_auth_domain=os.getenv('FIREBASE_AUTH_DOMAIN'),
@@ -120,32 +140,48 @@ def generazione_immagini():
 @app.route('/upload-regression', methods=['POST'])
 @login_required
 def upload_regression():
+    pass
     if 'file' not in request.files:
+        pass
         return jsonify({'error': 'Nessun file caricato'}), 400
     
     file = request.files['file']
     if file.filename == '':
+        pass
         return jsonify({'error': 'Nessun file selezionato'}), 400
 
     try:
         df = pd.read_csv(file)
         if len(df.columns) != 2:
+            pass
             return jsonify({'error': 'Il file deve contenere esattamente due colonne'}), 400
 
         X = df.iloc[:, 0].values.reshape(-1, 1)
         y = df.iloc[:, 1].values
 
+        pass
         model = LinearRegression()
         model.fit(X, y)
 
+        # Prepara i dati per la tabella
+        data = []
+        for i in range(len(df)):
+            data.append({
+                df.columns[0]: float(df.iloc[i, 0]),
+                df.columns[1]: float(df.iloc[i, 1])
+            })
+
+        pass
         return jsonify({
             'success': True,
             'columns': df.columns.tolist(),
-            'coefficiente': float(model.coef_[0]),
-            'intercetta': float(model.intercept_)
+            'data': data,
+            'coefficients': [float(model.coef_[0])],
+            'intercept': float(model.intercept_)
         })
 
     except Exception as e:
+        pass
         return jsonify({'error': str(e)}), 400
 
 @app.route('/predict-regression', methods=['POST'])
@@ -156,6 +192,7 @@ def predict_regression():
         value = float(data['value'])
         coef = float(data['coefficiente'])
         intercept = float(data['intercetta'])
+        pass
         
         prediction = coef * value + intercept
         return jsonify({'prediction': prediction})
@@ -166,8 +203,38 @@ def predict_regression():
 @login_required
 def upload_classification():
     global model, le
+    pass
     if 'file' not in request.files:
+        pass
         return jsonify({'error': 'Nessun file caricato'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        pass
+        return jsonify({'error': 'Nessun file selezionato'}), 400
+
+    try:
+        df = pd.read_csv(file)
+        X = df.iloc[:, :-1]
+        y = df.iloc[:, -1]
+
+        pass
+        le = LabelEncoder()
+        y_encoded = le.fit_transform(y)
+
+        model = RandomForestClassifier()
+        model.fit(X, y_encoded)
+
+        pass
+        return jsonify({
+            'success': True,
+            'columns': X.columns.tolist(),
+            'classes': le.classes_.tolist()
+        })
+
+    except Exception as e:
+        pass
+        return jsonify({'error': str(e)}), 400
     
     file = request.files['file']
     if file.filename == '':
@@ -200,7 +267,9 @@ def predict_classification():
     try:
         data = request.json
         if not data:
+            pass
             return jsonify({'error': 'Nessun dato ricevuto'}), 400
+        pass
 
         # Converti i dati in un formato adatto per la predizione
         features = np.array([[float(value) for value in data.values()]])
@@ -218,8 +287,43 @@ def predict_classification():
 def train_image_classifier():
     global image_model, class_names
     try:
+        pass
         if 'images[]' not in request.files and 'webcam_images[]' not in request.files:
+            pass
             return jsonify({'error': 'Nessuna immagine caricata'}), 400
+
+        # Gestione immagini da file e webcam
+        images = request.files.getlist('images[]') if 'images[]' in request.files else []
+        webcam_images = request.files.getlist('webcam_images[]') if 'webcam_images[]' in request.files else []
+        all_images = images + webcam_images
+        
+        classes = request.form.getlist('classes[]')
+        
+        if len(all_images) == 0 or len(classes) == 0:
+            pass
+            return jsonify({'error': 'Dati mancanti'}), 400
+
+        pass
+
+        # Crea cartelle temporanee per le classi
+        temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_training')
+        if os.path.exists(temp_dir):
+            import shutil
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+        
+        # Organizza le immagini nelle cartelle per classe
+        class_names = sorted(list(set(classes)))
+        pass
+        
+        for class_name in class_names:
+            os.makedirs(os.path.join(temp_dir, class_name), exist_ok=True)
+
+        # Salva le immagini nelle rispettive cartelle
+        for img, class_name in zip(all_images, classes):
+            if img.filename:
+                pass
+                img.save(os.path.join(temp_dir, class_name, secure_filename(img.filename)))
 
         # Gestione immagini da file e webcam
         images = request.files.getlist('images[]') if 'images[]' in request.files else []
@@ -513,6 +617,117 @@ def translate_enhance_prompt():
     except Exception as e:
         print(f"Error in translate_enhance_prompt: {str(e)}")  # For debugging
         return jsonify({'error': str(e)}), 500
+
+# Rotte per il profilo utente
+@app.route('/settings')
+@login_required
+def settings():
+    # Recupera i dati del profilo da Firestore
+    user_data = get_current_user()
+    if not user_data:
+        user_data = {}
+    
+    # Combina i dati di Firebase Auth con quelli di Firestore
+    return render_template('settings.html',
+                          firebase_api_key=os.getenv('FIREBASE_API_KEY'),
+                          firebase_auth_domain=os.getenv('FIREBASE_AUTH_DOMAIN'),
+                          firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
+                          firebase_app_id=os.getenv('FIREBASE_APP_ID'),
+                          profile_picture=user_data.get('profile_picture') or request.user.get('picture'),
+                          first_name=user_data.get('first_name') or request.user.get('name', '').split()[0] if request.user.get('name') else '',
+                          last_name=user_data.get('last_name') or (request.user.get('name', '').split()[1] if len(request.user.get('name', '').split()) > 1 else ''),
+                          email=user_data.get('email') or request.user.get('email'),
+                          bio=user_data.get('bio', ''))
+
+@app.route('/api/profile', methods=['POST'])
+@login_required
+def update_profile():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        # Ottieni il riferimento al documento dell'utente
+        db = firestore.client()
+        user_ref = db.collection('users').document(session['user_uid'])
+        
+        # Prepara i dati da salvare su Firestore
+        firestore_data = {
+            'first_name': data.get('firstName', ''),
+            'last_name': data.get('lastName', ''),
+            'bio': data.get('bio', ''),
+            'email': session.get('user_email'),
+            'updated_at': firestore.SERVER_TIMESTAMP
+        }
+        
+        # Aggiorna o crea il documento
+        user_ref.set(firestore_data, merge=True)
+        
+        # Prepara i dati da restituire al client (senza SERVER_TIMESTAMP)
+        response_data = {
+            'first_name': firestore_data['first_name'],
+            'last_name': firestore_data['last_name'],
+            'bio': firestore_data['bio'],
+            'email': firestore_data['email']
+        }
+        
+        print(f"Profilo utente aggiornato con successo: {session['user_uid']}")
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'data': response_data
+        })
+        
+    except Exception as e:
+        print(f'Error updating profile: {str(e)}')
+        return jsonify({
+            'error': 'Failed to update profile',
+            'message': str(e)
+        }), 400
+
+@app.route('/api/profile/picture', methods=['POST'])
+@login_required
+def update_profile_picture():
+    try:
+        if 'picture' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+            
+        file = request.files['picture']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+            
+        if file and allowed_file(file.filename, {'png', 'jpg', 'jpeg', 'gif'}):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'profile_pictures', filename)
+            
+            # Crea la directory se non esiste
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            
+            # Salva e ottimizza l'immagine
+            img = Image.open(file)
+            img.thumbnail((200, 200))  # Ridimensiona l'immagine
+            img.save(filepath, optimize=True, quality=85)
+            
+            # Aggiorna l'URL dell'immagine nel database
+            user = get_current_user()
+            update_user_profile(user['uid'], {
+                'profile_picture': url_for('static', filename=f'uploads/profile_pictures/{filename}')
+            })
+            
+            return jsonify({
+                'success': True,
+                'url': url_for('static', filename=f'uploads/profile_pictures/{filename}')
+            })
+            
+        return jsonify({'error': 'File type not allowed'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/chatbot')
+@app.route('/chatbot/')
+@login_required
+def chatbot_view():
+    return render_template('chatbot.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
