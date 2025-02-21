@@ -1,6 +1,6 @@
-.env
 node_modules
 venv
 .vscode
 uploads
+.env
 firebase-credentials.json

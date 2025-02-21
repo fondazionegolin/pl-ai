@@ -72,13 +72,57 @@ window.fetch = async function(url, options = {}) {
     return response;
 };
 
-// Funzione di logout
-async function logout() {
+// Funzione per aggiornare l'immagine del profilo nella navbar
+async function updateProfilePicture() {
     try {
-        sessionStorage.removeItem('authToken');
-        window.location.replace('/');
+        const response = await fetch('/profile/api/profile');
+        if (response.ok) {
+            const data = await response.json();
+            const profilePic = document.getElementById('navProfilePic');
+            const loadingSpinner = document.getElementById('profilePicLoading');
+
+            if (profilePic && data.profile_picture) {
+                profilePic.src = data.profile_picture;
+                profilePic.onload = function() {
+                    profilePic.classList.remove('opacity-0');
+                    if (loadingSpinner) {
+                        loadingSpinner.classList.add('opacity-0');
+                    }
+                };
+            } else {
+                // Se non c'è un'immagine del profilo, mostra quella di default
+                profilePic.src = 'https://www.gravatar.com/avatar/?d=mp';
+                profilePic.classList.remove('opacity-0');
+                if (loadingSpinner) {
+                    loadingSpinner.classList.add('opacity-0');
+                }
+            }
+        }
     } catch (error) {
-        console.error('Logout error:', error);
+        console.error('Error updating profile picture:', error);
+    }
+}
+
+// Funzione di logout che utilizza handleLogout dalla landing page
+async function logout() {
+    // Se handleLogout è disponibile, usalo
+    if (typeof handleLogout === 'function') {
+        await handleLogout();
+    } else {
+        // Fallback nel caso handleLogout non sia disponibile
+        try {
+            sessionStorage.removeItem('authToken');
+            await fetch('/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Logout error:', error);
+            window.location.href = '/';
+        }
     }
 }
 
@@ -224,5 +268,8 @@ function initializeEventListeners() {
     checkAuth();
 }
 
-// Inizializza gli event listener al caricamento della pagina
-document.addEventListener('DOMContentLoaded', initializeEventListeners);
+// Inizializza gli event listener e aggiorna l'immagine del profilo al caricamento della pagina
+document.addEventListener('DOMContentLoaded', () => {
+    initializeEventListeners();
+    updateProfilePicture();
+});

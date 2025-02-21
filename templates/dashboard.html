@@ -1,3 +1,4 @@
+{% set hide_console = true %}
 {% extends "base_clean.html" %}
 
 {% block title %}Dashboard - PL-AI Platform{% endblock %}
@@ -7,7 +8,7 @@
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 <!-- Regressione -->
-                <a href="/regressione" class="block group">
+                <a href="/ml/regressione" class="block group">
                     <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
                         <div class="text-blue-600 text-3xl mb-4">📈</div>
                         <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Regressione</h3>
@@ -16,7 +17,7 @@
                 </a>
 
                 <!-- Classificazione -->
-                <a href="/classificazione" class="block group">
+                <a href="/ml/classificazione" class="block group">
                     <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
                         <div class="text-blue-600 text-3xl mb-4">🎯</div>
                         <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione</h3>
@@ -25,7 +26,7 @@
                 </a>
 
                 <!-- Classificazione Immagini -->
-                <a href="/classificazione-immagini" class="block group">
+                <a href="/image/classificazione-immagini" class="block group">
                     <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
                         <div class="text-blue-600 text-3xl mb-4">🖼️</div>
                         <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione Immagini</h3>
@@ -34,7 +35,7 @@
                 </a>
 
                 <!-- Generazione Immagini -->
-                <a href="/generazione-immagini" class="block group">
+                <a href="/image/generazione-immagini" class="block group">
                     <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
                         <div class="text-blue-600 text-3xl mb-4">🎨</div>
                         <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Generazione Immagini</h3>

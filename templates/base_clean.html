@@ -13,9 +13,65 @@
             font-family: 'Inter', sans-serif;
         }
 
-        .navbar-gradient {
-            background: linear-gradient(to right, #2563eb, #1d4ed8);
-            color: white;
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
+            --min-screen-width: 320px; /* Minimum width for smartphones */
+        }
+
+        body {
+            min-width: var(--min-screen-width);
+        }
+
+        .sidebar-gradient {
+            background: linear-gradient(180deg, 
+                #1a237e 0%,    /* indigo-900 */
+                #283593 50%,   /* indigo-800 */
+                #303f9f 100%   /* indigo-700 */
+            );
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .sidebar-gradient.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-gradient.collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar-gradient.collapsed .gradient-text {
+            display: none;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            padding-bottom: var(--console-height, 0px);
+        }
+
+        .main-content.with-collapsed-sidebar {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-gradient {
+                transform: translateX(-100%);
+            }
+            .sidebar-gradient.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
         }
 
         .gradient-text {
@@ -27,58 +83,70 @@
         }
 
         .nav-link {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px !important;
+            font-weight: 500 !important;
             color: #e5e7eb;
-            font-weight: 500;
-            padding: 0.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
             border-radius: 0.5rem;
-            transition: all 150ms ease-in-out;
+            margin-bottom: 0.25rem;
         }
 
         .nav-link:hover {
-            color: white;
             background-color: rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         .nav-link.active {
-            color: white;
             background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600 !important;
         }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-gray-50">
-    <!-- Navbar -->
-    <nav class="navbar-gradient shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex-shrink-0 flex items-center">
-                    <span class="gradient-text">Play AI</span>
-                </div>
-                <div class="hidden sm:flex items-center">
-                    <div class="space-x-8">
-                        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
-                            Dashboard
-                        </a>
-                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">
-                            Regressione
-                        </a>
-                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">
-                            Classificazione Dati
-                        </a>
-                        <a href="/classificazione-immagini" class="nav-link {% if request.path == '/classificazione-immagini' %}active{% endif %}">
-                            Classificazione Immagini
-                        </a>
-                        <a href="/chatbot" class="nav-link {% if request.path == '/chatbot' %}active{% endif %}">
-                            Chatbot
-                        </a>
-                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">
-                            Generazione Immagini
-                        </a>
-                        <a href="/learning" class="nav-link {% if request.path == '/learning' %}active{% endif %}">
-                            Learning
-                        </a>
-                    </div>
-                </div>
+    <!-- Sidebar -->
+    <nav class="sidebar-gradient shadow-lg" id="sidebar">
+        <!-- Logo -->
+        <div class="p-6 border-b border-indigo-800">
+            <span class="gradient-text text-2xl font-bold">Play AI</span>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="py-6 px-4 space-y-2">
+            <a href="/dashboard" class="nav-link block {% if request.path == '/dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt mr-3"></i>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="/ml/regressione" class="nav-link block {% if request.path == '/ml/regressione' %}active{% endif %}">
+                <i class="fas fa-chart-line mr-3"></i>
+                <span class="nav-text">Regressione</span>
+            </a>
+            <a href="/ml/classificazione" class="nav-link block {% if request.path == '/ml/classificazione' %}active{% endif %}">
+                <i class="fas fa-table mr-3"></i>
+                <span class="nav-text">Classificazione Dati</span>
+            </a>
+            <a href="/image/classificazione-immagini" class="nav-link block {% if request.path == '/image/classificazione-immagini' %}active{% endif %}">
+                <i class="fas fa-image mr-3"></i>
+                <span class="nav-text">Classificazione Immagini</span>
+            </a>
+            <a href="/chatbot" class="nav-link block {% if request.path == '/chatbot' %}active{% endif %}">
+                <i class="fas fa-robot mr-3"></i>
+                <span class="nav-text">Chatbot</span>
+            </a>
+            <a href="/image/generazione-immagini" class="nav-link block {% if request.path == '/image/generazione-immagini' %}active{% endif %}">
+                <i class="fas fa-paint-brush mr-3"></i>
+                <span class="nav-text">Generazione Immagini</span>
+            </a>
+            <a href="/learning" class="nav-link block {% if request.path == '/learning' %}active{% endif %}">
+                <i class="fas fa-graduation-cap mr-3"></i>
+                <span class="nav-text">Learning</span>
+            </a>
+        </div>
                 <!-- Profile Menu -->
                 <div class="flex items-center space-x-4">
                     <div class="relative" id="profileMenu">
@@ -89,7 +157,7 @@
                         </button>
                         <!-- Dropdown Menu -->
                         <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-50 transform origin-top-right transition duration-150">
-                            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                            <a href="/profile/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                                 <i class="fas fa-cog mr-2"></i> Impostazioni
                             </a>
                             <hr class="my-1 border-gray-200">
@@ -106,24 +174,38 @@
         <div class="mobile-menu sm:hidden hidden" id="mobile-menu">
             <div class="pt-2 pb-3 space-y-1">
                 <a href="/" class="nav-link block px-3 py-2 {% if request.path == '/' %}active{% endif %}">Home</a>
-                <a href="/regressione" class="nav-link block px-3 py-2 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
-                <a href="/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/classificazione' %}active{% endif %}">Classificazione Dati</a>
-                <a href="/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
+                <a href="/ml/regressione" class="nav-link block px-3 py-2 {% if request.path == '/ml/regressione' %}active{% endif %}">Regressione</a>
+                <a href="/ml/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/ml/classificazione' %}active{% endif %}">Classificazione Dati</a>
+                <a href="/image/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/image/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
                 <a href="/chatbot" class="nav-link block px-3 py-2 {% if request.path == '/chatbot' %}active{% endif %}">Chatbot</a>
-                <a href="/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
+                <a href="/image/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/image/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
                 <a href="/learning" class="nav-link block px-3 py-2 {% if request.path == '/learning' %}active{% endif %}">Learning</a>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="min-h-[calc(100vh-4rem)] p-8">
+    <div class="main-content p-8" id="mainContent">
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden fixed top-4 left-4 z-50">
+            <button onclick="toggleSidebar()" class="bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- Toggle Sidebar Button (Desktop) -->
+        <div class="hidden md:block fixed top-4 left-4 z-50">
+            <button onclick="toggleSidebarCollapse()" class="bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
         {% block content %}{% endblock %}
     </div>
 
-
+    {% if not hide_console %}
     <!-- Console ridimensionabile -->
-    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 font-mono text-sm transition-all duration-300 ease-in-out" style="height: 300px; max-height: 25vh; z-index: 1000;">
+    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 font-mono text-sm transition-all duration-300 ease-in-out" style="height: 300px; max-height: 50vh; z-index: 1000;">
         <!-- Header della console con pulsanti -->
         <div class="flex justify-between items-center p-2 bg-gray-800 border-b border-gray-700 cursor-move" id="console-header">
             <div class="flex items-center space-x-2">
@@ -134,17 +216,19 @@
                     </svg>
                 </button>
             </div>
-            <button onclick="document.getElementById('console-content').innerHTML = ''" class="text-gray-400 hover:text-white focus:outline-none">
+            <button onclick="clearConsole()" class="text-gray-400 hover:text-white focus:outline-none">
                 Clear
             </button>
         </div>
-
         <!-- Contenuto della console -->
         <div id="console-content" class="p-4 space-y-1 overflow-y-auto" style="height: calc(100% - 40px);"></div>
-
         <!-- Maniglia per il ridimensionamento -->
         <div id="console-resizer" class="absolute top-0 left-0 right-0 h-1 cursor-ns-resize bg-gray-700 hover:bg-blue-500 transition-colors"></div>
     </div>
+    {% endif %}
+
+
+
 
     <script>
         // Funzione per il log nella console
@@ -240,6 +324,95 @@
         }
 
         consoleHeader.addEventListener('mousedown', initDrag);
+    </script>
+
+    <!-- Landing page scripts -->
+    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+    
+    <!-- Authentication -->
+    <!-- Sidebar Toggle Script -->
+    <script>
+        // Sidebar mobile toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Sidebar collapse toggle (desktop)
+        function toggleSidebarCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('with-collapsed-sidebar');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuBtn = document.querySelector('.md\\:hidden button');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !mobileMenuBtn.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // Console management
+        {% if not hide_console %}
+        const consoleElement = document.getElementById('console');
+        const mainContent = document.getElementById('mainContent');
+        const consoleResizer = document.getElementById('console-resizer');
+        const consoleHeader = document.getElementById('console-header');
+
+        function updateMainContentPadding() {
+            const consoleHeight = consoleElement.style.height;
+            document.documentElement.style.setProperty('--console-height', consoleHeight);
+        }
+
+        function toggleConsole() {
+            const isMinimized = consoleElement.style.height === '40px';
+            consoleElement.style.height = isMinimized ? '300px' : '40px';
+            updateMainContentPadding();
+        }
+
+        function clearConsole() {
+            document.getElementById('console-content').innerHTML = '';
+        }
+
+        // Console resize functionality
+        let isResizing = false;
+        let startY;
+        let startHeight;
+
+        consoleResizer.addEventListener('mousedown', initResize);
+
+        function initResize(e) {
+            isResizing = true;
+            startY = e.clientY;
+            startHeight = parseInt(document.defaultView.getComputedStyle(consoleElement).height, 10);
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+        }
+
+        function resize(e) {
+            if (!isResizing) return;
+            const newHeight = Math.max(40, startHeight + (startY - e.clientY));
+            const maxHeight = window.innerHeight * 0.5; // 50% of viewport height
+            consoleElement.style.height = Math.min(newHeight, maxHeight) + 'px';
+            updateMainContentPadding();
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Initialize console padding
+        updateMainContentPadding();
+        {% endif %}
     </script>
 
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>

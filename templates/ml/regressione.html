@@ -1,0 +1,652 @@
+{% extends "base_clean.html" %}
+
+{% block title %}Regressione - PL-AI Platform{% endblock %}
+
+{% block extra_head %}
+<style>
+    .main-container {
+        position: relative;
+        padding-right: 4rem;
+    }
+
+    .step-container {
+        height: 75vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .step-navigation-container {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        z-index: 10;
+    }
+
+    .step-navigation {
+        padding: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1.5rem;
+        color: #CBD5E0;
+        background: transparent;
+        border: none;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .step-navigation.active {
+        color: #4299E1;
+    }
+
+    .step-navigation.active:hover {
+        color: #2B6CB0;
+    }
+
+    .step-dots {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .step-dot {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background-color: #CBD5E0;
+        margin: 0 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .step-dot.active {
+        width: 1rem;
+        height: 1rem;
+        background-color: #4299E1;
+    }
+
+    .step-dot.completed {
+        background-color: #48BB78;
+    }
+
+    .step {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        transition: transform 0.5s ease;
+        padding: 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .step.active {
+        transform: translateY(0);
+        z-index: 2;
+    }
+
+    .step.next {
+        transform: translateY(75%);
+        filter: blur(2px);
+        opacity: 0.7;
+        z-index: 1;
+    }
+
+    .step.hidden {
+        transform: translateY(-100%);
+        z-index: 0;
+    }
+
+    .upload-area {
+        border: 2px dashed #CBD5E0;
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #4299E1;
+        background-color: #EBF8FF;
+    }
+
+    .data-table {
+        width: 100%;
+        overflow: auto;
+        max-height: 50vh;
+    }
+
+    .data-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem;
+        border: 1px solid #E2E8F0;
+    }
+
+    .data-table th {
+        background-color: #F7FAFC;
+        font-weight: 600;
+    }
+
+    .data-table tr:nth-child(even) {
+        background-color: #F7FAFC;
+    }
+
+    .prediction-form {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .prediction-form label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .prediction-form input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #CBD5E0;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 0.5rem;
+        background-color: #EDF2F7;
+        border-radius: 0.25rem;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background-color: #4299E1;
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+    <div class="flex items-center justify-center mb-4">
+        <span id="stepTitle" class="text-xl font-semibold">Carica CSV</span>
+    </div>
+    <div class="step-dots mb-8" id="stepDots">
+        <div class="step-dot active" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+        <div class="step-dot" data-step="4"></div>
+    </div>
+    <div class="main-container">
+        <div class="step-navigation-container">
+            <button class="step-navigation" onclick="previousStep()" id="prevArrow">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+            <button class="step-navigation" onclick="nextStep()" id="nextArrow">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="step-container">
+
+        <!-- Step 1: Upload CSV -->
+        <div class="step active" id="step1">
+            <h2 class="text-2xl font-bold mb-6">Carica il tuo dataset CSV</h2>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="csvFile" accept=".csv" class="hidden">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg mb-2">Trascina qui il tuo file CSV</p>
+                <p class="text-sm text-gray-500">oppure</p>
+                <button class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    Seleziona File
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: View and Edit CSV -->
+        <div class="step next" id="step2">
+            <h2 class="text-2xl font-bold mb-6">Visualizza e Modifica i Dati</h2>
+            <div class="bg-blue-50 p-4 rounded-lg mb-6">
+                <p class="text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Per ogni colonna, seleziona:
+                    <ul class="list-disc ml-6 mt-2">
+                        <li><strong>Radio button</strong>: per scegliere la variabile target (il valore da predire)</li>
+                        <li><strong>Checkbox</strong>: per selezionare le features (le variabili usate per la predizione)</li>
+                    </ul>
+                </p>
+            </div>
+            <div class="data-table">
+                <table id="csvTable"></table>
+            </div>
+            <div class="flex justify-end mt-4 space-x-4">
+                <button onclick="saveChanges()" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">
+                    Salva Modifiche
+                </button>
+                <button onclick="nextStep()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                    Continua
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Training -->
+        <div class="step hidden" id="step3">
+            <h2 class="text-2xl font-bold mb-6">Training del Modello</h2>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="trainingProgress" style="width: 0%"></div>
+            </div>
+            <p class="text-center text-gray-600" id="trainingStatus">Preparazione del training...</p>
+            <button onclick="startTraining()" class="mt-8 mx-auto block bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600">
+                Avvia Training
+            </button>
+        </div>
+
+        <!-- Step 4: Prediction -->
+        <div class="step hidden" id="step4">
+            <h2 class="text-2xl font-bold mb-6">Effettua una Predizione</h2>
+            <form class="prediction-form" id="predictionForm">
+                <div id="predictionInputs">
+                    <!-- Input fields will be generated dynamically based on the CSV columns -->
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">
+                    Predici
+                </button>
+            </form>
+            <div class="mt-8 p-4 bg-gray-50 rounded-lg" id="predictionResult" style="display: none;">
+                <h3 class="text-xl font-semibold mb-2">Risultato della Predizione</h3>
+                <p class="text-lg" id="predictionValue"></p>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+let csvData = null;
+let columns = [];
+let currentFilename = null;
+let selectedFeatures = [];
+let selectedTarget = null;
+
+// Gestione del caricamento del file
+document.getElementById('uploadArea').addEventListener('click', () => {
+    document.getElementById('csvFile').click();
+});
+
+document.getElementById('csvFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        if (await uploadCSV(file)) {
+            nextStep();
+        }
+    }
+});
+
+// Drag and drop handling
+const uploadArea = document.getElementById('uploadArea');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    uploadArea.classList.add('bg-blue-50');
+}
+
+function unhighlight(e) {
+    uploadArea.classList.remove('bg-blue-50');
+}
+
+function markAsModified(cell) {
+    cell.setAttribute('data-modified', 'true');
+}
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+async function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const file = dt.files[0];
+
+    if (file && file.type === 'text/csv') {
+        if (await uploadCSV(file)) {
+            nextStep();
+        }
+    }
+}
+
+async function uploadCSV(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/ml/upload_regression', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            currentFilename = data.filename;
+            columns = data.columns;
+            displayPreview(data.preview);
+            return true;
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        alert('Errore durante il caricamento: ' + error.message);
+        return false;
+    }
+}
+
+function displayPreview(preview) {
+    let tableHTML = '<thead><tr>';
+    columns.forEach(column => {
+        tableHTML += `<th>
+            <div class="flex items-center justify-between">
+                <span>${column}</span>
+                <div class="ml-2">
+                    <input type="radio" name="target" value="${column}" 
+                           onchange="setTarget('${column}')">
+                    <input type="checkbox" value="${column}" 
+                           onchange="toggleFeature('${column}')">
+                </div>
+            </div>
+        </th>`;
+    });
+    tableHTML += '</tr></thead><tbody>';
+
+    preview.forEach(row => {
+        tableHTML += '<tr>';
+        columns.forEach(column => {
+            tableHTML += `<td contenteditable="true" onblur="markAsModified(this)">${row[column]}</td>`;
+        });
+        tableHTML += '</tr>';
+    });
+    tableHTML += '</tbody>';
+
+    document.getElementById('csvTable').innerHTML = tableHTML;
+}
+
+function setTarget(column) {
+    selectedTarget = column;
+    // Deseleziona la feature se era selezionata
+    const featureIdx = selectedFeatures.indexOf(column);
+    if (featureIdx > -1) {
+        selectedFeatures.splice(featureIdx, 1);
+        document.querySelector(`input[type="checkbox"][value="${column}"]`).checked = false;
+    }
+    updateStepInfo();
+}
+
+function toggleFeature(column) {
+    const idx = selectedFeatures.indexOf(column);
+    if (idx > -1) {
+        selectedFeatures.splice(idx, 1);
+    } else {
+        // Se è target, deseleziona il target
+        if (selectedTarget === column) {
+            selectedTarget = null;
+            document.querySelector(`input[type="radio"][value="${column}"]`).checked = false;
+        }
+        selectedFeatures.push(column);
+    }
+    updateStepInfo();
+}
+
+async function saveChanges() {
+    const table = document.getElementById('csvTable');
+    const rows = table.getElementsByTagName('tr');
+    const changes = [];
+
+    // Skip header row
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        for (let j = 0; j < cells.length; j++) {
+            const cell = cells[j];
+            if (cell.hasAttribute('data-modified')) {
+                changes.push({
+                    row: i - 1,
+                    column: columns[j],
+                    value: cell.textContent
+                });
+            }
+        }
+    }
+
+    if (changes.length === 0) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/ml/save_regression_changes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: currentFilename,
+                changes: changes
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert('Modifiche salvate con successo!');
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        alert('Errore durante il salvataggio: ' + error.message);
+    }
+}
+
+function updateStepInfo() {
+    const titles = ['Carica CSV', 'Seleziona Variabili', 'Training del Modello', 'Predizione'];
+    document.getElementById('stepTitle').textContent = titles[currentStep - 1];
+    
+    // Aggiorna pallini
+    const dots = document.querySelectorAll('.step-dot');
+    dots.forEach((dot, index) => {
+        dot.classList.remove('active', 'completed');
+        if (index + 1 === currentStep) {
+            dot.classList.add('active');
+        } else if (index + 1 < currentStep) {
+            dot.classList.add('completed');
+        }
+    });
+    
+    // Gestione frecce di navigazione
+    const prevArrow = document.getElementById('prevArrow');
+    const nextArrow = document.getElementById('nextArrow');
+    
+    // Gestione freccia indietro
+    if (currentStep > 1) {
+        prevArrow.classList.add('active');
+        prevArrow.style.cursor = 'pointer';
+    } else {
+        prevArrow.classList.remove('active');
+        prevArrow.style.cursor = 'default';
+    }
+    
+    // Gestione freccia avanti
+    if (currentStep < 4) {
+        if (currentStep === 2 && (!selectedTarget || selectedFeatures.length === 0)) {
+            nextArrow.classList.remove('active');
+            nextArrow.style.cursor = 'default';
+            nextArrow.title = 'Seleziona almeno un target e una feature per continuare';
+        } else {
+            nextArrow.classList.add('active');
+            nextArrow.style.cursor = 'pointer';
+            nextArrow.title = '';
+        }
+    } else {
+        nextArrow.classList.remove('active');
+        nextArrow.style.cursor = 'default';
+    }
+}
+
+function previousStep() {
+    if (currentStep <= 1) return;
+    
+    const currentStepElement = document.getElementById(`step${currentStep}`);
+    const previousStepElement = document.getElementById(`step${currentStep - 1}`);
+    const nextStepElement = document.getElementById(`step${currentStep + 1}`);
+    
+    if (nextStepElement) {
+        nextStepElement.classList.remove('next');
+        nextStepElement.classList.add('hidden');
+    }
+    
+    currentStepElement.classList.remove('active');
+    currentStepElement.classList.add('next');
+    
+    previousStepElement.classList.remove('hidden');
+    previousStepElement.classList.add('active');
+    
+    currentStep--;
+    updateStepInfo();
+}
+
+function nextStep() {
+    // Validazione per il secondo step
+    if (currentStep === 2 && (!selectedTarget || selectedFeatures.length === 0)) {
+        alert('Seleziona almeno un target e una feature prima di procedere!');
+        return;
+    }
+    
+    const currentStepElement = document.getElementById(`step${currentStep}`);
+    const nextStepElement = document.getElementById(`step${currentStep + 1}`);
+    const futureStepElement = document.getElementById(`step${currentStep + 2}`);
+
+    currentStepElement.classList.remove('active');
+    currentStepElement.classList.add('hidden');
+
+    nextStepElement.classList.remove('next');
+    nextStepElement.classList.add('active');
+
+    if (futureStepElement) {
+        futureStepElement.classList.remove('hidden');
+        futureStepElement.classList.add('next');
+    }
+
+    currentStep++;
+    updateStepInfo();
+
+    if (currentStep === 4) {
+        generatePredictionInputs();
+    }
+}
+
+async function startTraining() {
+    if (!selectedTarget || selectedFeatures.length === 0) {
+        alert('Seleziona almeno una feature e un target prima di procedere!');
+        return;
+    }
+
+    const progressBar = document.getElementById('trainingProgress');
+    const statusText = document.getElementById('trainingStatus');
+    progressBar.style.width = '0%';
+    statusText.textContent = 'Training in corso...';
+
+    try {
+        const response = await fetch('/ml/train_regression', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: currentFilename,
+                target: selectedTarget,
+                features: selectedFeatures
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            progressBar.style.width = '100%';
+            statusText.textContent = `Training completato! R² train: ${data.train_score.toFixed(3)}, R² test: ${data.test_score.toFixed(3)}`;
+            setTimeout(() => nextStep(), 2000);
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        statusText.textContent = 'Errore durante il training: ' + error.message;
+    }
+}
+
+function generatePredictionInputs() {
+    const inputsContainer = document.getElementById('predictionInputs');
+    inputsContainer.innerHTML = '';
+
+    selectedFeatures.forEach(feature => {
+        inputsContainer.innerHTML += `
+            <div class="mb-4">
+                <label for="${feature}">${feature}</label>
+                <input type="number" id="${feature}" name="${feature}" required>
+            </div>
+        `;
+    });
+}
+
+document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Collect input values
+    const features = {};
+    selectedFeatures.forEach(feature => {
+        const input = document.getElementById(feature);
+        if (input) {
+            features[feature] = parseFloat(input.value);
+        }
+    });
+
+    try {
+        const response = await fetch('/ml/predict_regression', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ features })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            document.getElementById('predictionResult').style.display = 'block';
+            document.getElementById('predictionValue').textContent = `Valore predetto: ${data.prediction.toFixed(3)}`;
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        alert('Errore durante la predizione: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

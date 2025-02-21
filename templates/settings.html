@@ -1,3 +1,4 @@
+{% set hide_console = true %}
 {% extends "base_clean.html" %}
 
 {% block title %}Impostazioni Profilo - PL-AI Platform{% endblock %}
@@ -38,9 +39,17 @@
             <!-- Profile Picture Section -->
             <div class="mb-8 text-center">
                 <div class="relative inline-block">
-                    <img id="profilePicture" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
-                         alt="Profile Picture" 
-                         class="w-32 h-32 rounded-full border-4 border-gray-200 object-cover">
+                    <div class="relative w-32 h-32">
+                        <div id="profilePictureLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-full border-4 border-gray-200">
+                            <svg class="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <img id="profilePicture" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
+                             alt="Profile Picture" 
+                             class="absolute inset-0 w-full h-full rounded-full border-4 border-gray-200 object-cover opacity-0 transition-opacity duration-200">
+                    </div>
                     <label for="pictureInput" class="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-blue-700 transition duration-150">
                         <i class="fas fa-camera"></i>
                     </label>
@@ -54,26 +63,36 @@
                     <!-- Nome -->
                     <div>
                         <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                        <input type="text" id="firstName" name="firstName" 
-                               class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                               value="{{ first_name if first_name }}">
+                        <div class="w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-700" id="firstNameDisplay">
+                            <div class="flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Cognome -->
                     <div>
                         <label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">Cognome</label>
-                        <input type="text" id="lastName" name="lastName" 
-                               class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                               value="{{ last_name if last_name }}">
+                        <div class="w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-700" id="lastNameDisplay">
+                            <div class="flex items-center justify-center">
+                                <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Email -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" id="email" name="email" 
-                           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           value="{{ email if email }}" readonly>
+                    <div class="w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-700" id="emailDisplay">
+                        Caricamento...
+                    </div>
                     <p class="mt-1 text-sm text-gray-500">L'email non può essere modificata</p>
                 </div>
 
@@ -99,6 +118,52 @@
 
 {% block scripts %}
 <script>
+    // Funzione per mostrare messaggi
+    function showMessage(text, isError = false) {
+        const message = document.getElementById('message');
+        const messageText = document.getElementById('messageText');
+        messageText.textContent = text;
+        message.classList.remove('translate-x-full', 'opacity-0');
+        if (isError) {
+            message.querySelector('div').classList.remove('from-blue-600', 'to-indigo-600');
+            message.querySelector('div').classList.add('from-red-600', 'to-pink-600');
+        } else {
+            message.querySelector('div').classList.remove('from-red-600', 'to-pink-600');
+            message.querySelector('div').classList.add('from-blue-600', 'to-indigo-600');
+        }
+        setTimeout(() => {
+            message.classList.add('translate-x-full', 'opacity-0');
+        }, 3000);
+    }
+
+    // Carica i dati del profilo
+    async function loadProfile() {
+        try {
+            const response = await fetch('/profile/api/profile');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('firstNameDisplay').textContent = data.first_name || 'Non impostato';
+                document.getElementById('lastNameDisplay').textContent = data.last_name || 'Non impostato';
+                document.getElementById('emailDisplay').textContent = data.email || 'Non impostato';
+                document.getElementById('bio').value = data.bio || '';
+                const profilePicture = document.getElementById('profilePicture');
+                if (data.profile_picture) {
+                    profilePicture.src = data.profile_picture;
+                }
+                // Mostra l'immagine e nascondi il loading quando l'immagine è caricata
+                profilePicture.onload = function() {
+                    profilePicture.classList.remove('opacity-0');
+                }
+            } else {
+                const error = await response.json();
+                showMessage(error.error || 'Errore nel caricamento del profilo', true);
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            showMessage('Errore nel caricamento del profilo', true);
+        }
+    }
+
     // Profile Picture Upload
     const pictureInput = document.getElementById('pictureInput');
     const profilePicture = document.getElementById('profilePicture');
@@ -111,7 +176,7 @@
             formData.append('picture', file);
 
             try {
-                const response = await fetch('/api/profile/picture', {
+                const response = await fetch('/profile/api/profile/picture', {
                     method: 'POST',
                     body: formData
                 });
@@ -119,14 +184,18 @@
                 if (response.ok) {
                     const data = await response.json();
                     profilePicture.src = data.url;
-                    // Aggiorna l'immagine nella navbar
                     const navProfilePic = document.querySelector('#navProfilePic');
                     if (navProfilePic) {
                         navProfilePic.src = data.url;
                     }
+                    showMessage('Immagine del profilo aggiornata con successo');
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Errore nel caricamento dell\'immagine', true);
                 }
             } catch (error) {
                 console.error('Error uploading profile picture:', error);
+                showMessage('Errore nel caricamento dell\'immagine', true);
             }
         }
     });
@@ -136,13 +205,11 @@
         e.preventDefault();
 
         const formData = {
-            firstName: document.getElementById('firstName').value,
-            lastName: document.getElementById('lastName').value,
             bio: document.getElementById('bio').value
         };
 
         try {
-            const response = await fetch('/api/profile', {
+            const response = await fetch('/profile/api/profile', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -151,12 +218,18 @@
             });
 
             if (response.ok) {
-                // Mostra messaggio di successo
-                alert('Profilo aggiornato con successo!');
+                showMessage('Profilo aggiornato con successo');
+            } else {
+                const error = await response.json();
+                showMessage(error.error || 'Errore nell\'aggiornamento del profilo', true);
             }
         } catch (error) {
             console.error('Error updating profile:', error);
+            showMessage('Errore nell\'aggiornamento del profilo', true);
         }
     });
+
+    // Carica i dati del profilo all'avvio
+    loadProfile();
 </script>
 {% endblock %}

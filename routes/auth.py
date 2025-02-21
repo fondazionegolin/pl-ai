@@ -4,22 +4,15 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
+# Crea il Blueprint per l'autenticazione
+auth_bp = Blueprint('auth', __name__)
+
 # Inizializzazione Firebase Admin SDK
-cred = credentials.Certificate({
-    "type": "service_account",
-    "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-    "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-    "private_key": os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),
-    "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-    "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
-})
+cred = credentials.Certificate('firebase-credentials.json')
 
 # Inizializza Firebase Admin e Firestore
 try:
@@ -86,9 +79,10 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         print(f'\n[DEBUG] --- login_required called for endpoint: {request.endpoint} ---')
         
-        # Se siamo sulla landing page o sulla home, non richiedere autenticazione
-        if request.endpoint in ['home', 'landing']:
-            print('[DEBUG] Skipping auth for home/landing')
+        # Route che non richiedono autenticazione
+        public_routes = ['home', 'landing', 'auth.login', 'auth.verify_token']
+        if request.endpoint in public_routes:
+            print(f'[DEBUG] Skipping auth for public route: {request.endpoint}')
             return f(*args, **kwargs)
         
         # Ottieni il token (prima dall'header, poi dalla sessione)
@@ -200,6 +194,13 @@ def verify_token():
         'name': user.get('name', '')
     }), 200
 
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    """Endpoint per il logout dell'utente."""
+    # Pulisci la sessione
+    session.clear()
+    return jsonify({'message': 'Logout effettuato con successo'}), 200
+
 @auth_bp.route('/check-auth', methods=['GET'])
 def check_auth():
     """Endpoint per verificare lo stato dell'autenticazione."""
@@ -234,6 +235,8 @@ def dashboard():
                          firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
                          firebase_app_id=os.getenv('FIREBASE_APP_ID'))
 
+from datetime import datetime
+
 def get_current_user():
     """Recupera le informazioni dell'utente corrente dal database."""
     try:
@@ -255,31 +258,50 @@ def get_current_user():
             return user_data
         else:
             # Se il documento non esiste, crea un nuovo profilo utente
+            now = datetime.now().isoformat()
             user_data = {
                 'uid': uid,
                 'email': decoded_token.get('email', ''),
                 'first_name': '',
                 'last_name': '',
                 'bio': '',
-                'profile_picture': None
+                'profile_picture': '',
+                'created_at': now,
+                'updated_at': now
             }
             db.collection('users').document(uid).set(user_data)
             return user_data
             
     except Exception as e:
-        pass
+        print(f"Errore nel recupero dell'utente: {str(e)}")
         return None
 
 def update_user_profile(uid, data):
     """Aggiorna le informazioni del profilo utente nel database."""
     try:
+        # Validazione dei campi
+        allowed_fields = {'bio', 'email', 'first_name', 'last_name', 'profile_picture'}
+        update_data = {k: v for k, v in data.items() if k in allowed_fields}
+        
+        # Aggiungi il timestamp di aggiornamento
+        update_data['updated_at'] = datetime.now().isoformat()
+        
+        # Validazione dei tipi
+        for field, value in update_data.items():
+            if field in ['bio', 'email', 'first_name', 'last_name', 'profile_picture']:
+                if not isinstance(value, str):
+                    raise ValueError(f"Il campo {field} deve essere una stringa")
+                update_data[field] = str(value)
+        
         db = firestore.client()
-        db.collection('users').document(uid).update(data)
+        db.collection('users').document(uid).update(update_data)
         return True
     except Exception as e:
-        pass
+        print(f"Errore nell'aggiornamento del profilo: {str(e)}")
         return False
 
 def allowed_file(filename, allowed_extensions):
     """Verifica se l'estensione del file è consentita."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+
