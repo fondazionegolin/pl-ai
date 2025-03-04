@@ -99,15 +99,80 @@ def train_regression():
     
     try:
         data = request.json
-        filename = data.get('filename')
         target = data.get('target')
         features = data.get('features')
         
-        if not all([filename, target, features]):
-            return jsonify({'error': 'Parametri mancanti'}), 400
+        # Verifica se i dati sono stati inviati direttamente
+        raw_data = data.get('data')
+        
+        # Se i dati non sono stati inviati direttamente, usa il nome del file
+        if raw_data is None:
+            filename = data.get('filename')
+            if not filename:
+                return jsonify({
+                    'error': 'Parametri mancanti: è richiesto filename o data. ' +
+                             'Suggerimento: prova a utilizzare uno dei dataset predefiniti ' +
+                             'o ricarica il tuo file.'
+                }), 400
             
-        filepath = os.path.join(UPLOAD_FOLDER, secure_filename(filename))
-        df = pd.read_csv(filepath)
+            # Prima cerchiamo in uploads/csv
+            filepath = os.path.join(UPLOAD_FOLDER, secure_filename(filename))
+            
+            # Se non esiste in uploads/csv, prova in static/csv/regressione
+            if not os.path.exists(filepath) and 'Esempio' in filename:
+                static_path = os.path.join('static', 'csv', 'regressione', secure_filename(filename))
+                if os.path.exists(static_path):
+                    filepath = static_path
+                    print(f"Usando file da static: {filepath}")
+            
+            # Se dopo i tentativi ancora non esiste, ritorna un errore
+            if not os.path.exists(filepath):
+                available_paths = [
+                    os.path.join(UPLOAD_FOLDER, secure_filename(filename)),
+                    os.path.join('static', 'csv', 'regressione', secure_filename(filename))
+                ]
+                return jsonify({
+                    'error': f'File non trovato: {filename}. ' +
+                             f'Percorsi cercati: {", ".join(available_paths)}. ' +
+                             'Suggerimento: utilizza uno dei dataset predefiniti o ricarica il tuo file.'
+                }), 400
+            
+            try:
+                df = pd.read_csv(filepath)
+                print(f"File caricato con successo: {filepath}, shape: {df.shape}")
+            except Exception as e:
+                return jsonify({
+                    'error': f'Errore nella lettura del file CSV: {str(e)}. ' +
+                             'Suggerimento: verifica che il file sia nel formato CSV corretto.'
+                }), 400
+        else:
+            # Crea un DataFrame dai dati ricevuti
+            try:
+                df_data = []
+                headers = raw_data.get('headers', [])
+                
+                for row in raw_data.get('data', []):
+                    df_data.append(row)
+                
+                if not df_data:
+                    return jsonify({
+                        'error': 'Nessun dato ricevuto. ' +
+                                 'Suggerimento: riprova a caricare il dataset o utilizza uno dei dataset predefiniti.'
+                    }), 400
+                
+                df = pd.DataFrame(df_data)
+                print(f"Dati ricevuti direttamente, shape: {df.shape}")
+            except Exception as e:
+                return jsonify({
+                    'error': f'Errore nella conversione dei dati: {str(e)}. ' +
+                             'Suggerimento: ricarica il file e assicurati che sia in formato CSV valido.'
+                }), 400
+        
+        if not all([target, features]) or len(features) == 0:
+            return jsonify({
+                'error': 'Parametri mancanti: target e features sono richiesti. ' +
+                         'Suggerimento: seleziona almeno una colonna target e una feature.'
+            }), 400
         
         # Prepara i dati
         X = df[features]
@@ -132,7 +197,12 @@ def train_regression():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Errore dettagliato: {error_trace}")
+        return jsonify({
+            'error': str(e) + '. Suggerimento: riprova con un altro dataset o contatta l\'assistenza.'
+        }), 400
 
 @ml.route('/predict_regression', methods=['POST'])
 @login_required

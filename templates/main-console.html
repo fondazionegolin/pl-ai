@@ -1,0 +1,165 @@
+{% set hide_console = true %}
+{% extends "base_clean.html" %}
+
+{% block title %}Main Console - PL-AI Platform{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Main Console</h1>
+        <p class="text-gray-600">Benvenuto nella tua main console di gestione PL-AI</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Regressione -->
+        <a href="/ml/regressione" class="block group">
+            <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                <div class="text-blue-600 text-3xl mb-4">📈</div>
+                <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Regressione</h3>
+                <p class="mt-2 text-gray-500">Analisi predittiva avanzata per dati numerici continui.</p>
+            </div>
+        </a>
+
+        <!-- Classificazione -->
+        <a href="/ml/classificazione" class="block group">
+            <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                <div class="text-blue-600 text-3xl mb-4">🎯</div>
+                <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione</h3>
+                <p class="mt-2 text-gray-500">Categorizzazione automatica di dati in classi predefinite.</p>
+            </div>
+        </a>
+
+        <!-- Classificazione Immagini -->
+        <a href="/image/classificazione-immagini" class="block group">
+            <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                <div class="text-blue-600 text-3xl mb-4">🖼️</div>
+                <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Classificazione Immagini</h3>
+                <p class="mt-2 text-gray-500">Riconoscimento e categorizzazione automatica delle immagini.</p>
+            </div>
+        </a>
+
+        <!-- Generazione Immagini -->
+        <a href="/image/generazione-immagini" class="block group">
+            <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                <div class="text-blue-600 text-3xl mb-4">🎨</div>
+                <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Generazione Immagini</h3>
+                <p class="mt-2 text-gray-500">Creazione di immagini utilizzando modelli AI avanzati.</p>
+            </div>
+        </a>
+
+        <!-- Chatbot -->
+        <a href="/chatbot" class="block group">
+            <div class="bg-white rounded-lg shadow-lg p-6 transition duration-150 ease-in-out transform hover:scale-105">
+                <div class="text-blue-600 text-3xl mb-4">💬</div>
+                <h3 class="text-xl font-medium text-gray-900 group-hover:text-blue-600">Chatbot</h3>
+                <p class="mt-2 text-gray-500">Assistente virtuale intelligente per le tue esigenze.</p>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "{{ firebase_api_key }}",
+        authDomain: "{{ firebase_auth_domain }}",
+        projectId: "{{ firebase_project_id }}",
+        appId: "{{ firebase_app_id }}"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Verifica il token con il backend
+    async function verifyTokenWithBackend(token) {
+        try {
+            const response = await fetch('/verify-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Token verification failed');
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Token verification error:', error);
+            return false;
+        }
+    }
+
+    // Check auth state
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const token = await user.getIdToken(true);
+                const isValid = await verifyTokenWithBackend(token);
+                
+                if (!isValid) {
+                    throw new Error('Token verification failed');
+                }
+
+                // Update profile picture if available
+                if (user.photoURL) {
+                    const profilePicture = document.getElementById('profilePicture');
+                    if (profilePicture) {
+                        profilePicture.src = user.photoURL;
+                    }
+                }
+
+                // Salva il token e aggiorna l'interfaccia
+                sessionStorage.setItem('authToken', token);
+
+                // Aggiungi il token a tutte le richieste fetch
+                const originalFetch = window.fetch;
+                window.fetch = async function(...args) {
+                    const [resource, config] = args;
+                    const token = sessionStorage.getItem('authToken');
+                    
+                    if (token) {
+                        args[1] = {
+                            ...config,
+                            headers: {
+                                ...config?.headers,
+                                'Authorization': `Bearer ${token}`
+                            }
+                        };
+                    }
+                    
+                    const response = await originalFetch.apply(this, args);
+                    
+                    // Se riceviamo un 401, il token non è più valido
+                    if (response.status === 401) {
+                        const data = await response.json();
+                        // Pulisci lo storage e reindirizza
+                        sessionStorage.removeItem('authToken');
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            window.location.href = '/';
+                        }
+                        return response;
+                    }
+                    
+                    return response;
+                };
+
+            } catch (error) {
+                console.error('Authentication error:', error);
+                sessionStorage.removeItem('authToken');
+                window.location.href = '/';
+            }
+        } else {
+            sessionStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+    });
+</script>
+{% endblock %}

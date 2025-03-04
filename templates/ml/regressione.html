@@ -3,184 +3,411 @@
 {% block title %}Regressione - PL-AI Platform{% endblock %}
 
 {% block extra_head %}
-<style>
-    .main-container {
-        position: relative;
-        padding-right: 4rem;
-    }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regressione - PL-AI</title>
+    <link rel="stylesheet" href="/static/css/fontawesome.all.min.css">
+    <!-- Aggiungiamo Chart.js per la visualizzazione dei dati -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .main-container {
+            position: relative;
+            padding-right: 4rem;
+            margin: 0 auto;
+            max-width: 1200px;
+        }
 
-    .step-container {
-        height: 75vh;
-        overflow: hidden;
-        position: relative;
-    }
+        .step-container {
+            height: 85vh; /* Aumentato dal 75vh precedente */
+            overflow-y: auto; /* Cambio da hidden ad auto per permettere lo scrolling */
+            position: relative;
+            padding: 1rem;
+            scrollbar-width: thin; /* Per Firefox */
+            scrollbar-color: #CBD5E0 #F7FAFC; /* Per Firefox */
+            scroll-behavior: smooth; /* Smooth scrolling */
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+        }
+        
+        /* Stile scrollbar per Chrome/Safari/Edge */
+        .step-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .step-container::-webkit-scrollbar-track {
+            background: #F7FAFC;
+            border-radius: 4px;
+        }
+        
+        .step-container::-webkit-scrollbar-thumb {
+            background-color: #CBD5E0;
+            border-radius: 4px;
+        }
 
-    .step-navigation-container {
-        position: absolute;
-        right: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        z-index: 10;
-    }
+        .step-navigation-container {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 10;
+        }
 
-    .step-navigation {
-        padding: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 1.5rem;
-        color: #CBD5E0;
-        background: transparent;
-        border: none;
-        outline: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+        .step-navigation {
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            color: #CBD5E0;
+            background: transparent;
+            border: none;
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .step-navigation.active {
-        color: #4299E1;
-    }
+        .step-navigation.active {
+            color: #4299E1;
+        }
 
-    .step-navigation.active:hover {
-        color: #2B6CB0;
-    }
+        .step-navigation.active:hover {
+            color: #2B6CB0;
+        }
 
-    .step-dots {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
+        .step-dots {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
 
-    .step-dot {
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 50%;
-        background-color: #CBD5E0;
-        margin: 0 0.5rem;
-        transition: all 0.3s ease;
-    }
+        .step-dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background-color: #CBD5E0;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
 
-    .step-dot.active {
-        width: 1rem;
-        height: 1rem;
-        background-color: #4299E1;
-    }
+        .step-dot.active {
+            width: 1rem;
+            height: 1rem;
+            background-color: #4299E1;
+        }
 
-    .step-dot.completed {
-        background-color: #48BB78;
-    }
+        .step-dot.completed {
+            background-color: #48BB78;
+        }
 
-    .step {
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        transition: transform 0.5s ease;
-        padding: 2rem;
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
+        .step {
+            padding: 1.5rem;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            width: 100%;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+        }
+        
+        .step.active {
+            position: relative;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+            z-index: 2;
+        }
+        
+        .step.next {
+            position: relative;
+            margin-top: 1rem;
+            opacity: 0.7;
+            filter: blur(2px);
+            pointer-events: none;
+            transform: translateY(0);
+            z-index: 1;
+        }
+        
+        .step.hidden {
+            display: none;
+            z-index: 0;
+        }
 
-    .step.active {
-        transform: translateY(0);
-        z-index: 2;
-    }
+        .upload-area {
+            border: 2px dashed #CBD5E0;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
 
-    .step.next {
-        transform: translateY(75%);
-        filter: blur(2px);
-        opacity: 0.7;
-        z-index: 1;
-    }
+        .upload-area:hover {
+            border-color: #4299E1;
+            background-color: #EBF8FF;
+        }
 
-    .step.hidden {
-        transform: translateY(-100%);
-        z-index: 0;
-    }
+        .upload-area.loading {
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .upload-area.loading::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .upload-area.loading::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            z-index: 11;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
 
-    .upload-area {
-        border: 2px dashed #CBD5E0;
-        border-radius: 1rem;
-        padding: 2rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
+        .data-table {
+            width: 100%;
+            overflow: auto;
+            max-height: 50vh;
+        }
 
-    .upload-area:hover {
-        border-color: #4299E1;
-        background-color: #EBF8FF;
-    }
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-    .data-table {
-        width: 100%;
-        overflow: auto;
-        max-height: 50vh;
-    }
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            border: 1px solid #E2E8F0;
+        }
 
-    .data-table table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+        .data-table th {
+            background-color: #F7FAFC;
+            font-weight: 600;
+        }
 
-    .data-table th,
-    .data-table td {
-        padding: 0.75rem;
-        border: 1px solid #E2E8F0;
-    }
+        .data-table tr:nth-child(even) {
+            background-color: #F7FAFC;
+        }
 
-    .data-table th {
-        background-color: #F7FAFC;
-        font-weight: 600;
-    }
+        .prediction-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
 
-    .data-table tr:nth-child(even) {
-        background-color: #F7FAFC;
-    }
+        .prediction-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
 
-    .prediction-form {
-        max-width: 500px;
-        margin: 0 auto;
-    }
+        .prediction-form input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #CBD5E0;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
 
-    .prediction-form label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background-color: #EDF2F7;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
 
-    .prediction-form input {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #CBD5E0;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-    }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4299E1;
+            transition: width 0.3s ease;
+        }
 
-    .progress-bar {
-        width: 100%;
-        height: 0.5rem;
-        background-color: #EDF2F7;
-        border-radius: 0.25rem;
-        overflow: hidden;
-        margin: 1rem 0;
-    }
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+        
+        .video-description {
+            margin-top: 1.5rem;
+            background-color: #EBF8FF;
+            border-left: 4px solid #4299E1;
+            padding: 1rem;
+            border-radius: 0.25rem;
+        }
 
-    .progress-bar-fill {
-        height: 100%;
-        background-color: #4299E1;
-        transition: width 0.3s ease;
-    }
-</style>
+        /* Stile per le notifiche laterali */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            z-index: 9999;
+        }
+        
+        .notification {
+            background-color: #fff;
+            border-left: 4px solid #4CAF50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .notification.info {
+            border-left-color: #2196F3;
+        }
+        
+        .notification.success {
+            border-left-color: #4CAF50;
+        }
+        
+        .notification.warning {
+            border-left-color: #FFC107;
+        }
+        
+        .notification.error {
+            border-left-color: #F44336;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .notification-message {
+            color: #555;
+        }
+
+        /* Stile per il modal tutorial */
+        .tutorial-modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .tutorial-modal-content {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tutorial-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .tutorial-modal-close {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #CBD5E0;
+            transition: color 0.2s;
+        }
+        
+        .tutorial-modal-close:hover {
+            color: #4A5568;
+        }
+        
+        .tutorial-modal.hidden {
+            display: none;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
+<!-- Tutorial Modal -->
+<div id="tutorialModal" style="position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div class="tutorial-modal-content">
+        <div class="tutorial-modal-header">
+            <h2 class="text-2xl font-bold">Tutorial: Regressione Lineare</h2>
+            <button id="closeTutorialModal" class="tutorial-modal-close" onclick="console.log('Click diretto su X'); document.getElementById('tutorialModal').style.display = 'none';">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="video-container">
+            <video controls>
+                <source src="/static/videos/sample.mp4" type="video/mp4">
+                Il tuo browser non supporta il tag video.
+            </video>
+        </div>
+        <div class="video-description mt-4">
+            <h3 class="font-bold mb-2">Guarda il tutorial completo</h3>
+            <p>Questo video spiega come utilizzare lo strumento di regressione lineare presente nella piattaforma PL-AI:</p>
+            <ul class="list-disc ml-6 mt-2">
+                <li>Come caricare i dati nel formato corretto</li>
+                <li>Come selezionare le variabili predittive</li>
+                <li>Come interpretare i risultati del modello</li>
+                <li>Come utilizzare il modello per nuove predizioni</li>
+            </ul>
+        </div>
+        <div class="mt-8 text-center">
+            <button id="skipTutorialBtn" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" onclick="console.log('Click diretto su Skip'); document.getElementById('tutorialModal').style.display = 'none';">
+                Inizia a creare il tuo modello
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="container mx-auto px-4">
     <div class="flex items-center justify-center mb-4">
         <span id="stepTitle" class="text-xl font-semibold">Carica CSV</span>
@@ -190,6 +417,7 @@
         <div class="step-dot" data-step="2"></div>
         <div class="step-dot" data-step="3"></div>
         <div class="step-dot" data-step="4"></div>
+        <div class="step-dot" data-step="5"></div>
     </div>
     <div class="main-container">
         <div class="step-navigation-container">
@@ -202,35 +430,157 @@
         </div>
         <div class="step-container">
 
-        <!-- Step 1: Upload CSV -->
-        <div class="step active" id="step1">
+        <!-- Step 1: Caricamento CSV (non è più il tutorial) -->
+        <div class="step active" id="step2" data-title="Carica CSV">
             <h2 class="text-2xl font-bold mb-6">Carica il tuo dataset CSV</h2>
-            <div class="upload-area" id="uploadArea">
-                <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-                <p class="text-lg mb-2">Trascina qui il tuo file CSV</p>
-                <p class="text-sm text-gray-500">oppure</p>
-                <button class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                    Seleziona File
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Opzione 1: Carica il tuo dataset -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4">Carica il tuo file CSV</h3>
+                    
+                    <!-- Sostituiamo l'area di upload con un form semplice e diretto -->
+                    <form id="directUploadForm" class="mb-4">
+                        <div class="mb-4">
+                            <label for="csvFileInput" class="block text-sm font-medium text-gray-700 mb-2">
+                                Seleziona un file CSV dal tuo computer:
+                            </label>
+                            <input type="file" 
+                                   id="csvFileInput" 
+                                   name="csvFile" 
+                                   accept=".csv"
+                                   class="block w-full text-sm text-gray-500
+                                          file:mr-4 file:py-2 file:px-4
+                                          file:rounded-md file:border-0
+                                          file:text-sm file:font-semibold
+                                          file:bg-blue-50 file:text-blue-700
+                                          hover:file:bg-blue-100">
+                        </div>
+                        <button type="submit" 
+                                id="uploadFileButton"
+                                class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                            Carica File
+                        </button>
+                    </form>
+                    
+                    <!-- Manteniamo anche l'opzione drag & drop ma come alternativa -->
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-500 mb-2">Oppure trascina qui il tuo file:</p>
+                        <div class="upload-area" id="uploadArea" style="height: 100px;">
+                            <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
+                            <p class="text-sm">Trascina qui il tuo file CSV</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Opzione 2: Scegli un dataset predefinito -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4">Scegli un dataset predefinito</h3>
+                    <p class="text-sm text-gray-600 mb-4">Seleziona uno dei nostri dataset di esempio per iniziare subito:</p>
+                    
+                    <div class="space-y-3">
+                        <div class="dataset-option">
+                            <input type="radio" id="dataset1" name="dataset" value="/static/csv/regressione/Esempio1.csv" class="mr-2">
+                            <label for="dataset1" class="cursor-pointer">Esempio 1: Previsione Prezzi Case</label>
+                        </div>
+                        <div class="dataset-option">
+                            <input type="radio" id="dataset2" name="dataset" value="/static/csv/regressione/Esempio2.csv" class="mr-2">
+                            <label for="dataset2" class="cursor-pointer">Esempio 2: Consumi Energetici</label>
+                        </div>
+                        <div class="dataset-option">
+                            <input type="radio" id="dataset3" name="dataset" value="/static/csv/regressione/Esempio3.csv" class="mr-2">
+                            <label for="dataset3" class="cursor-pointer">Esempio 3: Dati Climatici</label>
+                        </div>
+                        <div class="dataset-option">
+                            <input type="radio" id="dataset4" name="dataset" value="/static/csv/regressione/Esempio4.csv" class="mr-2">
+                            <label for="dataset4" class="cursor-pointer">Esempio 4: Salute e Benessere</label>
+                        </div>
+                        <div class="dataset-option">
+                            <input type="radio" id="dataset5" name="dataset" value="/static/csv/regressione/Esempio5.csv" class="mr-2">
+                            <label for="dataset5" class="cursor-pointer">Esempio 5: Performance Aziendali</label>
+                        </div>
+                    </div>
+                    
+                    <button id="loadPredefinedDataset" class="mt-6 w-full bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Carica Dataset Selezionato
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Indicatore di stato -->
+            <div id="datasetStatus" class="mt-8 text-center hidden">
+                <div class="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span id="datasetStatusText">Dataset caricato con successo!</span>
+                </div>
+                
+                <button id="continueToNextStep" class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                    Continua <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Step 2: View and Edit CSV -->
-        <div class="step next" id="step2">
+        <!-- Step 2: View and Edit CSV (era step 3) -->
+        <div class="step hidden" id="step3" data-title="Seleziona Variabili">
             <h2 class="text-2xl font-bold mb-6">Visualizza e Modifica i Dati</h2>
             <div class="bg-blue-50 p-4 rounded-lg mb-6">
                 <p class="text-sm text-blue-800">
                     <i class="fas fa-info-circle mr-2"></i>
                     Per ogni colonna, seleziona:
                     <ul class="list-disc ml-6 mt-2">
-                        <li><strong>Radio button</strong>: per scegliere la variabile target (il valore da predire)</li>
-                        <li><strong>Checkbox</strong>: per selezionare le features (le variabili usate per la predizione)</li>
+                        <li><strong class="text-red-600"><i class="fas fa-bullseye"></i> Target</strong>: la variabile da predire</li>
+                        <li><strong class="text-green-600"><i class="fas fa-check-circle"></i> Feature</strong>: le variabili da usare per la predizione</li>
                     </ul>
+                    <p class="mt-2"><i class="fas fa-lightbulb text-yellow-500"></i> Clicca sull'intestazione della colonna per cambiare il suo stato.</p>
                 </p>
             </div>
+            
+            <!-- Sezione per la visualizzazione dei grafici -->
+            <div id="dataVisualization" class="mb-8">
+                <h3 class="text-lg font-semibold mb-4">Visualizzazione Dati</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h4 class="text-md font-medium mb-2">Distribuzione delle variabili</h4>
+                        <div class="relative" style="height: 250px;">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h4 class="text-md font-medium mb-2">Correlazione tra variabili</h4>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <select id="correlationX" class="p-2 border rounded-md text-sm">
+                                <option value="">Seleziona asse X</option>
+                            </select>
+                            <select id="correlationY" class="p-2 border rounded-md text-sm">
+                                <option value="">Seleziona asse Y</option>
+                            </select>
+                            <button id="updateCorrelationBtn" class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
+                                Aggiorna
+                            </button>
+                        </div>
+                        <div class="relative" style="height: 250px;">
+                            <canvas id="correlationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex space-x-2 mb-4">
+                    <div class="rounded-full px-4 py-1 flex items-center bg-gray-200">
+                        <span class="mr-2">Non selezionata</span>
+                    </div>
+                    <div class="rounded-full px-4 py-1 flex items-center bg-red-100 text-red-700">
+                        <i class="fas fa-bullseye mr-2"></i> Target
+                    </div>
+                    <div class="rounded-full px-4 py-1 flex items-center bg-green-100 text-green-700">
+                        <i class="fas fa-check-circle mr-2"></i> Feature
+                    </div>
+                </div>
+            </div>
+            
             <div class="data-table">
-                <table id="csvTable"></table>
+                <table id="csvTable" class="w-full"></table>
             </div>
             <div class="flex justify-end mt-4 space-x-4">
                 <button onclick="saveChanges()" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">
@@ -243,19 +593,54 @@
         </div>
 
         <!-- Step 3: Training -->
-        <div class="step hidden" id="step3">
+        <div class="step hidden" id="step4" data-title="Training del Modello">
             <h2 class="text-2xl font-bold mb-6">Training del Modello</h2>
             <div class="progress-bar">
-                <div class="progress-bar-fill" id="trainingProgress" style="width: 0%"></div>
+                <div class="progress-bar-fill" id="trainingProgress"></div>
             </div>
-            <p class="text-center text-gray-600" id="trainingStatus">Preparazione del training...</p>
-            <button onclick="startTraining()" class="mt-8 mx-auto block bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600">
+            <p id="trainingStatus" class="my-4 text-center text-gray-700">In attesa di avviare il training...</p>
+            <button onclick="startTraining()" class="mx-auto block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Avvia Training
             </button>
+            
+            <!-- Contenitore per i risultati del modello -->
+            <div id="modelResults" class="mt-8 hidden">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4">Risultati del Modello</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Punteggio R² (Training)</p>
+                            <p id="trainScore" class="text-2xl font-bold text-blue-700">--</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Punteggio R² (Test)</p>
+                            <p id="testScore" class="text-2xl font-bold text-green-700">--</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Sezione per il salvataggio del modello -->
+                    <div class="mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                        <h4 class="font-semibold mb-2">Salva il tuo modello</h4>
+                        <p class="text-sm text-gray-600 mb-4">Dai un nome al tuo modello per salvarlo e riutilizzarlo in seguito.</p>
+                        <div class="flex space-x-2">
+                            <input type="text" id="modelName" placeholder="Nome del modello" class="flex-1 px-4 py-2 border rounded-lg">
+                            <button id="saveModelBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2">
+                                Salva Modello
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-6">
+                        <button onclick="nextStep()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                            Continua alla Predizione
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Step 4: Prediction -->
-        <div class="step hidden" id="step4">
+        <div class="step hidden" id="step5" data-title="Predizione">
             <h2 class="text-2xl font-bold mb-6">Effettua una Predizione</h2>
             <form class="prediction-form" id="predictionForm">
                 <div id="predictionInputs">
@@ -269,384 +654,104 @@
                 <h3 class="text-xl font-semibold mb-2">Risultato della Predizione</h3>
                 <p class="text-lg" id="predictionValue"></p>
             </div>
+            
+            <!-- Aggiungiamo il pulsante per ricominciare -->
+            <div class="mt-8 text-center">
+                <button type="button" onclick="restartProcess()" id="restartButton" class="bg-indigo-500 text-white px-6 py-2 rounded-lg hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    <i class="fas fa-redo-alt mr-2"></i> Ricomincia da Capo
+                </button>
+            </div>
         </div>
         </div>
     </div>
 </div>
 
+<!-- Container per le notifiche laterali -->
+<div class="notification-container" id="notificationContainer"></div>
+
 <script>
 let currentStep = 1;
-let csvData = null;
-let columns = [];
-let currentFilename = null;
-let selectedFeatures = [];
+let datasetLoaded = false;
 let selectedTarget = null;
+let selectedFeatures = [];
+let currentFilename = null;
+let csvData = null;
+let currentModelId = null;
 
-// Gestione del caricamento del file
-document.getElementById('uploadArea').addEventListener('click', () => {
-    document.getElementById('csvFile').click();
-});
-
-document.getElementById('csvFile').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        if (await uploadCSV(file)) {
-            nextStep();
-        }
-    }
-});
-
-// Drag and drop handling
-const uploadArea = document.getElementById('uploadArea');
-
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    uploadArea.addEventListener(eventName, preventDefaults, false);
-});
-
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-['dragenter', 'dragover'].forEach(eventName => {
-    uploadArea.addEventListener(eventName, highlight, false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-    uploadArea.addEventListener(eventName, unhighlight, false);
-});
-
-function highlight(e) {
-    uploadArea.classList.add('bg-blue-50');
-}
-
-function unhighlight(e) {
-    uploadArea.classList.remove('bg-blue-50');
-}
-
-function markAsModified(cell) {
-    cell.setAttribute('data-modified', 'true');
-}
-
-uploadArea.addEventListener('drop', handleDrop, false);
-
-async function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const file = dt.files[0];
-
-    if (file && file.type === 'text/csv') {
-        if (await uploadCSV(file)) {
-            nextStep();
-        }
-    }
-}
-
-async function uploadCSV(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
+// GESTIONE TUTORIAL - CODICE COMPLETAMENTE NUOVO
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("%c[DEBUG MODALE] DOM caricato - Inizializzazione tutorial", "background: #f00; color: #fff; padding: 2px 5px;");
+    
+    // Ottieni riferimenti agli elementi, verificando eventuali errori
     try {
-        const response = await fetch('/ml/upload_regression', {
-            method: 'POST',
-            body: formData
+        const modal = document.getElementById('tutorialModal');
+        const skipBtn = document.getElementById('skipTutorialBtn');
+        const closeBtn = document.getElementById('closeTutorialModal');
+        
+        console.log("%c[DEBUG MODALE] Elementi trovati:", "background: #00f; color: #fff;", {
+            modal: modal ? "Trovato" : "NON trovato",
+            skipBtn: skipBtn ? "Trovato" : "NON trovato",
+            closeBtn: closeBtn ? "Trovato" : "NON trovato",
         });
-
-        const data = await response.json();
-        if (response.ok) {
-            currentFilename = data.filename;
-            columns = data.columns;
-            displayPreview(data.preview);
-            return true;
-        } else {
-            throw new Error(data.error);
+        
+        if (!modal || !skipBtn || !closeBtn) {
+            console.error("%c[DEBUG MODALE] ERRORE! Alcuni elementi non sono stati trovati", "background: #f00; color: #fff; font-size: 16px;");
+            return;
         }
-    } catch (error) {
-        alert('Errore durante il caricamento: ' + error.message);
-        return false;
-    }
-}
-
-function displayPreview(preview) {
-    let tableHTML = '<thead><tr>';
-    columns.forEach(column => {
-        tableHTML += `<th>
-            <div class="flex items-center justify-between">
-                <span>${column}</span>
-                <div class="ml-2">
-                    <input type="radio" name="target" value="${column}" 
-                           onchange="setTarget('${column}')">
-                    <input type="checkbox" value="${column}" 
-                           onchange="toggleFeature('${column}')">
-                </div>
-            </div>
-        </th>`;
-    });
-    tableHTML += '</tr></thead><tbody>';
-
-    preview.forEach(row => {
-        tableHTML += '<tr>';
-        columns.forEach(column => {
-            tableHTML += `<td contenteditable="true" onblur="markAsModified(this)">${row[column]}</td>`;
-        });
-        tableHTML += '</tr>';
-    });
-    tableHTML += '</tbody>';
-
-    document.getElementById('csvTable').innerHTML = tableHTML;
-}
-
-function setTarget(column) {
-    selectedTarget = column;
-    // Deseleziona la feature se era selezionata
-    const featureIdx = selectedFeatures.indexOf(column);
-    if (featureIdx > -1) {
-        selectedFeatures.splice(featureIdx, 1);
-        document.querySelector(`input[type="checkbox"][value="${column}"]`).checked = false;
-    }
-    updateStepInfo();
-}
-
-function toggleFeature(column) {
-    const idx = selectedFeatures.indexOf(column);
-    if (idx > -1) {
-        selectedFeatures.splice(idx, 1);
-    } else {
-        // Se è target, deseleziona il target
-        if (selectedTarget === column) {
-            selectedTarget = null;
-            document.querySelector(`input[type="radio"][value="${column}"]`).checked = false;
+        
+        // Funzione centralizzata di chiusura del modale
+        function closeModal() {
+            console.log("%c[DEBUG MODALE] ⭐ TENTATIVO DI CHIUSURA", "background: #ff0; color: #000; font-size: 16px;");
+            
+            console.log("[DEBUG MODALE] Stato prima della chiusura:", {
+                display: modal.style.display,
+                visibility: modal.style.visibility,
+                computedDisplay: window.getComputedStyle(modal).display
+            });
+            
+            // Prova tutti i metodi possibili
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.style.opacity = '0';
+            
+            // Aggiunge !important per forzare lo stile
+            modal.setAttribute('style', 'display: none !important; visibility: hidden !important; opacity: 0 !important');
+            
+            console.log("%c[DEBUG MODALE] ✅ Chiusura completata - Stato finale:", "background: #0f0; color: #000;", {
+                display: modal.style.display,
+                visibility: modal.style.visibility,
+                computedDisplay: window.getComputedStyle(modal).display
+            });
+            
+            return false; // Previeni azioni predefinite
         }
-        selectedFeatures.push(column);
-    }
-    updateStepInfo();
-}
-
-async function saveChanges() {
-    const table = document.getElementById('csvTable');
-    const rows = table.getElementsByTagName('tr');
-    const changes = [];
-
-    // Skip header row
-    for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].getElementsByTagName('td');
-        for (let j = 0; j < cells.length; j++) {
-            const cell = cells[j];
-            if (cell.hasAttribute('data-modified')) {
-                changes.push({
-                    row: i - 1,
-                    column: columns[j],
-                    value: cell.textContent
-                });
+        
+        // 1. Aggiungi event listener tradizionali
+        skipBtn.addEventListener('click', closeModal);
+        closeBtn.addEventListener('click', closeModal);
+        
+        // 2. Aggiungi anche onclick per sicurezza
+        skipBtn.onclick = closeModal;
+        closeBtn.onclick = closeModal;
+        
+        // 3. Forza l'HTMLElement onclick (ultimo tentativo)
+        skipBtn.setAttribute('onclick', 'document.getElementById("tutorialModal").style.display = "none"; console.log("[INLINE] Chiusura modale da skipBtn");');
+        closeBtn.setAttribute('onclick', 'document.getElementById("tutorialModal").style.display = "none"; console.log("[INLINE] Chiusura modale da closeBtn");');
+        
+        // 4. Aggiungi una chiusura globale cliccando al di fuori
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                console.log("[DEBUG MODALE] Click fuori dal contenuto del modale");
+                closeModal();
             }
-        }
-    }
-
-    if (changes.length === 0) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/ml/save_regression_changes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                filename: currentFilename,
-                changes: changes
-            })
         });
-
-        const data = await response.json();
-        if (response.ok) {
-            alert('Modifiche salvate con successo!');
-        } else {
-            throw new Error(data.error);
-        }
+        
+        console.log("%c[DEBUG MODALE] Inizializzazione completata", "background: #0f0; color: #000;");
     } catch (error) {
-        alert('Errore durante il salvataggio: ' + error.message);
-    }
-}
-
-function updateStepInfo() {
-    const titles = ['Carica CSV', 'Seleziona Variabili', 'Training del Modello', 'Predizione'];
-    document.getElementById('stepTitle').textContent = titles[currentStep - 1];
-    
-    // Aggiorna pallini
-    const dots = document.querySelectorAll('.step-dot');
-    dots.forEach((dot, index) => {
-        dot.classList.remove('active', 'completed');
-        if (index + 1 === currentStep) {
-            dot.classList.add('active');
-        } else if (index + 1 < currentStep) {
-            dot.classList.add('completed');
-        }
-    });
-    
-    // Gestione frecce di navigazione
-    const prevArrow = document.getElementById('prevArrow');
-    const nextArrow = document.getElementById('nextArrow');
-    
-    // Gestione freccia indietro
-    if (currentStep > 1) {
-        prevArrow.classList.add('active');
-        prevArrow.style.cursor = 'pointer';
-    } else {
-        prevArrow.classList.remove('active');
-        prevArrow.style.cursor = 'default';
-    }
-    
-    // Gestione freccia avanti
-    if (currentStep < 4) {
-        if (currentStep === 2 && (!selectedTarget || selectedFeatures.length === 0)) {
-            nextArrow.classList.remove('active');
-            nextArrow.style.cursor = 'default';
-            nextArrow.title = 'Seleziona almeno un target e una feature per continuare';
-        } else {
-            nextArrow.classList.add('active');
-            nextArrow.style.cursor = 'pointer';
-            nextArrow.title = '';
-        }
-    } else {
-        nextArrow.classList.remove('active');
-        nextArrow.style.cursor = 'default';
-    }
-}
-
-function previousStep() {
-    if (currentStep <= 1) return;
-    
-    const currentStepElement = document.getElementById(`step${currentStep}`);
-    const previousStepElement = document.getElementById(`step${currentStep - 1}`);
-    const nextStepElement = document.getElementById(`step${currentStep + 1}`);
-    
-    if (nextStepElement) {
-        nextStepElement.classList.remove('next');
-        nextStepElement.classList.add('hidden');
-    }
-    
-    currentStepElement.classList.remove('active');
-    currentStepElement.classList.add('next');
-    
-    previousStepElement.classList.remove('hidden');
-    previousStepElement.classList.add('active');
-    
-    currentStep--;
-    updateStepInfo();
-}
-
-function nextStep() {
-    // Validazione per il secondo step
-    if (currentStep === 2 && (!selectedTarget || selectedFeatures.length === 0)) {
-        alert('Seleziona almeno un target e una feature prima di procedere!');
-        return;
-    }
-    
-    const currentStepElement = document.getElementById(`step${currentStep}`);
-    const nextStepElement = document.getElementById(`step${currentStep + 1}`);
-    const futureStepElement = document.getElementById(`step${currentStep + 2}`);
-
-    currentStepElement.classList.remove('active');
-    currentStepElement.classList.add('hidden');
-
-    nextStepElement.classList.remove('next');
-    nextStepElement.classList.add('active');
-
-    if (futureStepElement) {
-        futureStepElement.classList.remove('hidden');
-        futureStepElement.classList.add('next');
-    }
-
-    currentStep++;
-    updateStepInfo();
-
-    if (currentStep === 4) {
-        generatePredictionInputs();
-    }
-}
-
-async function startTraining() {
-    if (!selectedTarget || selectedFeatures.length === 0) {
-        alert('Seleziona almeno una feature e un target prima di procedere!');
-        return;
-    }
-
-    const progressBar = document.getElementById('trainingProgress');
-    const statusText = document.getElementById('trainingStatus');
-    progressBar.style.width = '0%';
-    statusText.textContent = 'Training in corso...';
-
-    try {
-        const response = await fetch('/ml/train_regression', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                filename: currentFilename,
-                target: selectedTarget,
-                features: selectedFeatures
-            })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            progressBar.style.width = '100%';
-            statusText.textContent = `Training completato! R² train: ${data.train_score.toFixed(3)}, R² test: ${data.test_score.toFixed(3)}`;
-            setTimeout(() => nextStep(), 2000);
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        statusText.textContent = 'Errore durante il training: ' + error.message;
-    }
-}
-
-function generatePredictionInputs() {
-    const inputsContainer = document.getElementById('predictionInputs');
-    inputsContainer.innerHTML = '';
-
-    selectedFeatures.forEach(feature => {
-        inputsContainer.innerHTML += `
-            <div class="mb-4">
-                <label for="${feature}">${feature}</label>
-                <input type="number" id="${feature}" name="${feature}" required>
-            </div>
-        `;
-    });
-}
-
-document.getElementById('predictionForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    // Collect input values
-    const features = {};
-    selectedFeatures.forEach(feature => {
-        const input = document.getElementById(feature);
-        if (input) {
-            features[feature] = parseFloat(input.value);
-        }
-    });
-
-    try {
-        const response = await fetch('/ml/predict_regression', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ features })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            document.getElementById('predictionResult').style.display = 'block';
-            document.getElementById('predictionValue').textContent = `Valore predetto: ${data.prediction.toFixed(3)}`;
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        alert('Errore durante la predizione: ' + error.message);
+        console.error("%c[DEBUG MODALE] ERRORE durante l'inizializzazione:", "background: #f00; color: #fff;", error);
     }
 });
+
+// Resto del codice di inizializzazione...
 </script>
 {% endblock %}

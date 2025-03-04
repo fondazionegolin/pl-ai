@@ -226,14 +226,26 @@ def login():
                          firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
                          firebase_app_id=os.getenv('FIREBASE_APP_ID'))
 
-@auth_bp.route('/dashboard')
+@auth_bp.route('/main-console')
 @login_required
-def dashboard():
-    return render_template('dashboard.html',
+def main_console():
+    return render_template('main-console.html',
                          firebase_api_key=os.getenv('FIREBASE_API_KEY'),
                          firebase_auth_domain=os.getenv('FIREBASE_AUTH_DOMAIN'),
                          firebase_project_id=os.getenv('FIREBASE_PROJECT_ID'),
                          firebase_app_id=os.getenv('FIREBASE_APP_ID'))
+
+# Redirecting old dashboard URL to new main-console URL for backward compatibility
+@auth_bp.route('/dashboard')
+@login_required
+def dashboard():
+    return redirect(url_for('auth.main_console'))
+
+# Redirecting console URL to main-console for consistency
+@auth_bp.route('/console')
+@login_required
+def console():
+    return redirect(url_for('auth.main_console'))
 
 from datetime import datetime
 
@@ -303,5 +315,3 @@ def update_user_profile(uid, data):
 def allowed_file(filename, allowed_extensions):
     """Verifica se l'estensione del file è consentita."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
-

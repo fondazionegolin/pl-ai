@@ -15,7 +15,7 @@
 
         :root {
             --sidebar-width: 280px;
-            --sidebar-collapsed-width: 80px;
+            --sidebar-collapsed-width: 60px; /* Aumentato da 40px a 60px per dare più spazio alle icone */
             --min-screen-width: 320px; /* Minimum width for smartphones */
         }
 
@@ -41,14 +41,70 @@
 
         .sidebar-gradient.collapsed {
             width: var(--sidebar-collapsed-width);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar-gradient.collapsed .nav-text {
             display: none;
         }
 
-        .sidebar-gradient.collapsed .gradient-text {
+        .sidebar-gradient.collapsed .logo-text {
             display: none;
+        }
+        
+        .sidebar-gradient.collapsed .nav-link i {
+            margin-right: 0;
+            font-size: 1.2rem;
+        }
+        
+        .sidebar-gradient.collapsed .profile-container,
+        .sidebar-gradient.collapsed .border-b,
+        .sidebar-gradient.collapsed .border-t {
+            border: none;
+        }
+        
+        .sidebar-gradient.collapsed #sidebar-logo {
+            display: none;
+        }
+        
+        .sidebar-gradient.collapsed .py-6,
+        .sidebar-gradient.collapsed .px-4,
+        .sidebar-gradient.collapsed .p-6 {
+            padding: 0.5rem;
+        }
+        
+        .sidebar-gradient.collapsed #sidebar-toggle {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 0.5rem;
+        }
+
+        .sidebar-gradient.collapsed .space-y-2 {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar-gradient.collapsed .absolute.bottom-0 {
+            position: relative;
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar-gradient.collapsed .profile-container {
+            justify-content: center;
+            padding: 0.5rem;
+        }
+        
+        .sidebar-gradient.collapsed .flex.items-center.justify-between {
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .main-content {
@@ -62,15 +118,33 @@
             margin-left: var(--sidebar-collapsed-width);
         }
 
+        .main-content.with-full-sidebar {
+            margin-left: var(--sidebar-width);
+        }
+
+        /* Nuovo stile per la visualizzazione su mobile */
+        .sidebar-gradient.closed {
+            transform: translateX(-100%);
+        }
+        
         @media (max-width: 768px) {
             .sidebar-gradient {
-                transform: translateX(-100%);
+                transform: translateX(0); /* Visibile di default */
+                width: var(--sidebar-width);
+            }
+            .sidebar-gradient.collapsed {
+                width: var(--sidebar-collapsed-width);
+                transform: translateX(0); /* Mostra sempre la striscia sottile anche su mobile */
             }
             .sidebar-gradient.open {
                 transform: translateX(0);
+                width: var(--sidebar-width);
             }
             .main-content {
-                margin-left: 0;
+                margin-left: var(--sidebar-collapsed-width); /* Di default, mostra il margine per la sidebar collassata */
+            }
+            .main-content.with-full-sidebar {
+                margin-left: var(--sidebar-width);
             }
         }
 
@@ -105,351 +179,470 @@
             color: white;
             font-weight: 600 !important;
         }
+
+        /* Stile per il loader */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
     {% block extra_head %}{% endblock %}
+    <div id="dynamicStyles"></div>
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Sidebar -->
     <nav class="sidebar-gradient shadow-lg" id="sidebar">
         <!-- Logo -->
-        <div class="p-6 border-b border-indigo-800">
-            <span class="gradient-text text-2xl font-bold">Play AI</span>
+        <div class="p-6 flex items-center justify-between border-b border-indigo-800">
+            <div class="flex items-center">
+                <img src="/static/logo_ai.png" alt="Play AI Logo" class="h-10 w-auto mr-2" id="sidebar-logo">
+                <span class="logo-text gradient-text text-2xl font-bold">Play AI</span>
+            </div>
+            <!-- Toggle button for sidebar on desktop -->
+            <button id="sidebar-toggle" class="text-white focus:outline-none">
+                <i class="fas fa-chevron-left"></i>
+            </button>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="py-6 px-4 space-y-2">
-            <a href="/dashboard" class="nav-link block {% if request.path == '/dashboard' %}active{% endif %}">
+        <!-- Upper Navigation Links -->
+        <div class="py-6 px-4 space-y-2 border-b border-indigo-800">
+            <a href="/main-console" class="nav-link block {% if request.path == '/main-console' or request.path == '/console' or request.path == '/dashboard' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-tachometer-alt mr-3"></i>
-                <span class="nav-text">Dashboard</span>
+                <span class="nav-text">Main Console</span>
             </a>
-            <a href="/ml/regressione" class="nav-link block {% if request.path == '/ml/regressione' %}active{% endif %}">
+            <a href="/ml/regressione" class="nav-link block {% if request.path == '/ml/regressione' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-chart-line mr-3"></i>
                 <span class="nav-text">Regressione</span>
             </a>
-            <a href="/ml/classificazione" class="nav-link block {% if request.path == '/ml/classificazione' %}active{% endif %}">
+            <a href="/ml/classificazione" class="nav-link block {% if request.path == '/ml/classificazione' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-table mr-3"></i>
                 <span class="nav-text">Classificazione Dati</span>
             </a>
-            <a href="/image/classificazione-immagini" class="nav-link block {% if request.path == '/image/classificazione-immagini' %}active{% endif %}">
+            <a href="/image/classificazione-immagini" class="nav-link block {% if request.path == '/image/classificazione-immagini' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-image mr-3"></i>
                 <span class="nav-text">Classificazione Immagini</span>
             </a>
-            <a href="/chatbot" class="nav-link block {% if request.path == '/chatbot' %}active{% endif %}">
+            <a href="/chatbot" class="nav-link block {% if request.path == '/chatbot' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-robot mr-3"></i>
                 <span class="nav-text">Chatbot</span>
             </a>
-            <a href="/image/generazione-immagini" class="nav-link block {% if request.path == '/image/generazione-immagini' %}active{% endif %}">
+            <a href="/image/generazione-immagini" class="nav-link block {% if request.path == '/image/generazione-immagini' %}active{% endif %}" data-spa-link>
                 <i class="fas fa-paint-brush mr-3"></i>
                 <span class="nav-text">Generazione Immagini</span>
             </a>
-            <a href="/learning" class="nav-link block {% if request.path == '/learning' %}active{% endif %}">
-                <i class="fas fa-graduation-cap mr-3"></i>
-                <span class="nav-text">Learning</span>
-            </a>
-        </div>
-                <!-- Profile Menu -->
-                <div class="flex items-center space-x-4">
-                    <div class="relative" id="profileMenu">
-                        <button type="button" onclick="toggleProfileMenu()" class="flex items-center focus:outline-none">
-                            <img id="navProfilePic" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
-                                 alt="Profile" 
-                                 class="h-10 w-10 rounded-full object-cover border-2 border-white hover:border-blue-500 transition duration-150">
-                        </button>
-                        <!-- Dropdown Menu -->
-                        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-50 transform origin-top-right transition duration-150">
-                            <a href="/profile/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                                <i class="fas fa-cog mr-2"></i> Impostazioni
-                            </a>
-                            <hr class="my-1 border-gray-200">
-                            <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600">
-                                <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Mobile menu -->
-        <div class="mobile-menu sm:hidden hidden" id="mobile-menu">
-            <div class="pt-2 pb-3 space-y-1">
-                <a href="/" class="nav-link block px-3 py-2 {% if request.path == '/' %}active{% endif %}">Home</a>
-                <a href="/ml/regressione" class="nav-link block px-3 py-2 {% if request.path == '/ml/regressione' %}active{% endif %}">Regressione</a>
-                <a href="/ml/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/ml/classificazione' %}active{% endif %}">Classificazione Dati</a>
-                <a href="/image/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/image/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
-                <a href="/chatbot" class="nav-link block px-3 py-2 {% if request.path == '/chatbot' %}active{% endif %}">Chatbot</a>
-                <a href="/image/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/image/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
-                <a href="/learning" class="nav-link block px-3 py-2 {% if request.path == '/learning' %}active{% endif %}">Learning</a>
+        <!-- Lower Navigation (Profile & Settings) -->
+        <div class="absolute bottom-0 left-0 w-full border-t border-indigo-800 py-4 px-4">
+            <a href="/profile/settings" class="nav-link block mb-2">
+                <i class="fas fa-cog mr-3"></i>
+                <span class="nav-text">Impostazioni</span>
+            </a>
+            <div class="flex items-center justify-between">
+                <div class="profile-container flex items-center space-x-2 nav-link">
+                    <img id="profilePicture" src="{{ profile_picture if profile_picture else 'https://www.gravatar.com/avatar/?d=mp' }}" 
+                         alt="Profile" 
+                         class="h-8 w-8 rounded-full object-cover border-2 border-white">
+                    <span class="nav-text text-sm truncate">{{ user_name if user_name else 'Utente' }}</span>
+                </div>
+                <button onclick="logoutUser()" class="text-white p-2 hover:bg-indigo-700 rounded-full" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="main-content p-8" id="mainContent">
-        <!-- Mobile Menu Button -->
-        <div class="md:hidden fixed top-4 left-4 z-50">
-            <button onclick="toggleSidebar()" class="bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <!-- Toggle Sidebar Button (Desktop) -->
-        <div class="hidden md:block fixed top-4 left-4 z-50">
-            <button onclick="toggleSidebarCollapse()" class="bg-indigo-600 text-white p-3 rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
+    <div class="main-content" id="mainContent">
         {% block content %}{% endblock %}
     </div>
 
-    {% if not hide_console %}
-    <!-- Console ridimensionabile -->
-    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-900 text-green-400 font-mono text-sm transition-all duration-300 ease-in-out" style="height: 300px; max-height: 50vh; z-index: 1000;">
-        <!-- Header della console con pulsanti -->
-        <div class="flex justify-between items-center p-2 bg-gray-800 border-b border-gray-700 cursor-move" id="console-header">
-            <div class="flex items-center space-x-2">
-                <span class="font-bold">Console di Training</span>
-                <button onclick="toggleConsole()" class="text-gray-400 hover:text-white focus:outline-none">
-                    <svg id="toggle-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-            </div>
-            <button onclick="clearConsole()" class="text-gray-400 hover:text-white focus:outline-none">
-                Clear
-            </button>
-        </div>
-        <!-- Contenuto della console -->
-        <div id="console-content" class="p-4 space-y-1 overflow-y-auto" style="height: calc(100% - 40px);"></div>
-        <!-- Maniglia per il ridimensionamento -->
-        <div id="console-resizer" class="absolute top-0 left-0 right-0 h-1 cursor-ns-resize bg-gray-700 hover:bg-blue-500 transition-colors"></div>
-    </div>
-    {% endif %}
-
-
-
-
+    <!-- Include Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    
     <script>
-        // Funzione per il log nella console
-        function logToConsole(message) {
-            const consoleContent = document.getElementById('console-content');
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = 'py-1';
-            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
-            consoleContent.appendChild(logEntry);
-            consoleContent.scrollTop = consoleContent.scrollHeight;
-        }
+        // Sidebar toggle functionality
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
 
-        // Funzione per mostrare/nascondere la console
-        function toggleConsole() {
-            const console = document.getElementById('console');
-            const icon = document.getElementById('toggle-icon');
-            const isMinimized = console.style.height === '40px';
+        // Aggiunge debug per verificare quando viene cliccato il toggle
+        console.log('Inizializzazione sidebar toggle');
 
-            if (isMinimized) {
-                console.style.height = '300px';
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                console.style.height = '40px';
-                icon.style.transform = 'rotate(-90deg)';
-            }
-        }
-
-        // Gestione del ridimensionamento
-        const consoleResizer = document.getElementById('console-resizer');
-        const console = document.getElementById('console');
-        let startY;
-        let startHeight;
-
-        function initResize(e) {
-            startY = e.clientY;
-            startHeight = parseInt(document.defaultView.getComputedStyle(console).height, 10);
-            document.documentElement.addEventListener('mousemove', resize);
-            document.documentElement.addEventListener('mouseup', stopResize);
-        }
-
-        function resize(e) {
-            const newHeight = startHeight - (e.clientY - startY);
-            const maxHeight = window.innerHeight * 0.25; // 25% dell'altezza della viewport
-            console.style.height = Math.min(Math.max(newHeight, 40), maxHeight) + 'px';
-        }
-
-        function stopResize() {
-            document.documentElement.removeEventListener('mousemove', resize);
-            document.documentElement.removeEventListener('mouseup', stopResize);
-        }
-
-        consoleResizer.addEventListener('mousedown', initResize);
-
-        // Gestione del trascinamento dell'header
-        const consoleHeader = document.getElementById('console-header');
-        let isDragging = false;
-        let currentY;
-        let initialY;
-        let yOffset = 0;
-
-        function setTranslate(yPos) {
-            console.style.transform = `translateY(${yPos}px)`;
-        }
-
-        function initDrag(e) {
-            initialY = e.clientY - yOffset;
-            isDragging = true;
-
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-        }
-
-        function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-                currentY = e.clientY - initialY;
-                yOffset = currentY;
-
-                // Limita il trascinamento verso l'alto
-                if (currentY < 0) {
-                    setTranslate(currentY);
+        if (sidebarToggle) {
+            // Rimuoviamo l'event listener precedente se presente
+            sidebarToggle.removeEventListener('click', toggleSidebar);
+            
+            // Funzione di toggle separata per migliore organizzazione
+            function toggleSidebar(event) {
+                event.stopPropagation(); // Previene propagazione dell'evento
+                console.log('Toggle cliccato!');
+                
+                const isMobile = window.innerWidth < 768;
+                console.log('È mobile?', isMobile);
+                
+                if (isMobile) {
+                    console.log('Stato attuale sidebar:', sidebar.classList.contains('open') ? 'open' : 'collapsed');
+                    
+                    // Su mobile, toggles tra sidebar espansa e collassata, ma mai nascosta
+                    if (sidebar.classList.contains('open')) {
+                        console.log('Sidebar: da aperta a collassata');
+                        sidebar.classList.remove('open');
+                        sidebar.classList.add('collapsed');
+                        mainContent.classList.remove('with-full-sidebar');
+                        sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    } else {
+                        console.log('Sidebar: da collassata ad aperta');
+                        sidebar.classList.remove('collapsed');
+                        sidebar.classList.add('open');
+                        mainContent.classList.add('with-full-sidebar');
+                        sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                    }
+                } else {
+                    // Su desktop, comportamento normale
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('with-collapsed-sidebar');
+                    
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    } else {
+                        sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                    }
                 }
             }
-        }
-
-        function stopDrag() {
-            initialY = currentY;
-            isDragging = false;
-
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', stopDrag);
-        }
-
-        consoleHeader.addEventListener('mousedown', initDrag);
-    </script>
-
-    <!-- Landing page scripts -->
-    <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
-    
-    <!-- Authentication -->
-    <!-- Sidebar Toggle Script -->
-    <script>
-        // Sidebar mobile toggle
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('open');
-        }
-
-        // Sidebar collapse toggle (desktop)
-        function toggleSidebarCollapse() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('with-collapsed-sidebar');
-        }
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const mobileMenuBtn = document.querySelector('.md\\:hidden button');
             
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(event.target) && 
-                !mobileMenuBtn.contains(event.target) &&
+            // Aggiungiamo l'event listener con la nostra funzione
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            // Aggiungiamo anche un semplice stile per evidenziare il pulsante
+            sidebarToggle.style.cursor = 'pointer';
+            sidebarToggle.classList.add('hover:bg-indigo-700', 'p-2', 'rounded');
+        }
+
+        // Mobile responsive behavior
+        function handleResize() {
+            const isMobile = window.innerWidth < 768;
+            const isSmallScreen = window.innerWidth < 1024;
+            
+            if (isMobile) {
+                // Su mobile, inizia con sidebar collassata ma visibile
+                if (!sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('closed');
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.remove('with-full-sidebar');
+                    sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                }
+            } else if (isSmallScreen && !sidebar.classList.contains('open')) {
+                // Auto-collapse on small screens, but not mobile
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('closed');
+                mainContent.classList.add('with-collapsed-sidebar');
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            } else if (!isSmallScreen && !sidebar.classList.contains('open')) {
+                // Auto-expand on large screens if not explicitly opened
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.remove('closed');
+                mainContent.classList.remove('with-collapsed-sidebar'); 
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            }
+        }
+
+        // Quando si clicca sulla sidebar collassata (nel mobile), la espande completamente
+        sidebar.addEventListener('click', function(e) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile && sidebar.classList.contains('collapsed') && !e.target.closest('#sidebar-toggle')) {
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.add('open');
+                mainContent.classList.add('with-full-sidebar');
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            }
+        });
+
+        // Chiude la sidebar quando si clicca all'esterno in modalità mobile
+        document.addEventListener('click', function(event) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile && 
+                !sidebar.contains(event.target) &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
+                sidebar.classList.add('collapsed');
+                mainContent.classList.remove('with-full-sidebar');
+                sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
             }
         });
 
-        // Console management
-        {% if not hide_console %}
-        const consoleElement = document.getElementById('console');
-        const mainContent = document.getElementById('mainContent');
-        const consoleResizer = document.getElementById('console-resizer');
-        const consoleHeader = document.getElementById('console-header');
+        // Listen for resize events
+        window.addEventListener('resize', handleResize);
+        
+        // Initialize on page load
+        handleResize();
 
-        function updateMainContentPadding() {
-            const consoleHeight = consoleElement.style.height;
-            document.documentElement.style.setProperty('--console-height', consoleHeight);
-        }
-
-        function toggleConsole() {
-            const isMinimized = consoleElement.style.height === '40px';
-            consoleElement.style.height = isMinimized ? '300px' : '40px';
-            updateMainContentPadding();
-        }
-
-        function clearConsole() {
-            document.getElementById('console-content').innerHTML = '';
-        }
-
-        // Console resize functionality
-        let isResizing = false;
-        let startY;
-        let startHeight;
-
-        consoleResizer.addEventListener('mousedown', initResize);
-
-        function initResize(e) {
-            isResizing = true;
-            startY = e.clientY;
-            startHeight = parseInt(document.defaultView.getComputedStyle(consoleElement).height, 10);
-            document.addEventListener('mousemove', resize);
-            document.addEventListener('mouseup', stopResize);
-        }
-
-        function resize(e) {
-            if (!isResizing) return;
-            const newHeight = Math.max(40, startHeight + (startY - e.clientY));
-            const maxHeight = window.innerHeight * 0.5; // 50% of viewport height
-            consoleElement.style.height = Math.min(newHeight, maxHeight) + 'px';
-            updateMainContentPadding();
-        }
-
-        function stopResize() {
-            isResizing = false;
-            document.removeEventListener('mousemove', resize);
-            document.removeEventListener('mouseup', stopResize);
-        }
-
-        // Initialize console padding
-        updateMainContentPadding();
-        {% endif %}
-    </script>
-
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script>
-        // Profile Menu Functions
-        function toggleProfileMenu() {
-            const dropdown = document.getElementById('profileDropdown');
-            dropdown.classList.toggle('hidden');
-        }
-
-        // Chiudi il menu quando si clicca fuori
-        document.addEventListener('click', function(event) {
-            const profileMenu = document.getElementById('profileMenu');
-            const dropdown = document.getElementById('profileDropdown');
+        // Implementazione del caricamento dinamico delle pagine (SPA-like)
+        const spaLinks = document.querySelectorAll('[data-spa-link]');
+        
+        // Funzione per caricare il contenuto dinamicamente
+        function loadPageContent(url) {
+            // Mostra un loader durante il caricamento
+            mainContent.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="loader"></div></div>';
             
-            if (profileMenu && !profileMenu.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
+            // Effettua una richiesta AJAX per ottenere il contenuto della pagina
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Errore nel caricamento della pagina');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Estrai solo il contenuto all'interno del blocco content
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Cerca il contenuto principale nella risposta
+                    let content;
+                    const mainContentElement = doc.querySelector('#mainContent');
+                    
+                    // Cerca stili personalizzati nella pagina
+                    const customStyles = doc.querySelectorAll('style');
+                    const customStylesContainer = document.getElementById('dynamicStyles');
+                    
+                    // Rimuovi stili dinamici precedenti se presenti
+                    if (customStylesContainer) {
+                        customStylesContainer.innerHTML = '';
+                    } else {
+                        // Crea container per stili dinamici se non esiste
+                        const stylesContainer = document.createElement('div');
+                        stylesContainer.id = 'dynamicStyles';
+                        document.head.appendChild(stylesContainer);
+                    }
+                    
+                    // Aggiungi stili personalizzati dalla pagina caricata
+                    customStyles.forEach(style => {
+                        const styleDiv = document.getElementById('dynamicStyles');
+                        styleDiv.appendChild(style.cloneNode(true));
+                    });
+                    
+                    if (mainContentElement) {
+                        // Se la pagina usa la stessa struttura, prendi il suo contenuto
+                        content = mainContentElement.innerHTML;
+                    } else {
+                        // Altrimenti, prova a prendere il corpo intero della risposta
+                        const body = doc.querySelector('body');
+                        if (body) {
+                            content = body.innerHTML;
+                        } else {
+                            content = html;
+                        }
+                    }
+                    
+                    // Aggiorna il contenuto principale
+                    mainContent.innerHTML = content;
+                    
+                    // Aggiorna l'URL nella barra degli indirizzi senza ricaricare la pagina
+                    history.pushState({url: url}, '', url);
+                    
+                    // Aggiorna lo stato attivo nei link della sidebar
+                    updateActiveLinks(url);
+                    
+                    // Esegui eventuali script della pagina caricata
+                    executeScripts(mainContent);
+                })
+                .catch(error => {
+                    console.error('Errore:', error);
+                    mainContent.innerHTML = `
+                        <div class="flex flex-col items-center justify-center min-h-screen">
+                            <div class="text-red-500 text-xl mb-4">
+                                <i class="fas fa-exclamation-triangle mr-2"></i> Errore nel caricamento della pagina
+                            </div>
+                            <div class="text-gray-600">
+                                ${error.message}
+                            </div>
+                            <button onclick="window.location.reload()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                                Ricarica pagina
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Funzione per eseguire gli script della pagina caricata
+        function executeScripts(container) {
+            // Trova e esegui tutti gli script inline o esterni
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                
+                // Copia tutti gli attributi dallo script originale
+                Array.from(script.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                
+                // Per gli script interni, copia il contenuto
+                if (!script.src) {
+                    newScript.textContent = script.textContent;
+                }
+                
+                // Sostituisci lo script originale con quello nuovo per forzare l'esecuzione
+                script.parentNode.replaceChild(newScript, script);
+                
+                // Per script esterni, assicurati che vengano caricati
+                if (script.src) {
+                    newScript.onload = function() {
+                        console.log('Script esterno caricato: ' + script.src);
+                    };
+                    newScript.onerror = function() {
+                        console.error('Errore nel caricamento dello script: ' + script.src);
+                    };
+                }
+            });
+            
+            // Cerca ed esegui eventuali gestori di eventi specifici per la pagina di regressione
+            setTimeout(() => {
+                // Controlla se ci sono elementi tipici della pagina di regressione
+                const stepDots = container.querySelector('#stepDots');
+                const stepContainer = container.querySelector('.step-container');
+                
+                if (stepDots && stepContainer) {
+                    console.log('Rilevata pagina di regressione, inizializzazione componenti step...');
+                    
+                    // Inizializza nuovamente le funzionalità step se necessario
+                    const stepNav = container.querySelectorAll('.step-navigation');
+                    if (stepNav) {
+                        stepNav.forEach(nav => {
+                            // Assicurati che gli event handler siano ricollegati
+                            nav.addEventListener('click', function() {
+                                const targetStep = this.getAttribute('data-step');
+                                if (targetStep && window.goToStep) {
+                                    window.goToStep(parseInt(targetStep));
+                                }
+                            });
+                        });
+                    }
+                    
+                    // Assicurati che updateStepInfo venga eseguito se presente
+                    if (typeof window.updateStepInfo === 'function') {
+                        window.updateStepInfo();
+                    }
+                }
+            }, 100); // Piccolo ritardo per assicurarsi che il DOM sia pronto
+        }
+        
+        // Funzione per aggiornare i link attivi nella sidebar
+        function updateActiveLinks(url) {
+            spaLinks.forEach(link => {
+                if (link.getAttribute('href') === url || 
+                    (url === '/main-console' && (link.getAttribute('href') === '/console' || link.getAttribute('href') === '/dashboard'))) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // Aggiungi event listener ai link della sidebar
+        spaLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const url = this.getAttribute('href');
+                loadPageContent(url);
+                
+                // Su mobile, chiudi la sidebar dopo il click
+                const isMobile = window.innerWidth < 768;
+                if (isMobile && sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.remove('with-full-sidebar');
+                    sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                }
+            });
+        });
+        
+        // Gestione della navigazione del browser (back/forward)
+        window.addEventListener('popstate', function(event) {
+            // Usa l'URL corrente dalla barra degli indirizzi
+            const currentUrl = window.location.pathname;
+            
+            // Carica il contenuto della pagina corrente
+            loadPageContent(currentUrl);
+            
+            // Ripristina lo stato attivo nei link della sidebar
+            updateActiveLinks(currentUrl);
         });
 
-        // Verifica l'autenticazione prima di mostrare il contenuto
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Nascondi il contenuto finché non verifichiamo l'autenticazione
-            document.body.style.display = 'none';
-            
-            // Verifica l'autenticazione
-            const isAuthenticated = await checkAuth();
-            
-            // Se non siamo sulla landing page e non siamo autenticati, reindirizza
-            if (!isLandingPage() && !isAuthenticated) {
-                window.location.replace('/');
+        // Logout function
+        function logoutUser() {
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().then(() => {
+                    sessionStorage.removeItem('authToken');
+                    console.log('User logged out');
+                    window.location.href = '/';
+                }).catch((error) => {
+                    console.error('Error logging out:', error);
+                });
             } else {
-                // Mostra il contenuto solo se autenticati o sulla landing page
-                document.body.style.display = 'block';
+                // Fallback if firebase is not available
+                sessionStorage.removeItem('authToken');
+                window.location.href = '/';
             }
-        });
+        }
+        
+        // Funzione globale per gestire la navigazione tra step nelle pagine che la utilizzano (es. regressione)
+        window.goToStep = function(stepNumber) {
+            const steps = document.querySelectorAll('.step');
+            const dots = document.querySelectorAll('.step-dot');
+            const stepTitle = document.getElementById('stepTitle');
+            
+            if (!steps || !dots) return;
+            
+            // Nascondi tutti gli step
+            steps.forEach(step => step.classList.add('hidden'));
+            
+            // Rimuovi la classe active da tutti i dots
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            // Mostra solo lo step corrente
+            if (steps[stepNumber]) {
+                steps[stepNumber].classList.remove('hidden');
+            }
+            
+            // Imposta active sul dot corrente
+            if (dots[stepNumber]) {
+                dots[stepNumber].classList.add('active');
+            }
+            
+            // Aggiorna il titolo dello step se presente
+            if (stepTitle && steps[stepNumber]) {
+                const title = steps[stepNumber].getAttribute('data-title');
+                if (title) {
+                    stepTitle.textContent = title;
+                }
+            }
+            
+            // Aggiorna lo stato globale dell'applicazione
+            if (window.currentStep !== undefined) {
+                window.currentStep = stepNumber;
+            }
+            
+            // Chiamare updateStepInfo se disponibile
+            if (typeof window.updateStepInfo === 'function') {
+                window.updateStepInfo();
+            }
+            
+            console.log('Navigato allo step:', stepNumber);
+        };
     </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
