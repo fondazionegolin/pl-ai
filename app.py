@@ -41,6 +41,9 @@ model = None
 le = None
 image_model = None
 class_names = []
+X_train = None
+feature_names = None
+training_data = []
 IMG_SIZE = 224  # Dimensione standard per le immagini
 
 # Assicurati che la cartella uploads esista
@@ -133,7 +136,7 @@ def predict_regression():
 
 @app.route('/upload-classification', methods=['POST'])
 def upload_classification():
-    global model, le
+    global model, le, X_train, feature_names, training_data
     if 'file' not in request.files:
         return jsonify({'error': 'Nessun file caricato'}), 400
     
@@ -149,13 +152,27 @@ def upload_classification():
         le = LabelEncoder()
         y_encoded = le.fit_transform(y)
 
+        # Salva feature names per future visualizzazioni
+        feature_names = X.columns.tolist()
+        X_train = X.values
+
+        # Addestra il modello
         model = RandomForestClassifier()
         model.fit(X, y_encoded)
 
+        # Prepara i dati di addestramento per la visualizzazione
+        training_data = []
+        for i in range(len(X)):
+            training_data.append({
+                'features': X.iloc[i].tolist(),
+                'target': y.iloc[i]
+            })
+
         return jsonify({
             'success': True,
-            'columns': X.columns.tolist(),
-            'classes': le.classes_.tolist()
+            'columns': feature_names,
+            'classes': le.classes_.tolist(),
+            'training_data': training_data
         })
 
     except Exception as e:
@@ -163,20 +180,31 @@ def upload_classification():
 
 @app.route('/predict-classification', methods=['POST'])
 def predict_classification():
-    global model, le
+    global model, le, X_train, feature_names
     try:
         data = request.json
         if not data:
             return jsonify({'error': 'Nessun dato ricevuto'}), 400
 
+        # Estrai i nomi delle caratteristiche e i valori di input
+        input_features = list(data.keys())
+        input_values = [float(value) for value in data.values()]
+        
         # Converti i dati in un formato adatto per la predizione
-        features = np.array([[float(value) for value in data.values()]])
+        features = np.array([input_values])
         
         # Usa il modello per fare la predizione
         prediction = model.predict(features)[0]
         predicted_class = le.inverse_transform([prediction])[0]
         
-        return jsonify({'prediction': str(predicted_class)})
+        # Prepara la risposta con i dati per il grafico
+        response = {
+            'prediction': str(predicted_class),
+            'input_values': input_values,
+            'features': input_features
+        }
+        
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 

@@ -1,6 +1,27 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
+<!-- Modale per il grafico ingrandito -->
+<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800">Visualizzazione dettagliata</h3>
+            <button id="close-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="w-full" style="height: 500px">
+                <canvas id="modal-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenitore delle notifiche -->
+<div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Header con grafico stilizzato -->
     <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
@@ -153,15 +174,7 @@
                         <p class="mt-2 text-sm text-gray-500">Scegli uno dei dataset pre-caricati per esplorare diversi scenari di classificazione.</p>
                     </div>
                 </div>
-                
-                <button type="submit" class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    Addestra Modello
-                </button>
-            </form>
-
+            
             <!-- Preview dei dati -->
             <div id="data-preview" class="mt-6 hidden">
                 <h3 class="text-sm font-semibold text-gray-700 mb-2">Anteprima Dati</h3>
@@ -175,16 +188,27 @@
                     </table>
                 </div>
             </div>
+                
+                <button type="submit" id="train-model-btn" class="mt-6 w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 opacity-50 cursor-not-allowed" disabled>
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Addestra Modello
+                </button>
+            </form>
         </div>
 
         <!-- Pannello Previsione -->
         <div id="prediction-section" class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hidden">
             <div class="flex items-center mb-5">
-                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-7 h-7 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <h2 class="text-2xl font-semibold text-gray-800">Classifica Nuovi Dati</h2>
+                <h2 class="text-2xl font-semibold text-gray-800">Effettua la classificazione</h2>
             </div>
+            
+            <p class="text-gray-600 mb-6 border-l-4 border-gray-300 pl-3">Inserisci un valore per ogni variabile e ottieni la classificazione corrispondente basata sul modello addestrato.</p>
+  
             
             <form id="prediction-form" class="space-y-6">
                 <div id="input-fields" class="space-y-4">
@@ -209,13 +233,135 @@
                         <p id="prediction-result" class="mt-1 text-2xl font-mono text-gray-700">--</p>
                     </div>
                 </div>
+                
+                <!-- Grafico di classificazione -->
+                <div id="chart-container" class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-md font-medium text-gray-700 mb-2">Visualizzazione dati</h4>
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer" id="chart-wrapper" onclick="showChartModal()">
+                        <div style="height: 300px; width: 100%;">
+                            <canvas id="classification-chart"></canvas>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500 text-center">Clicca sul grafico per ingrandire</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modale per visualizzare il dataset completo -->
+<div id="dataset-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <!-- Overlay scuro -->
+        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        
+        <!-- Contenitore modale -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Dataset completo</h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr id="modal-headers"></tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="modal-data">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Funzione per mostrare notifiche toast
+function showToast(message, type = 'info') {
+    // Registra anche nella console
+    logToConsole(message, type);
+    
+    const container = document.getElementById('notifications-container');
+    const toast = document.createElement('div');
+    
+    // Colori in base al tipo di notifica
+    let bgColor, textColor, iconPath;
+    switch(type) {
+        case 'success':
+            bgColor = 'bg-green-50 border-green-400';
+            textColor = 'text-green-800';
+            iconPath = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
+            break;
+        case 'error':
+            bgColor = 'bg-red-50 border-red-400';
+            textColor = 'text-red-800';
+            iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z';
+            break;
+        case 'warning':
+            bgColor = 'bg-yellow-50 border-yellow-400';
+            textColor = 'text-yellow-800';
+            iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z';
+            break;
+        default: // info
+            bgColor = 'bg-blue-50 border-blue-400';
+            textColor = 'text-blue-800';
+            iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+    }
+    
+    // Creare la notifica con animazioni
+    toast.className = `flex items-start p-4 mb-2 border rounded-lg shadow-lg ${bgColor} animate-fade-in`;
+    toast.innerHTML = `
+        <div class="flex-shrink-0 mr-3">
+            <svg class="w-5 h-5 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+            </svg>
+        </div>
+        <div class="ml-2 ${textColor} flex-grow">${message}</div>
+        <button class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    
+    // Aggiungere la notifica al container
+    container.appendChild(toast);
+    
+    // Pulsante di chiusura
+    const closeButton = toast.querySelector('button');
+    closeButton.addEventListener('click', () => {
+        // Animazione di uscita
+        toast.classList.add('opacity-0');
+        setTimeout(() => {
+            if (container.contains(toast)) {
+                container.removeChild(toast);
+            }
+        }, 300);
+    });
+    
+    // Auto-rimozione dopo 5 secondi
+    setTimeout(() => {
+        if (container.contains(toast)) {
+            toast.classList.add('opacity-0');
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
 let modelData = null;
+let fullDataset = null; // Variabile per memorizzare il dataset completo
 
 // Funzione per resettare i dati della previsione
 function resetPredictionData() {
@@ -225,7 +371,9 @@ function resetPredictionData() {
     document.getElementById('preview-data').innerHTML = '';
     document.getElementById('input-fields').innerHTML = '';
     document.getElementById('result').classList.add('hidden');
+    disableTrainButton();
     modelData = null;
+    fullDataset = null;
 }
 
 // Funzione per creare l'anteprima dei dati
@@ -239,42 +387,85 @@ function createDataPreview(file) {
             return;
         }
 
-        const headers = lines[0].split(',');
+        // Salva il dataset completo
+        fullDataset = {
+            text: text,
+            lines: lines.filter(line => line.trim() !== ''),  // Rimuove le righe vuote
+            headers: lines[0].split(',').map(header => header.trim())
+        };
+
         const previewData = lines.slice(1, 6); // Mostra le prime 5 righe di dati
 
         // Crea le intestazioni della tabella
         const headerRow = document.getElementById('preview-headers');
-        headerRow.innerHTML = headers.map(header => 
-            `<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header.trim()}</th>`
+        headerRow.innerHTML = fullDataset.headers.map(header => 
+            `<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`
         ).join('');
 
         // Crea le righe dei dati
         const tbody = document.getElementById('preview-data');
         tbody.innerHTML = previewData.map(row => {
             const cells = row.split(',');
-            return `<tr class="hover:bg-gray-50">
+            return `<tr class="hover:bg-gray-50 cursor-pointer">
                 ${cells.map(cell => `<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${cell.trim()}</td>`).join('')}
             </tr>`;
         }).join('');
 
         // Mostra la preview
-        document.getElementById('data-preview').classList.remove('hidden');
+        const dataPreview = document.getElementById('data-preview');
+        dataPreview.classList.remove('hidden');
+        
+        // Aggiunge un'indicazione visiva che la tabella è cliccabile
+        const previewTable = dataPreview.querySelector('table');
+        previewTable.title = "Clicca per visualizzare l'intero dataset";
+        previewTable.classList.add('cursor-pointer', 'hover:shadow-md', 'transition-shadow');
+        
+        // Aggiunge l'evento click per aprire il modale
+        previewTable.addEventListener('click', showFullDatasetModal);
     };
     reader.readAsText(file);
 }
 
 // Gestione della selezione del tipo di dataset
+// Funzione per mostrare il dataset completo nel modale
+function showFullDatasetModal() {
+    if (!fullDataset) return;
+    
+    // Popola le intestazioni
+    const modalHeaders = document.getElementById('modal-headers');
+    modalHeaders.innerHTML = fullDataset.headers.map(header => 
+        `<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50">${header}</th>`
+    ).join('');
+    
+    // Popola i dati (tutte le righe tranne l'header)
+    const modalData = document.getElementById('modal-data');
+    modalData.innerHTML = fullDataset.lines.slice(1).map(row => {
+        if (!row.trim()) return ''; // Salta le righe vuote
+        const cells = row.split(',');
+        return `<tr class="hover:bg-gray-50">
+            ${cells.map(cell => `<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${cell.trim()}</td>`).join('')}
+        </tr>`;
+    }).join('');
+    
+    // Mostra il modale
+    document.getElementById('dataset-modal').classList.remove('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const customUpload = document.getElementById('custom-upload');
     const exampleSelect = document.getElementById('example-select');
     const datasetTypeInputs = document.querySelectorAll('input[name="dataset-type"]');
     const csvFileInput = document.getElementById('csv-file');
     const exampleDatasetSelect = document.getElementById('example-dataset');
+    const trainModelBtn = document.getElementById('train-model-btn');
+    const datasetModal = document.getElementById('dataset-modal');
+    const closeModalBtn = document.getElementById('close-modal');
 
     // Gestione del cambio di tipo di dataset
     datasetTypeInputs.forEach(input => {
         input.addEventListener('change', function() {
             resetPredictionData();
+            disableTrainButton();
             if (this.value === 'custom') {
                 customUpload.classList.remove('hidden');
                 exampleSelect.classList.add('hidden');
@@ -300,12 +491,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Simula il caricamento del file
                 createDataPreview(file);
-                processDataset(file);
+                enableTrainButton();
                 
                 logToConsole('Dataset di esempio caricato con successo', 'success');
             } catch (error) {
                 logToConsole('Errore nel caricamento del dataset di esempio: ' + error.message, 'error');
+                disableTrainButton();
             }
+        } else {
+            disableTrainButton();
         }
     });
 
@@ -314,7 +508,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.files.length > 0) {
             const file = this.files[0];
             createDataPreview(file);
-            processDataset(file);
+            enableTrainButton();
+        } else {
+            disableTrainButton();
+        }
+    });
+
+    // Gestione della chiusura del modale
+    closeModalBtn.addEventListener('click', function() {
+        datasetModal.classList.add('hidden');
+    });
+    
+    // Chiudi il modale quando si clicca all'esterno
+    datasetModal.addEventListener('click', function(e) {
+        if (e.target === datasetModal || e.target.closest('.fixed.inset-0.transition-opacity')) {
+            datasetModal.classList.add('hidden');
+        }
+    });
+    
+    // Chiudi il modale con il tasto ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !datasetModal.classList.contains('hidden')) {
+            datasetModal.classList.add('hidden');
         }
     });
 });
@@ -355,18 +570,373 @@ async function processDataset(file) {
             `;
         });
 
-        logToConsole('Modello addestrato con successo!', 'success');
+        showToast('Modello addestrato con successo!', 'success');
         logToConsole('Classi disponibili: ' + data.classes.join(', '), 'info');
     } catch (error) {
-        logToConsole('Errore: ' + error.message, 'error');
+        showToast('Errore: ' + error.message, 'error');
     }
 }
+
+// Funzioni per abilitare/disabilitare il pulsante di addestramento
+function enableTrainButton() {
+    const trainModelBtn = document.getElementById('train-model-btn');
+    trainModelBtn.disabled = false;
+    trainModelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+}
+
+function disableTrainButton() {
+    const trainModelBtn = document.getElementById('train-model-btn');
+    trainModelBtn.disabled = true;
+    trainModelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+}
+
+// Funzione per creare il grafico di classificazione
+let classificationChart = null;
+let modalChart = null;
+let lastChartData = null; // Per memorizzare i dati del grafico
+
+function createClassificationChart(data) {
+    const canvas = document.getElementById('classification-chart');
+    if (!canvas) {
+        showToast('Errore: Canvas per il grafico non trovato', 'error');
+        return;
+    }
+    
+    // Memorizza i dati per il modale
+    lastChartData = data;
+    
+    // Distruggi il grafico precedente se esiste
+    if (classificationChart) {
+        classificationChart.destroy();
+    }
+    
+    // Prepara i dati per il grafico
+    try {
+        // Seleziona le prime due caratteristiche per la visualizzazione 2D
+        const features = data.features || [];
+        if (features.length < 2) {
+            showToast('Dati insufficienti per creare un grafico', 'warning');
+            return;
+        }
+        
+        // Recupera i dati di addestramento e le classi dal dataset completo
+        // Supponiamo che i dati siano disponibili in modelData.training_data
+        if (!modelData || !modelData.training_data || !modelData.classes) {
+            showToast('Dati di addestramento non disponibili', 'warning');
+            return;
+        }
+        
+        // Organizza i dati per classe
+        const datasets = [];
+        const classes = modelData.classes;
+        
+        // Mappa di colori per le classi (fino a 10 classi)
+        const colorMap = [
+            { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgb(54, 162, 235)' },
+            { bg: 'rgba(255, 99, 132, 0.2)', border: 'rgb(255, 99, 132)' },
+            { bg: 'rgba(75, 192, 192, 0.2)', border: 'rgb(75, 192, 192)' },
+            { bg: 'rgba(255, 206, 86, 0.2)', border: 'rgb(255, 206, 86)' },
+            { bg: 'rgba(153, 102, 255, 0.2)', border: 'rgb(153, 102, 255)' },
+            { bg: 'rgba(255, 159, 64, 0.2)', border: 'rgb(255, 159, 64)' },
+            { bg: 'rgba(199, 199, 199, 0.2)', border: 'rgb(199, 199, 199)' },
+            { bg: 'rgba(83, 102, 255, 0.2)', border: 'rgb(83, 102, 255)' },
+            { bg: 'rgba(40, 167, 69, 0.2)', border: 'rgb(40, 167, 69)' },
+            { bg: 'rgba(220, 53, 69, 0.2)', border: 'rgb(220, 53, 69)' }
+        ];
+        
+        // Prepara i dataset per ogni classe
+        classes.forEach((className, i) => {
+            // Filtra i punti per questa classe
+            const points = modelData.training_data
+                .filter(point => point.target === className)
+                .map(point => ({
+                    x: parseFloat(point.features[0]),
+                    y: parseFloat(point.features[1])
+                }));
+            
+            // Aggiungi il dataset solo se ci sono punti
+            if (points.length > 0) {
+                datasets.push({
+                    label: className,
+                    data: points,
+                    backgroundColor: colorMap[i % colorMap.length].bg,
+                    borderColor: colorMap[i % colorMap.length].border,
+                    borderWidth: 1,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                });
+            }
+        });
+        
+        // Aggiungi il punto di previsione con una stella più grande
+        if (data.prediction && data.input_values) {
+            const predictionIdx = classes.indexOf(data.prediction);
+            const color = predictionIdx >= 0 ? colorMap[predictionIdx % colorMap.length] : colorMap[0];
+            
+            datasets.push({
+                label: 'Previsione',
+                data: [{
+                    x: parseFloat(data.input_values[0]),
+                    y: parseFloat(data.input_values[1])
+                }],
+                backgroundColor: color.border,
+                borderColor: color.border,
+                borderWidth: 2,
+                pointStyle: 'star',
+                pointRadius: 8,
+                pointHoverRadius: 10
+            });
+        }
+        
+        // Assicurati che il canvas sia correttamente dimensionato
+        canvas.style.height = '100%';
+        canvas.style.width = '100%';
+        
+        // Crea il grafico
+        classificationChart = new Chart(canvas.getContext('2d'), {
+            type: 'scatter',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Visualizzazione Classificazione'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                return label + ': (' + context.parsed.x + ', ' + context.parsed.y + ')';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: features[0] || 'Caratteristica 1'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: features[1] || 'Caratteristica 2'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Aggiungi event listener per mostrare il modale
+        const chartWrapper = document.getElementById('chart-wrapper');
+        if (chartWrapper) {
+            console.log('Aggiungo event listener al chart-wrapper');
+            // Rimuovi eventuali listener precedenti
+            chartWrapper.removeEventListener('click', showChartModal);
+            // Aggiungi il nuovo listener
+            chartWrapper.addEventListener('click', showChartModal);
+        } else {
+            console.error('chart-wrapper non trovato');
+        }
+        
+        // Aggiungi anche un listener diretto al canvas come backup
+        canvas.addEventListener('click', function(e) {
+            console.log('Click sul canvas');
+            e.stopPropagation();
+            showChartModal();
+        });
+    } catch (error) {
+        showToast('Errore nella creazione del grafico: ' + error.message, 'error');
+        console.error('Errore grafico:', error);
+    }
+}
+
+// Funzione per mostrare il modale con il grafico ingrandito
+function showChartModal() {
+    console.log('showChartModal chiamato');
+    showToast('Apertura modale...', 'info');
+    
+    if (!lastChartData) {
+        showToast('Nessun dato disponibile per il grafico', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('chart-modal');
+    const canvas = document.getElementById('modal-chart');
+    
+    if (!modal || !canvas) {
+        showToast('Errore: Modale o canvas non trovato', 'error');
+        console.error('Modale o canvas non trovato', { modal, canvas });
+        return;
+    }
+    
+    // Mostra il modale
+    modal.classList.remove('hidden');
+    console.log('Modale visualizzato');
+    
+    // Distruggi il grafico precedente se esiste
+    if (modalChart) {
+        modalChart.destroy();
+    }
+    
+    try {
+        // Ottieni le configurazioni dal grafico originale
+        const originalConfig = classificationChart.config;
+        
+        // Crea un nuovo grafico con le stesse configurazioni ma più grande
+        const newConfig = {
+            type: originalConfig.type,
+            data: originalConfig.data,
+            options: {
+                ...originalConfig.options,
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    ...originalConfig.options.plugins,
+                    title: {
+                        ...originalConfig.options.plugins.title,
+                        font: {
+                            size: 18
+                        }
+                    },
+                    legend: {
+                        ...originalConfig.options.plugins.legend,
+                        labels: {
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ...originalConfig.options.scales.x,
+                        title: {
+                            ...originalConfig.options.scales.x.title,
+                            font: {
+                                size: 14
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    y: {
+                        ...originalConfig.options.scales.y,
+                        title: {
+                            ...originalConfig.options.scales.y.title,
+                            font: {
+                                size: 14
+                            }
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        
+        // Crea il grafico nel modale
+        modalChart = new Chart(canvas.getContext('2d'), newConfig);
+    } catch (error) {
+        showToast('Errore nella creazione del grafico ingrandito: ' + error.message, 'error');
+        console.error('Errore grafico modale:', error);
+    }
+}
+
+// Configura gli eventi del modale appena il DOM è pronto
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM caricato, configurazione modale');
+    const closeModalBtn = document.getElementById('close-modal');
+    const modal = document.getElementById('chart-modal');
+    const chartWrapper = document.getElementById('chart-wrapper');
+    
+    // Setup del pulsante di chiusura
+    if (closeModalBtn && modal) {
+        closeModalBtn.addEventListener('click', function() {
+            console.log('Chiusura modale tramite pulsante');
+            modal.classList.add('hidden');
+        });
+        
+        // Chiudi il modale anche quando si clicca fuori
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                console.log('Chiusura modale cliccando fuori');
+                modal.classList.add('hidden');
+            }
+        });
+    } else {
+        console.error('Elementi del modale non trovati', { closeModalBtn, modal });
+    }
+    
+    // Aggiungi listener diretto al wrapper del grafico
+    if (chartWrapper) {
+        console.log('Configurazione click sul chart-wrapper');      
+        chartWrapper.addEventListener('click', function() {
+            console.log('Click sul chart-wrapper (da DOMContentLoaded)');
+            showChartModal();
+        });
+    } else {
+        console.log('chart-wrapper non disponibile durante il DOMContentLoaded');
+    }
+});
+
+// Aggiunge evento per chiudere il modale con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('chart-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+    }
+});
+
+// Gestione del form di upload
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Verifica se abbiamo un file o un dataset selezionato
+    const csvFile = document.getElementById('csv-file').files[0];
+    const exampleDataset = document.getElementById('example-dataset').value;
+    const datasetType = document.querySelector('input[name="dataset-type"]:checked').value;
+    
+    if ((datasetType === 'custom' && csvFile) || (datasetType === 'example' && exampleDataset)) {
+        // Procedi con l'addestramento
+        if (datasetType === 'custom') {
+            processDataset(csvFile);
+        } else {
+            // Per il dataset di esempio, il file è già stato creato nell'evento change
+            // Recuperiamo l'ultimo file creato
+            const response = await fetch(exampleDataset);
+            const csvText = await response.text();
+            const file = new File([csvText], 'dataset.csv', { type: 'text/csv' });
+            processDataset(file);
+        }
+    } else {
+        // Mostra un messaggio di errore
+        showToast('Errore: seleziona un dataset prima di addestrare il modello', 'error');
+    }
+});
 
 // Gestione del form di previsione
 document.getElementById('prediction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!modelData) {
-        logToConsole('Errore: Carica prima un modello', 'error');
+        showToast('Errore: Carica e addestra prima un modello', 'error');
         return;
     }
 
@@ -376,7 +946,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     modelData.columns.forEach(column => {
         const value = document.getElementById(column).value;
         if (!value) {
-            logToConsole(`Errore: Inserisci un valore per ${column}`, 'error');
+            showToast(`Errore: Inserisci un valore per ${column}`, 'error');
             isValid = false;
             return;
         }
@@ -386,7 +956,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     if (!isValid) return;
 
     try {
-        logToConsole('Calcolo della previsione...', 'info');
+        showToast('Calcolo della previsione...', 'info');
         const response = await fetch('/predict-classification', {
             method: 'POST',
             headers: {
@@ -402,10 +972,35 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
 
         document.getElementById('result').classList.remove('hidden');
         document.getElementById('prediction-result').textContent = data.prediction;
-        logToConsole(`Previsione calcolata: ${data.prediction}`, 'success');
+        showToast(`Previsione calcolata: ${data.prediction}`, 'success');
+        
+        // Crea il grafico di classificazione
+        createClassificationChart(data);
     } catch (error) {
-        logToConsole('Errore: ' + error.message, 'error');
+        showToast('Errore: ' + error.message, 'error');
     }
 });
 </script>
+
+<style>
+    /* Stili per le animazioni di notifica */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    .opacity-0 {
+        opacity: 0;
+        transition: opacity 0.3s ease-out;
+    }
+</style>
 {% endblock %}
