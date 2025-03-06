@@ -43,7 +43,12 @@
             const consoleElement = document.getElementById('console');
             const consoleToggle = document.getElementById('console-toggle');
             const toggleIcon = document.getElementById('toggle-icon');
-            let consoleExpanded = true;
+            let consoleExpanded = false;
+            
+            // Inizializza la console chiusa
+            consoleElement.style.height = '0px';
+            consoleElement.style.padding = '0px';
+            toggleIcon.setAttribute('d', 'M19 9l-7 7-7-7');
             
             function toggleConsole() {
                 if (consoleExpanded) {
