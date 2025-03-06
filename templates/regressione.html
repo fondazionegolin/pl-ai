@@ -826,21 +826,34 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         // Funzione dedicata per aggiornare il grafico nel modale
         function updateModalChart() {
             try {
+                // Assicurati che il grafico precedente sia stato completamente distrutto
+                if (window.modalChart) {
+                    window.modalChart.destroy();
+                    window.modalChart = null;
+                }
+                
+                // Ricrea il canvas per evitare problemi di riutilizzo
+                const container = document.querySelector('#chart-modal .flex-grow');
+                container.innerHTML = '<canvas id="modal-regression-chart" style="width:100%;height:100%;"></canvas>';
+                
                 // Reset del canvas con dimensioni esplicite
                 const canvas = document.getElementById('modal-regression-chart');
-                const container = canvas.parentElement;
                 canvas.width = container.clientWidth;
                 canvas.height = container.clientHeight;
                 
                 logToConsole(`Dimensioni canvas modale: ${canvas.width}x${canvas.height}`);
-                window.modalChart = createRegressionChart('modal-regression-chart', data);
                 
-                // Se c'è un punto di previsione, aggiungilo esplicitamente
-                if (lastPredictionPoint) {
-                    addPredictionPoint(window.modalChart, lastPredictionPoint);
-                }
-                
-                logToConsole('Grafico modale creato con successo');
+                // Piccolo ritardo per assicurare che il DOM sia aggiornato
+                setTimeout(() => {
+                    window.modalChart = createRegressionChart('modal-regression-chart', data);
+                    
+                    // Se c'è un punto di previsione, aggiungilo esplicitamente
+                    if (lastPredictionPoint) {
+                        addPredictionPoint(window.modalChart, lastPredictionPoint);
+                    }
+                    
+                    logToConsole('Grafico modale creato con successo');
+                }, 50);
             } catch (error) {
                 logToConsole('Errore nella creazione del grafico modale: ' + error.message);
                 showToast('Errore nella visualizzazione del grafico', 'error');
@@ -853,12 +866,9 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             const modal = document.getElementById('chart-modal');
             modal.classList.remove('hidden');
             
-            // Crea il grafico nel modale con un piccolo ritardo
-            if (window.modalChart) {
-                window.modalChart.destroy();
-            }
-            
-            setTimeout(updateModalChart, 300); // ritardo maggiore per il modale
+            // Crea il grafico nel modale
+            updateModalChart();
+
         });
 
         // Gestione chiusura modale
