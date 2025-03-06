@@ -1,62 +1,455 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-gray-700 mb-8">Regressione Lineare</h1>
-
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Carica i tuoi dati</h2>
-        <p class="text-gray-600 mb-4">Carica un file CSV con due colonne. La prima colonna sarà usata per prevedere la seconda.</p>
-        
-        <form id="upload-form" class="mb-6">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="csv-file">
-                    File CSV
-                </label>
-                <input type="file" id="csv-file" accept=".csv" 
-                       class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Header con grafico stilizzato -->
+    <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
+        <div class="flex flex-col md:flex-row items-center justify-between">
+            <div class="mb-6 md:mb-0">
+                <h1 class="text-4xl font-bold text-gray-800 mb-3">Regressione Lineare</h1>
+                <p class="text-gray-600 max-w-lg">Analizza le relazioni tra variabili e ottieni previsioni precise basate sui tuoi dati.</p>
             </div>
-            <button type="submit" class="btn btn-training">
-                Carica e Addestra
-            </button>
-        </form>
+            <!-- Grafico stilizzato (non animato) -->
+            <div class="w-60 h-36 bg-white rounded-lg shadow-inner flex items-center justify-center p-4 border border-gray-200">
+                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <!-- Griglia di sfondo -->
+                    <path d="M0 90 H200" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M0 70 H200" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M0 50 H200" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M0 30 H200" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M0 10 H200" stroke="#f3f4f6" stroke-width="1"/>
+                    
+                    <path d="M20 0 V100" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M60 0 V100" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M100 0 V100" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M140 0 V100" stroke="#f3f4f6" stroke-width="1"/>
+                    <path d="M180 0 V100" stroke="#f3f4f6" stroke-width="1"/>
+                    
+                    <!-- Linea di regressione -->
+                    <line x1="20" y1="80" x2="180" y2="20" stroke="#4b5563" stroke-width="2"/>
+                    
+                    <!-- Punti dati -->
+                    <circle cx="40" cy="70" r="3" fill="#6b7280"/>
+                    <circle cx="65" cy="55" r="3" fill="#6b7280"/>
+                    <circle cx="90" cy="65" r="3" fill="#6b7280"/>
+                    <circle cx="115" cy="40" r="3" fill="#6b7280"/>
+                    <circle cx="140" cy="30" r="3" fill="#6b7280"/>
+                    <circle cx="165" cy="25" r="3" fill="#6b7280"/>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- Tutorial e spiegazione -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Cos'è la regressione lineare -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Cos'è la Regressione Lineare?
+                    </h3>
+                    <div class="text-sm text-gray-600 space-y-2">
+                        <p>La regressione lineare è un modello statistico che analizza la relazione tra una <strong>variabile dipendente (Y)</strong> e una o più <strong>variabili indipendenti (X)</strong>.</p>
+                        <p>Il modello trova la <strong>linea retta</strong> che meglio rappresenta questa relazione, descritta dall'equazione:</p>
+                        <div class="font-mono bg-gray-50 p-2 rounded text-center">Y = mX + b</div>
+                        <p>dove <strong>m</strong> è il coefficiente (pendenza) e <strong>b</strong> è l'intercetta. Questa equazione può essere usata per fare previsioni su nuovi dati.</p>
+                    </div>
+                </div>
+                
+                <!-- Come usare lo strumento -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        Come usare questo strumento
+                    </h3>
+                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
+                        <li><strong>Prepara i dati</strong>: Crea un file CSV con <em>esattamente due colonne numeriche</em>. La prima colonna sarà usata per predire la seconda.</li>
+                        <li><strong>Carica il file</strong>: Seleziona il tuo file CSV. Un'anteprima mostrerà i primi 5 record.</li>
+                        <li><strong>Addestra il modello</strong>: Clicca su "Addestra Modello" per analizzare i dati e creare il modello di regressione.</li>
+                        <li><strong>Fai previsioni</strong>: Inserisci un valore nel campo di input e ottieni la previsione corrispondente dal modello.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="prediction-section" class="bg-white p-6 rounded-lg shadow-md hidden">
-        <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Fai una previsione</h2>
-        <form id="prediction-form">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="input-value">
-                    <span id="input-label">Valore di input</span>
-                </label>
-                <input type="number" step="any" id="input-value" 
-                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+    <!-- Grid Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Pannello Upload -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="flex items-center mb-5">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Carica Dataset</h2>
             </div>
-            <button type="submit" class="btn btn-testing">
-                Prevedi
-            </button>
-        </form>
+            
+            <p class="text-gray-600 mb-6">Carica un file CSV contenente due colonne numeriche. La prima colonna sarà usata come variabile indipendente per prevedere la seconda.</p>
+            
+            <form id="upload-form" class="space-y-6">
+                <!-- Selezione tipo di dataset -->
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
+                        <div class="relative flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer group peer-checked:border-gray-700">
+                            <input type="radio" id="dataset-custom" name="dataset-type" value="custom" checked
+                                   class="peer mr-3 accent-black">
+                            <label for="dataset-custom" class="cursor-pointer flex items-center">
+                                <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                    Carica il tuo dataset
+                                </span>
+                            </label>
+                        </div>
+                        <div class="relative flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer group peer-checked:border-gray-700">
+                            <input type="radio" id="dataset-example" name="dataset-type" value="example"
+                                   class="peer mr-3 accent-black">
+                            <label for="dataset-example" class="cursor-pointer flex items-center">
+                                <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                    Usa dataset di esempio
+                                </span>
+                            </label>
+                        </div>
+                    </div>
 
-        <div id="result" class="mt-6 hidden">
-            <h3 class="text-xl font-semibold text-indigo-600 mb-2">Risultato:</h3>
-            <p id="prediction-result" class="text-gray-700"></p>
+                    <!-- Upload file personalizzato -->
+                    <div id="custom-upload" class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" for="csv-file">
+                            File CSV (con headers)
+                        </label>
+                        <input type="file" id="csv-file" accept=".csv" 
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 border rounded-lg p-2">
+                    </div>
+
+                    <!-- Selezione dataset di esempio -->
+                    <div id="example-select" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" for="example-dataset">
+                            Dataset di esempio
+                        </label>
+                        <div class="relative border border-gray-200 rounded-lg hover:border-gray-300 transition-colors focus-within:border-gray-700">
+                            <select id="example-dataset" class="appearance-none block w-full pl-3 pr-10 py-2 text-base focus:outline-none sm:text-sm rounded-lg bg-transparent">
+                                <option value="" selected disabled>Seleziona un dataset di esempio</option>
+                                <option value="/static/csv/regressione/Esempio1.csv">Dataset 1: Relazione X-Y Base</option>
+                                <option value="/static/csv/regressione/Esempio2.csv">Dataset 2: Metri Quadri vs Prezzo Casa</option>
+                                <option value="/static/csv/regressione/Esempio3.csv">Dataset 3: Budget Marketing vs Vendite</option>
+                                <option value="/static/csv/regressione/Esempio4.csv">Dataset 4: Ore di Studio vs Voto Esame</option>
+                                <option value="/static/csv/regressione/Esempio5.csv">Dataset 5: Età vs Pressione Sanguigna</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Scegli uno dei dataset pre-caricati per esplorare diversi scenari di regressione lineare.</p>
+                    </div>
+                </div>
+                
+                <!-- Preview dei dati -->
+                <div id="data-preview" class="mt-6 hidden">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Anteprima Dati</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr id="preview-headers"></tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="preview-data">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Addestra Modello
+                </button>
+            </form>
+        </div>
+
+        <!-- Pannello di previsione -->
+        <div id="prediction-section" class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hidden">
+            <div class="flex items-center mb-5">
+                <svg class="w-7 h-7 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Fai una previsione</h2>
+            </div>
+            
+            <p class="text-gray-600 mb-6 border-l-4 border-gray-300 pl-3">Inserisci un valore per la variabile indipendente e ottieni la previsione corrispondente basata sul modello addestrato.</p>
+            
+            <form id="prediction-form">
+                <div class="mb-5">
+                    <label class="flex items-center text-gray-700 font-semibold mb-2" for="input-value">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span id="input-label">Valore di input</span>
+                    </label>
+                    <input type="number" step="any" id="input-value" 
+                           class="shadow-inner border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+                </div>
+                
+                <button type="submit" class="w-full flex items-center justify-center py-3 px-4 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-lg shadow">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Genera Previsione
+                </button>
+            </form>
+
+            <!-- Risultato della previsione -->
+            <div id="result" class="mt-6 space-y-6 hidden">
+                <!-- Risultato numerico -->
+                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-inner">
+                    <div class="flex">
+                        <svg class="w-6 h-6 text-gray-700 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Risultato della previsione</h3>
+                            <p id="prediction-result" class="text-2xl font-mono text-gray-700">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grafico della regressione -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-6 h-6 text-gray-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-800">Visualizzazione Grafica</h3>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="regression-chart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 let modelData = null;
 
+// Funzione per resettare i dati della previsione
+function resetPredictionData() {
+    // Nascondi la sezione delle previsioni
+    document.getElementById('prediction-section').classList.add('hidden');
+    document.getElementById('result').classList.add('hidden');
+    
+    // Reset del campo input
+    document.getElementById('input-value').value = '';
+    
+    // Reset del grafico se esiste
+    if (window.regressionChart) {
+        window.regressionChart.destroy();
+        window.regressionChart = null;
+    }
+    
+    // Reset dei dati del modello
+    modelData = null;
+}
+
+// Gestione della selezione del tipo di dataset
+document.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        document.getElementById('custom-upload').classList.toggle('hidden', !isCustom);
+        document.getElementById('example-select').classList.toggle('hidden', isCustom);
+        
+        // Reset dell'altro input e dei dati della previsione
+        if (isCustom) {
+            document.getElementById('example-dataset').value = '';
+        } else {
+            document.getElementById('csv-file').value = '';
+        }
+        
+        // Nascondi la preview se presente
+        document.getElementById('data-preview').classList.add('hidden');
+        
+        // Reset dei dati della previsione
+        resetPredictionData();
+    });
+});
+
+// Gestione della selezione del dataset di esempio
+document.getElementById('example-dataset').addEventListener('change', async function() {
+    const selectedDataset = this.value;
+    if (!selectedDataset) return;
+    
+    // Reset dei dati della previsione quando viene selezionato un nuovo dataset
+    resetPredictionData();
+
+    try {
+        logToConsole('Caricamento del dataset di esempio...');
+        const response = await fetch(selectedDataset);
+        if (!response.ok) throw new Error('Errore nel caricamento del file');
+        
+        const csvText = await response.text();
+        displayCsvPreview(csvText);
+    } catch (error) {
+        logToConsole('Errore: ' + error.message);
+    }
+});
+
+// Funzione per mostrare l'anteprima del CSV
+function displayCsvPreview(csvContent) {
+    try {
+        // Divide il contenuto in righe e prendi le prime 6 (1 intestazione + 5 dati)
+        const csvData = csvContent.split('\n').filter(row => row.trim()).slice(0, 6);
+        const previewHeaders = document.getElementById('preview-headers');
+        const previewData = document.getElementById('preview-data');
+        
+        // Reset della preview
+        previewHeaders.innerHTML = '';
+        previewData.innerHTML = '';
+        
+        if (csvData.length === 0) {
+            logToConsole('File CSV vuoto');
+            return;
+        }
+        
+        // Genera intestazioni
+        const headers = csvData[0].split(',');
+        headers.forEach((header, index) => {
+            const th = document.createElement('th');
+            th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            th.textContent = header.trim() || `Colonna ${index + 1}`;
+            previewHeaders.appendChild(th);
+        });
+        
+        // Genera righe con i dati
+        csvData.slice(1).forEach(row => {
+            if (!row.trim()) return; // Salta righe vuote
+            
+            const tr = document.createElement('tr');
+            row.split(',').forEach(cell => {
+                const td = document.createElement('td');
+                td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                td.textContent = cell.trim();
+                tr.appendChild(td);
+            });
+            previewData.appendChild(tr);
+        });
+        
+        // Mostra la preview
+        document.getElementById('data-preview').classList.remove('hidden');
+        logToConsole('Anteprima CSV generata');
+    } catch (error) {
+        logToConsole(`Errore nell'anteprima CSV: ${error.message}`);
+    }
+}
+
+// Gestione dell'anteprima CSV quando un file viene selezionato
+document.getElementById('csv-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Reset dei dati della previsione quando viene selezionato un nuovo file
+    resetPredictionData();
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            // Divide il contenuto in righe e prendi le prime 6 (1 intestazione + 5 dati)
+            const csvData = e.target.result.split('\n').filter(row => row.trim()).slice(0, 6);
+            const previewHeaders = document.getElementById('preview-headers');
+            const previewData = document.getElementById('preview-data');
+            
+            // Reset della preview
+            previewHeaders.innerHTML = '';
+            previewData.innerHTML = '';
+            
+            if (csvData.length === 0) {
+                logToConsole('File CSV vuoto');
+                return;
+            }
+            
+            // Genera intestazioni
+            const headers = csvData[0].split(',');
+            headers.forEach((header, index) => {
+                const th = document.createElement('th');
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = header.trim() || `Colonna ${index + 1}`;
+                previewHeaders.appendChild(th);
+            });
+            
+            // Genera righe con i dati
+            csvData.slice(1).forEach(row => {
+                if (!row.trim()) return; // Salta righe vuote
+                
+                const tr = document.createElement('tr');
+                row.split(',').forEach(cell => {
+                    const td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                    td.textContent = cell.trim();
+                    tr.appendChild(td);
+                });
+                previewData.appendChild(tr);
+            });
+            
+            // Mostra la preview
+            document.getElementById('data-preview').classList.remove('hidden');
+            logToConsole('Anteprima CSV generata');
+        } catch (error) {
+            logToConsole(`Errore nell'anteprima CSV: ${error.message}`);
+        }
+    };
+    
+    reader.onerror = () => {
+        logToConsole('Errore nella lettura del file');
+    };
+    
+    reader.readAsText(file);
+});
+
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const file = document.getElementById('csv-file').files[0];
-    if (!file) {
-        alert('Seleziona un file CSV');
-        return;
-    }
-
+    
+    // Controlla se stiamo usando un dataset personalizzato o di esempio
+    const isCustomDataset = document.getElementById('dataset-custom').checked;
     const formData = new FormData();
-    formData.append('file', file);
+    
+    if (isCustomDataset) {
+        const file = document.getElementById('csv-file').files[0];
+        if (!file) {
+            logToConsole('Errore: Seleziona un file CSV');
+            return;
+        }
+        formData.append('file', file);
+    } else {
+        const selectedDataset = document.getElementById('example-dataset').value;
+        if (!selectedDataset) {
+            logToConsole('Errore: Seleziona un dataset di esempio');
+            return;
+        }
+        
+        try {
+            const response = await fetch(selectedDataset);
+            if (!response.ok) throw new Error('Errore nel caricamento del file');
+            
+            const csvText = await response.text();
+            const blob = new Blob([csvText], { type: 'text/csv' });
+            formData.append('file', blob, 'dataset.csv');
+        } catch (error) {
+            logToConsole('Errore: ' + error.message);
+            return;
+        }
+    }
 
     try {
         logToConsole('Caricamento del file e addestramento del modello...');
@@ -76,22 +469,110 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         logToConsole('Modello addestrato con successo!');
         logToConsole(`Coefficiente: ${data.coefficiente.toFixed(4)}`);
         logToConsole(`Intercetta: ${data.intercetta.toFixed(4)}`);
+        logToConsole('Dati di training:', data.training_data);
+
+        // Verifica che i dati di training siano presenti e validi
+        if (!data.training_data || !Array.isArray(data.training_data) || data.training_data.length === 0) {
+            logToConsole('Errore: Dati di training non validi');
+            return;
+        }
+
+        // Crea il grafico della regressione con i dati di training
+        const ctx = document.getElementById('regression-chart').getContext('2d');
+        const scatterData = data.training_data.map(point => {
+            if (!Array.isArray(point) || point.length !== 2) {
+                logToConsole('Errore: Formato punto non valido:', point);
+                return null;
+            }
+            return {
+                x: parseFloat(point[0]),
+                y: parseFloat(point[1])
+            };
+        }).filter(point => point !== null);
+
+        if (scatterData.length === 0) {
+            logToConsole('Errore: Nessun dato valido per il grafico');
+            return;
+        }
+
+        // Trova i limiti dei dati per la linea di regressione
+        const xValues = scatterData.map(point => point.x);
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+
+        // Crea due punti per la linea di regressione
+        const regressionLine = [
+            { x: minX, y: data.coefficiente * minX + data.intercetta },
+            { x: maxX, y: data.coefficiente * maxX + data.intercetta }
+        ];
+
+        if (window.regressionChart) {
+            window.regressionChart.destroy();
+        }
+
+        window.regressionChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Dati di Training',
+                    data: scatterData,
+                    backgroundColor: 'rgba(107, 114, 128, 0.5)',
+                    borderColor: 'rgba(107, 114, 128, 1)',
+                    borderWidth: 1,
+                    pointRadius: 4
+                }, {
+                    label: 'Linea di Regressione',
+                    data: regressionLine,
+                    type: 'line',
+                    borderColor: 'rgba(75, 85, 99, 1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Regressione Lineare'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: data.columns[0]
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: data.columns[1]
+                        }
+                    }
+                }
+            }
+        });
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
     }
 });
 
 document.getElementById('prediction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!modelData) {
-        alert('Carica prima un modello');
+        logToConsole('Errore: Carica prima un modello');
         return;
     }
 
     const inputValue = document.getElementById('input-value').value;
     if (!inputValue) {
-        alert('Inserisci un valore');
+        logToConsole('Errore: Inserisci un valore');
         return;
     }
 
@@ -118,9 +599,33 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         document.getElementById('prediction-result').textContent = 
             `${modelData.columns[1]}: ${data.prediction.toFixed(4)}`;
         logToConsole(`Previsione calcolata: ${data.prediction.toFixed(4)}`);
+
+        // Aggiungi il punto della previsione al grafico
+        const newPoint = {
+            x: parseFloat(inputValue),
+            y: data.prediction
+        };
+
+        if (window.regressionChart) {
+            // Rimuovi il dataset della previsione precedente se esiste
+            if (window.regressionChart.data.datasets.length > 2) {
+                window.regressionChart.data.datasets.pop();
+            }
+
+            // Aggiungi il nuovo dataset per il punto di previsione
+            window.regressionChart.data.datasets.push({
+                label: 'Previsione',
+                data: [newPoint],
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 2,
+                pointRadius: 6,
+                pointStyle: 'star'
+            });
+            window.regressionChart.update();
+        }
     } catch (error) {
         logToConsole('Errore: ' + error.message);
-        alert('Errore: ' + error.message);
     }
 });
 </script>

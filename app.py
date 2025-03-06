@@ -104,11 +104,15 @@ def upload_regression():
         model = LinearRegression()
         model.fit(X, y)
 
+        # Converti i dati di training in una lista di coppie [x, y]
+        training_data = [[float(x), float(y)] for x, y in zip(X.flatten(), y)]
+
         return jsonify({
             'success': True,
             'columns': df.columns.tolist(),
             'coefficiente': float(model.coef_[0]),
-            'intercetta': float(model.intercept_)
+            'intercetta': float(model.intercept_),
+            'training_data': training_data
         })
 
     except Exception as e:

@@ -3,11 +3,50 @@
 {% block content %}
     {% block main_content %}{% endblock %}
 
-    <div id="console" class="fixed bottom-0 left-0 w-full bg-gray-800 text-green-400 p-4 font-mono text-sm" style="height: 150px; overflow-y: auto;">
-        <div id="console-content"></div>
+    <!-- Console con pulsante toggle -->
+    <div id="console-container" class="fixed bottom-0 left-0 w-full">
+        <!-- Pulsante per espandere/comprimere la console -->
+        <div class="flex justify-center">
+            <button id="console-toggle" class="bg-gray-700 hover:bg-gray-600 text-green-400 px-4 py-1 rounded-t-md focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" id="toggle-icon"/>
+                </svg>
+                <span>Console</span>
+            </button>
+        </div>
+        
+        <!-- La console vera e propria -->
+        <div id="console" class="bg-gray-800 text-green-400 p-4 font-mono text-sm" style="height: 150px; overflow-y: auto;">
+            <div id="console-content"></div>
+        </div>
     </div>
 
     <script>
+        // Funzionalità toggle per la console
+        document.addEventListener('DOMContentLoaded', function() {
+            const consoleElement = document.getElementById('console');
+            const consoleToggle = document.getElementById('console-toggle');
+            const toggleIcon = document.getElementById('toggle-icon');
+            let consoleExpanded = true;
+            
+            function toggleConsole() {
+                if (consoleExpanded) {
+                    // Comprimi console
+                    consoleElement.style.height = '0px';
+                    consoleElement.style.padding = '0px';
+                    toggleIcon.setAttribute('d', 'M19 9l-7 7-7-7');
+                } else {
+                    // Espandi console
+                    consoleElement.style.height = '150px';
+                    consoleElement.style.padding = '1rem';
+                    toggleIcon.setAttribute('d', 'M5 15l7-7 7 7');
+                }
+                consoleExpanded = !consoleExpanded;
+            }
+            
+            consoleToggle.addEventListener('click', toggleConsole);
+        });
+        
         function logToConsole(message) {
             const consoleContent = document.getElementById('console-content');
             const timestamp = new Date().toLocaleTimeString();
