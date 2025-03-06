@@ -1,6 +1,9 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
+<!-- Contenitore delle notifiche -->
+<div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
+
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Header con grafico stilizzato -->
     <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
@@ -231,14 +234,32 @@
                         </svg>
                         <h3 class="text-lg font-semibold text-gray-800">Visualizzazione Grafica</h3>
                     </div>
-                    <div class="h-64">
-                        <canvas id="regression-chart"></canvas>
+                    <div class="h-64 border border-gray-200 rounded-lg overflow-hidden">
+                        <canvas id="regression-chart" style="width:100%; height:100%;"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Stili per le animazioni -->
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out forwards;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+</style>
 
 <!-- Modal per il CSV -->
 <div id="csv-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
@@ -277,8 +298,8 @@
             </button>
         </div>
         <!-- Contenitore del grafico -->
-        <div class="flex-grow overflow-hidden">
-            <canvas id="modal-regression-chart" class="w-full h-full"></canvas>
+        <div class="flex-grow overflow-hidden border border-gray-200 rounded-lg" style="min-height:400px;">
+            <canvas id="modal-regression-chart" style="width:100%;height:100%;"></canvas>
         </div>
     </div>
 </div>
@@ -287,7 +308,104 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+// Funzione per aggiungere il punto di previsione a un grafico
+function addPredictionPoint(chart, point) {
+    if (!chart) return;
+
+    // Rimuovi il dataset della previsione precedente se esiste
+    if (chart.data.datasets.length > 2) {
+        chart.data.datasets.pop();
+    }
+
+    // Aggiungi il nuovo dataset per il punto di previsione
+    chart.data.datasets.push({
+        label: 'Previsione',
+        data: [point],
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 2,
+        pointRadius: 6,
+        pointStyle: 'star'
+    });
+
+    chart.update();
+}
+
+// Funzione per mostrare notifiche toast
+function showToast(message, type = 'info') {
+    const container = document.getElementById('notifications-container');
+    const toast = document.createElement('div');
+    
+    // Colori in base al tipo di notifica
+    let bgColor, textColor, iconPath;
+    switch(type) {
+        case 'success':
+            bgColor = 'bg-green-50 border-green-400';
+            textColor = 'text-green-800';
+            iconPath = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
+            break;
+        case 'error':
+            bgColor = 'bg-red-50 border-red-400';
+            textColor = 'text-red-800';
+            iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z';
+            break;
+        case 'warning':
+            bgColor = 'bg-yellow-50 border-yellow-400';
+            textColor = 'text-yellow-800';
+            iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z';
+            break;
+        default: // info
+            bgColor = 'bg-blue-50 border-blue-400';
+            textColor = 'text-blue-800';
+            iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+    }
+    
+    // Creare la notifica con animazioni
+    toast.className = `flex items-start p-4 mb-2 border rounded-lg shadow-lg ${bgColor} animate-fade-in`;
+    toast.innerHTML = `
+        <div class="flex-shrink-0 mr-3">
+            <svg class="w-5 h-5 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+            </svg>
+        </div>
+        <div class="ml-2 ${textColor} flex-grow">${message}</div>
+        <button class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    
+    // Aggiungere la notifica al container
+    container.appendChild(toast);
+    
+    // Pulsante di chiusura
+    const closeButton = toast.querySelector('button');
+    closeButton.addEventListener('click', () => {
+        // Animazione di uscita
+        toast.classList.add('opacity-0');
+        setTimeout(() => {
+            if (container.contains(toast)) {
+                container.removeChild(toast);
+            }
+        }, 300);
+    });
+    
+    // Auto-rimozione dopo 5 secondi
+    setTimeout(() => {
+        if (container.contains(toast)) {
+            toast.classList.add('opacity-0');
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
 let modelData = null;
+let lastPredictionPoint = null;
 
 // Funzione per resettare i dati della previsione
 function resetPredictionData() {
@@ -363,6 +481,7 @@ document.getElementById('example-dataset').addEventListener('change', async func
         displayCsvPreview(csvText);
     } catch (error) {
         logToConsole('Errore: ' + error.message);
+        showToast('Si è verificato un errore durante l\'elaborazione', 'error');
     }
 });
 
@@ -412,8 +531,31 @@ function displayCsvData(csvContent, headersElement, dataElement, limit = null) {
     }
 }
 
+// Funzione per aggiornare il modale CSV con i dati completi
+function updateCsvModal() {
+    try {
+        if (!currentCsvContent) {
+            logToConsole('Nessun contenuto CSV da visualizzare');
+            return;
+        }
+        
+        // Mostra tutti i dati nel modale
+        displayCsvData(
+            currentCsvContent,
+            document.getElementById('csv-modal-headers'),
+            document.getElementById('csv-modal-data')
+        );
+        
+        logToConsole('Modale CSV aggiornato correttamente');
+    } catch (error) {
+        logToConsole(`Errore nell'aggiornamento del modale CSV: ${error.message}`);
+        showToast('Errore nella visualizzazione dei dati completi', 'error');
+    }
+}
+
 // Funzione per mostrare l'anteprima del CSV
 function displayCsvPreview(csvContent) {
+    // Salva il contenuto CSV corrente
     currentCsvContent = csvContent;
     
     // Mostra i primi 5 record nella preview
@@ -434,12 +576,8 @@ function displayCsvPreview(csvContent) {
         const modal = document.getElementById('csv-modal');
         modal.classList.remove('hidden');
         
-        // Mostra tutti i dati nel modale
-        displayCsvData(
-            csvContent,
-            document.getElementById('csv-modal-headers'),
-            document.getElementById('csv-modal-data')
-        );
+        // Usa la funzione dedicata per aggiornare il modale
+        updateCsvModal();
     };
     
     logToConsole('Anteprima CSV generata');
@@ -448,6 +586,7 @@ function displayCsvPreview(csvContent) {
 // Gestione chiusura modale CSV
 document.getElementById('close-csv-modal').addEventListener('click', () => {
     document.getElementById('csv-modal').classList.add('hidden');
+    // Non distruggere i dati per mantenere coerenza alla riapertura
 });
 
 // Chiudi il modale CSV quando si clicca fuori
@@ -469,53 +608,19 @@ document.getElementById('csv-file').addEventListener('change', function(e) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            // Divide il contenuto in righe e prendi le prime 6 (1 intestazione + 5 dati)
-            const csvData = e.target.result.split('\n').filter(row => row.trim()).slice(0, 6);
-            const previewHeaders = document.getElementById('preview-headers');
-            const previewData = document.getElementById('preview-data');
+            // Usa la funzione centralizzata per gestire l'anteprima CSV
+            displayCsvPreview(e.target.result);
             
-            // Reset della preview
-            previewHeaders.innerHTML = '';
-            previewData.innerHTML = '';
-            
-            if (csvData.length === 0) {
-                logToConsole('File CSV vuoto');
-                return;
-            }
-            
-            // Genera intestazioni
-            const headers = csvData[0].split(',');
-            headers.forEach((header, index) => {
-                const th = document.createElement('th');
-                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-                th.textContent = header.trim() || `Colonna ${index + 1}`;
-                previewHeaders.appendChild(th);
-            });
-            
-            // Genera righe con i dati
-            csvData.slice(1).forEach(row => {
-                if (!row.trim()) return; // Salta righe vuote
-                
-                const tr = document.createElement('tr');
-                row.split(',').forEach(cell => {
-                    const td = document.createElement('td');
-                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
-                    td.textContent = cell.trim();
-                    tr.appendChild(td);
-                });
-                previewData.appendChild(tr);
-            });
-            
-            // Mostra la preview
-            document.getElementById('data-preview').classList.remove('hidden');
-            logToConsole('Anteprima CSV generata');
+            logToConsole('Anteprima CSV generata correttamente');
         } catch (error) {
             logToConsole(`Errore nell'anteprima CSV: ${error.message}`);
+            showToast('Errore nella generazione dell\'anteprima', 'error');
         }
     };
     
     reader.onerror = () => {
         logToConsole('Errore nella lettura del file');
+        showToast('Si è verificato un errore durante la lettura del file', 'error');
     };
     
     reader.readAsText(file);
@@ -557,6 +662,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
 
     try {
         logToConsole('Caricamento del file e addestramento del modello...');
+        showToast('Caricamento del file e addestramento in corso...', 'info');
         const response = await fetch('/upload-regression', {
             method: 'POST',
             body: formData
@@ -564,6 +670,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (data.error) {
+            showToast('Errore durante la previsione: ' + data.error, 'error');
             throw new Error(data.error);
         }
 
@@ -571,6 +678,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         document.getElementById('prediction-section').classList.remove('hidden');
         document.getElementById('input-label').textContent = data.columns[0];
         logToConsole('Modello addestrato con successo!');
+        showToast('Modello addestrato con successo!', 'success');
         logToConsole(`Coefficiente: ${data.coefficiente.toFixed(4)}`);
         logToConsole(`Intercetta: ${data.intercetta.toFixed(4)}`);
         logToConsole('Dati di training:', data.training_data);
@@ -578,12 +686,26 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         // Verifica che i dati di training siano presenti e validi
         if (!data.training_data || !Array.isArray(data.training_data) || data.training_data.length === 0) {
             logToConsole('Errore: Dati di training non validi');
+            showToast('Errore: dati di training non validi', 'error');
             return;
         }
 
         // Funzione per creare il grafico di regressione
         function createRegressionChart(canvasId, data) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
+            // Debug del canvas
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                logToConsole(`Errore: Canvas con id '${canvasId}' non trovato`);
+                showToast(`Errore nella visualizzazione del grafico`, 'error');
+                return null;
+            }
+            
+            logToConsole(`Canvas '${canvasId}' trovato, dimensioni: ${canvas.width}x${canvas.height}`);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                logToConsole(`Errore: Impossibile ottenere il contesto 2d per '${canvasId}'`);
+                return null;
+            }
             const scatterData = data.training_data.map(point => {
                 if (!Array.isArray(point) || point.length !== 2) {
                     logToConsole('Errore: Formato punto non valido:', point);
@@ -682,34 +804,67 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         if (window.regressionChart) {
             window.regressionChart.destroy();
         }
-        window.regressionChart = createRegressionChart('regression-chart', data);
+        
+        // Piccolo ritardo per assicurarsi che il canvas sia pronto
+        setTimeout(() => {
+            try {
+                // Reset del canvas con dimensioni esplicite
+                const canvas = document.getElementById('regression-chart');
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                
+                logToConsole(`Dimensioni canvas principale: ${canvas.width}x${canvas.height}`);
+                window.regressionChart = createRegressionChart('regression-chart', data);
+                logToConsole('Grafico creato con successo');
+            } catch (error) {
+                logToConsole('Errore nella creazione del grafico: ' + error.message);
+                showToast('Errore nella creazione del grafico', 'error');
+            }
+        }, 100);
 
+        // Funzione dedicata per aggiornare il grafico nel modale
+        function updateModalChart() {
+            try {
+                // Reset del canvas con dimensioni esplicite
+                const canvas = document.getElementById('modal-regression-chart');
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                
+                logToConsole(`Dimensioni canvas modale: ${canvas.width}x${canvas.height}`);
+                window.modalChart = createRegressionChart('modal-regression-chart', data);
+                
+                // Se c'è un punto di previsione, aggiungilo esplicitamente
+                if (lastPredictionPoint) {
+                    addPredictionPoint(window.modalChart, lastPredictionPoint);
+                }
+                
+                logToConsole('Grafico modale creato con successo');
+            } catch (error) {
+                logToConsole('Errore nella creazione del grafico modale: ' + error.message);
+                showToast('Errore nella visualizzazione del grafico', 'error');
+            }
+        }
+        
         // Aggiungi click handler per aprire il modale
         document.getElementById('regression-chart').style.cursor = 'pointer';
         document.getElementById('regression-chart').addEventListener('click', () => {
             const modal = document.getElementById('chart-modal');
             modal.classList.remove('hidden');
             
-            // Crea il grafico nel modale
+            // Crea il grafico nel modale con un piccolo ritardo
             if (window.modalChart) {
                 window.modalChart.destroy();
             }
-            window.modalChart = createRegressionChart('modal-regression-chart', data);
             
-            // Se c'è un punto di previsione, aggiungilo al grafico del modale
-            if (lastPredictionPoint) {
-                addPredictionPoint(window.modalChart, lastPredictionPoint);
-            }
+            setTimeout(updateModalChart, 300); // ritardo maggiore per il modale
         });
 
         // Gestione chiusura modale
         document.getElementById('close-modal').addEventListener('click', () => {
             const modal = document.getElementById('chart-modal');
             modal.classList.add('hidden');
-            if (window.modalChart) {
-                window.modalChart.destroy();
-                window.modalChart = null;
-            }
         });
 
         // Chiudi il modale quando si clicca fuori
@@ -720,6 +875,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         });
     } catch (error) {
         logToConsole('Errore: ' + error.message);
+        showToast('Si è verificato un errore durante l\'elaborazione', 'error');
     }
 });
 
@@ -727,12 +883,26 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     e.preventDefault();
     if (!modelData) {
         logToConsole('Errore: Carica prima un modello');
+        // Aggiungi una notifica visibile per l'utente
+        showToast('Devi prima addestrare un modello', 'error');
         return;
     }
 
     const inputValue = document.getElementById('input-value').value;
     if (!inputValue) {
         logToConsole('Errore: Inserisci un valore');
+        // Aggiungi una notifica visibile per l'utente
+        showToast('Inserisci un valore per la previsione', 'warning');
+        
+        // Evidenzia il campo input con un bordo rosso per attirare l'attenzione
+        const inputField = document.getElementById('input-value');
+        inputField.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+        
+        // Rimuovi l'evidenziazione dopo alcuni secondi
+        setTimeout(() => {
+            inputField.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+        }, 3000);
+        
         return;
     }
 
@@ -752,6 +922,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         const data = await response.json();
 
         if (data.error) {
+            showToast('Errore durante la previsione: ' + data.error, 'error');
             throw new Error(data.error);
         }
 
@@ -759,29 +930,9 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         document.getElementById('prediction-result').textContent = 
             `${modelData.columns[1]}: ${data.prediction.toFixed(4)}`;
         logToConsole(`Previsione calcolata: ${data.prediction.toFixed(4)}`);
+        showToast(`Previsione calcolata con successo: ${data.prediction.toFixed(4)}`, 'success');
 
-        // Funzione per aggiungere il punto di previsione a un grafico
-        function addPredictionPoint(chart, point) {
-            if (!chart) return;
-
-            // Rimuovi il dataset della previsione precedente se esiste
-            if (chart.data.datasets.length > 2) {
-                chart.data.datasets.pop();
-            }
-
-            // Aggiungi il nuovo dataset per il punto di previsione
-            chart.data.datasets.push({
-                label: 'Previsione',
-                data: [point],
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgba(59, 130, 246, 1)',
-                borderWidth: 2,
-                pointRadius: 6,
-                pointStyle: 'star'
-            });
-
-            chart.update();
-        }
+        // SALVO IL VALORE DI PREVISIONE
 
         // Salva e aggiungi il punto della previsione ai grafici
         lastPredictionPoint = {
@@ -790,11 +941,14 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         };
 
         addPredictionPoint(window.regressionChart, lastPredictionPoint);
-        if (window.modalChart) {
+        
+        // Se il modale è aperto, aggiorna anche quel grafico
+        if (window.modalChart && !document.getElementById('chart-modal').classList.contains('hidden')) {
             addPredictionPoint(window.modalChart, lastPredictionPoint);
         }
     } catch (error) {
         logToConsole('Errore: ' + error.message);
+        showToast('Si è verificato un errore durante l\'elaborazione', 'error');
     }
 });
 </script>
