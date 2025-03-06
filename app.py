@@ -367,14 +367,25 @@ def generate_image():
         aspect_ratio = data.get('aspect_ratio', '1:1')
         high_quality = data.get('high_quality', False)
 
-        # Convert aspect ratio to dimensions (using SDXL allowed dimensions)
-        ratio_map = {
-            '1:1': (1024, 1024),  # Square
-            '3:2': (1216, 832),   # Landscape (closest to 3:2)
-            '2:3': (832, 1216),   # Portrait (closest to 2:3)
-            '16:9': (1536, 640)   # Widescreen (closest to 16:9)
-        }
-        width, height = ratio_map.get(aspect_ratio, (1024, 1024))
+        # Get the selected model
+        model = data.get('model', 'stable-diffusion-xl-1024-v1-0')
+        
+        # Convert aspect ratio to dimensions based on model
+        if model == 'stable-diffusion-xl-1024-v1-0':
+            ratio_map = {
+                '1:1': (1024, 1024),  # Square
+                '3:2': (1216, 832),   # Landscape
+                '2:3': (832, 1216),   # Portrait
+                '16:9': (1536, 640)   # Widescreen
+            }
+        else:
+            ratio_map = {
+                '1:1': (512, 512),    # Square
+                '3:2': (704, 512),    # Landscape
+                '2:3': (512, 704),    # Portrait
+                '16:9': (704, 384)    # Widescreen
+            }
+        width, height = ratio_map.get(aspect_ratio, (1024, 1024) if model == 'stable-diffusion-xl-1024-v1-0' else (512, 512))
 
         # Add style to prompt if specified
         if style != 'photographic':
@@ -388,20 +399,41 @@ def generate_image():
             prompt += f", {style_prompts.get(style, '')}"
 
         # Prepare the request to Stability AI API
-        url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+        url = f"https://api.stability.ai/v1/generation/{model}/text-to-image"
         
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {os.getenv('STABILITY_KEY')}"
+            "Authorization": f"Bearer {os.getenv('STABILITY_API_KEY')}"
         }
+        
+        # Model-specific parameters
+        model_params = {
+            'stable-diffusion-xl-1024-v1-0': {
+                'steps': 40 if high_quality else 30,
+                'cfg_scale': 7,
+                'style_preset': None
+            },
+            'stable-diffusion-512-v2-1': {
+                'steps': 50 if high_quality else 35,
+                'cfg_scale': 8,
+                'style_preset': 'enhance'
+            },
+            'stable-diffusion-v1-6': {
+                'steps': 60 if high_quality else 40,
+                'cfg_scale': 9,
+                'style_preset': 'photographic'
+            }
+        }
+        
+        params = model_params.get(model, model_params['stable-diffusion-xl-1024-v1-0'])
         
         body = {
             "width": width,
             "height": height,
-            "steps": 50 if high_quality else 30,
+            "steps": params['steps'],
             "seed": 0,
-            "cfg_scale": 7,
+            "cfg_scale": params['cfg_scale'],
             "samples": 1,
             "text_prompts": [
                 {
@@ -409,13 +441,26 @@ def generate_image():
                     "weight": 1
                 }
             ],
+            **({
+                "style_preset": params['style_preset']
+            } if params['style_preset'] else {}),
         }
 
         # Make the API request
         response = requests.post(url, headers=headers, json=body)
         
         if response.status_code != 200:
-            raise ValueError(f'Errore API: {response.text}')
+            error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'message': response.text}
+            error_message = error_data.get('message', 'Errore sconosciuto')
+            
+            if 'API key' in error_message:
+                error_message = 'Errore di autenticazione: chiave API non valida o mancante'
+            elif 'insufficient balance' in error_message.lower():
+                error_message = 'Credito insufficiente per generare l\'immagine'
+            elif 'invalid parameter' in error_message.lower():
+                error_message = 'Parametri di generazione non validi'
+            
+            raise ValueError(f'Errore durante la generazione: {error_message}')
 
         # Process the response
         data = response.json()
@@ -439,9 +484,12 @@ def generate_image():
             'prompt': prompt
         })
 
+    except ValueError as e:
+        print(f"Validation error in generate_image: {str(e)}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Error in generate_image: {str(e)}")  # For debugging
-        return jsonify({'error': str(e)}), 500
+        print(f"Unexpected error in generate_image: {str(e)}")
+        return jsonify({'error': 'Si è verificato un errore imprevisto durante la generazione dell\'immagine'}), 500
 
 @app.route('/api/translate-enhance-prompt', methods=['POST'])
 def translate_enhance_prompt():
