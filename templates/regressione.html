@@ -167,7 +167,8 @@
                     </div>
                 </div>
                 
-                <button type="submit" class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <button type="submit" id="train-button" disabled
+                        class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
@@ -239,6 +240,49 @@
     </div>
 </div>
 
+<!-- Modal per il CSV -->
+<div id="csv-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col">
+        <!-- Header del modale -->
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-800">Dataset Completo</h3>
+            <button id="close-csv-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- Contenitore della tabella -->
+        <div class="flex-grow overflow-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr id="csv-modal-headers"></tr>
+                </thead>
+                <tbody id="csv-modal-data" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per il grafico -->
+<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col">
+        <!-- Header del modale -->
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-800">Grafico di Regressione</h3>
+            <button id="close-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- Contenitore del grafico -->
+        <div class="flex-grow overflow-hidden">
+            <canvas id="modal-regression-chart" class="w-full h-full"></canvas>
+        </div>
+    </div>
+</div>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -259,15 +303,30 @@ function resetPredictionData() {
         window.regressionChart.destroy();
         window.regressionChart = null;
     }
+    if (window.modalChart) {
+        window.modalChart.destroy();
+        window.modalChart = null;
+    }
     
     // Reset dei dati del modello
     modelData = null;
+}
+
+// Funzione per aggiornare lo stato del pulsante
+function updateTrainButtonState() {
+    const trainButton = document.getElementById('train-button');
+    const isCustom = document.getElementById('dataset-custom').checked;
+    const hasCustomFile = document.getElementById('csv-file').files.length > 0;
+    const hasExampleSelected = document.getElementById('example-dataset').value !== '';
+    
+    trainButton.disabled = isCustom ? !hasCustomFile : !hasExampleSelected;
 }
 
 // Gestione della selezione del tipo di dataset
 document.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const isCustom = this.value === 'custom';
+        updateTrainButtonState();
         document.getElementById('custom-upload').classList.toggle('hidden', !isCustom);
         document.getElementById('example-select').classList.toggle('hidden', isCustom);
         
@@ -289,6 +348,7 @@ document.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
 // Gestione della selezione del dataset di esempio
 document.getElementById('example-dataset').addEventListener('change', async function() {
     const selectedDataset = this.value;
+    updateTrainButtonState();
     if (!selectedDataset) return;
     
     // Reset dei dati della previsione quando viene selezionato un nuovo dataset
@@ -306,17 +366,17 @@ document.getElementById('example-dataset').addEventListener('change', async func
     }
 });
 
-// Funzione per mostrare l'anteprima del CSV
-function displayCsvPreview(csvContent) {
+let currentCsvContent = null;
+
+// Funzione per mostrare i dati CSV in una tabella
+function displayCsvData(csvContent, headersElement, dataElement, limit = null) {
     try {
-        // Divide il contenuto in righe e prendi le prime 6 (1 intestazione + 5 dati)
-        const csvData = csvContent.split('\n').filter(row => row.trim()).slice(0, 6);
-        const previewHeaders = document.getElementById('preview-headers');
-        const previewData = document.getElementById('preview-data');
+        // Divide il contenuto in righe
+        const csvData = csvContent.split('\n').filter(row => row.trim());
         
-        // Reset della preview
-        previewHeaders.innerHTML = '';
-        previewData.innerHTML = '';
+        // Reset della tabella
+        headersElement.innerHTML = '';
+        dataElement.innerHTML = '';
         
         if (csvData.length === 0) {
             logToConsole('File CSV vuoto');
@@ -329,34 +389,78 @@ function displayCsvPreview(csvContent) {
             const th = document.createElement('th');
             th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
             th.textContent = header.trim() || `Colonna ${index + 1}`;
-            previewHeaders.appendChild(th);
+            headersElement.appendChild(th);
         });
         
         // Genera righe con i dati
-        csvData.slice(1).forEach(row => {
+        const dataRows = limit ? csvData.slice(1, limit + 1) : csvData.slice(1);
+        dataRows.forEach(row => {
             if (!row.trim()) return; // Salta righe vuote
             
             const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50';
             row.split(',').forEach(cell => {
                 const td = document.createElement('td');
                 td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
                 td.textContent = cell.trim();
                 tr.appendChild(td);
             });
-            previewData.appendChild(tr);
+            dataElement.appendChild(tr);
         });
-        
-        // Mostra la preview
-        document.getElementById('data-preview').classList.remove('hidden');
-        logToConsole('Anteprima CSV generata');
     } catch (error) {
-        logToConsole(`Errore nell'anteprima CSV: ${error.message}`);
+        logToConsole(`Errore nella visualizzazione CSV: ${error.message}`);
     }
 }
+
+// Funzione per mostrare l'anteprima del CSV
+function displayCsvPreview(csvContent) {
+    currentCsvContent = csvContent;
+    
+    // Mostra i primi 5 record nella preview
+    displayCsvData(
+        csvContent,
+        document.getElementById('preview-headers'),
+        document.getElementById('preview-data'),
+        5
+    );
+    
+    // Mostra la preview e rendi cliccabile
+    const previewElement = document.getElementById('data-preview');
+    previewElement.classList.remove('hidden');
+    previewElement.style.cursor = 'pointer';
+    
+    // Aggiungi evento click per aprire il modale
+    previewElement.onclick = () => {
+        const modal = document.getElementById('csv-modal');
+        modal.classList.remove('hidden');
+        
+        // Mostra tutti i dati nel modale
+        displayCsvData(
+            csvContent,
+            document.getElementById('csv-modal-headers'),
+            document.getElementById('csv-modal-data')
+        );
+    };
+    
+    logToConsole('Anteprima CSV generata');
+}
+
+// Gestione chiusura modale CSV
+document.getElementById('close-csv-modal').addEventListener('click', () => {
+    document.getElementById('csv-modal').classList.add('hidden');
+});
+
+// Chiudi il modale CSV quando si clicca fuori
+document.getElementById('csv-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'csv-modal') {
+        document.getElementById('close-csv-modal').click();
+    }
+});
 
 // Gestione dell'anteprima CSV quando un file viene selezionato
 document.getElementById('csv-file').addEventListener('change', function(e) {
     const file = e.target.files[0];
+    updateTrainButtonState();
     if (!file) return;
     
     // Reset dei dati della previsione quando viene selezionato un nuovo file
@@ -477,50 +581,47 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             return;
         }
 
-        // Crea il grafico della regressione con i dati di training
-        const ctx = document.getElementById('regression-chart').getContext('2d');
-        const scatterData = data.training_data.map(point => {
-            if (!Array.isArray(point) || point.length !== 2) {
-                logToConsole('Errore: Formato punto non valido:', point);
+        // Funzione per creare il grafico di regressione
+        function createRegressionChart(canvasId, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const scatterData = data.training_data.map(point => {
+                if (!Array.isArray(point) || point.length !== 2) {
+                    logToConsole('Errore: Formato punto non valido:', point);
+                    return null;
+                }
+                return {
+                    x: parseFloat(point[0]),
+                    y: parseFloat(point[1])
+                };
+            }).filter(point => point !== null);
+
+            if (scatterData.length === 0) {
+                logToConsole('Errore: Nessun dato validi per il grafico');
                 return null;
             }
-            return {
-                x: parseFloat(point[0]),
-                y: parseFloat(point[1])
-            };
-        }).filter(point => point !== null);
 
-        if (scatterData.length === 0) {
-            logToConsole('Errore: Nessun dato valido per il grafico');
-            return;
-        }
+            // Trova i limiti dei dati per la linea di regressione
+            const xValues = scatterData.map(point => point.x);
+            const minX = Math.min(...xValues);
+            const maxX = Math.max(...xValues);
 
-        // Trova i limiti dei dati per la linea di regressione
-        const xValues = scatterData.map(point => point.x);
-        const minX = Math.min(...xValues);
-        const maxX = Math.max(...xValues);
+            // Crea due punti per la linea di regressione
+            const regressionLine = [
+                { x: minX, y: data.coefficiente * minX + data.intercetta },
+                { x: maxX, y: data.coefficiente * maxX + data.intercetta }
+            ];
 
-        // Crea due punti per la linea di regressione
-        const regressionLine = [
-            { x: minX, y: data.coefficiente * minX + data.intercetta },
-            { x: maxX, y: data.coefficiente * maxX + data.intercetta }
-        ];
-
-        if (window.regressionChart) {
-            window.regressionChart.destroy();
-        }
-
-        window.regressionChart = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
+            // Prepara i dataset
+            const datasets = [
+                {
                     label: 'Dati di Training',
                     data: scatterData,
                     backgroundColor: 'rgba(107, 114, 128, 0.5)',
                     borderColor: 'rgba(107, 114, 128, 1)',
                     borderWidth: 1,
                     pointRadius: 4
-                }, {
+                },
+                {
                     label: 'Linea di Regressione',
                     data: regressionLine,
                     type: 'line',
@@ -528,34 +629,93 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Regressione Lineare'
-                    }
-                },
-                scales: {
-                    x: {
+                }
+            ];
+
+            // Aggiungi il punto di previsione se presente
+            if (lastPredictionPoint) {
+                datasets.push({
+                    label: 'Previsione',
+                    data: [lastPredictionPoint],
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointStyle: 'star'
+                });
+            }
+
+            return new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
                         title: {
                             display: true,
-                            text: data.columns[0]
+                            text: 'Regressione Lineare'
                         }
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: data.columns[1]
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: data.columns[0]
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: data.columns[1]
+                            }
                         }
                     }
                 }
+            });
+        }
+
+        // Crea il grafico principale
+        if (window.regressionChart) {
+            window.regressionChart.destroy();
+        }
+        window.regressionChart = createRegressionChart('regression-chart', data);
+
+        // Aggiungi click handler per aprire il modale
+        document.getElementById('regression-chart').style.cursor = 'pointer';
+        document.getElementById('regression-chart').addEventListener('click', () => {
+            const modal = document.getElementById('chart-modal');
+            modal.classList.remove('hidden');
+            
+            // Crea il grafico nel modale
+            if (window.modalChart) {
+                window.modalChart.destroy();
+            }
+            window.modalChart = createRegressionChart('modal-regression-chart', data);
+            
+            // Se c'è un punto di previsione, aggiungilo al grafico del modale
+            if (lastPredictionPoint) {
+                addPredictionPoint(window.modalChart, lastPredictionPoint);
+            }
+        });
+
+        // Gestione chiusura modale
+        document.getElementById('close-modal').addEventListener('click', () => {
+            const modal = document.getElementById('chart-modal');
+            modal.classList.add('hidden');
+            if (window.modalChart) {
+                window.modalChart.destroy();
+                window.modalChart = null;
+            }
+        });
+
+        // Chiudi il modale quando si clicca fuori
+        document.getElementById('chart-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'chart-modal') {
+                document.getElementById('close-modal').click();
             }
         });
     } catch (error) {
@@ -600,29 +760,38 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
             `${modelData.columns[1]}: ${data.prediction.toFixed(4)}`;
         logToConsole(`Previsione calcolata: ${data.prediction.toFixed(4)}`);
 
-        // Aggiungi il punto della previsione al grafico
-        const newPoint = {
-            x: parseFloat(inputValue),
-            y: data.prediction
-        };
+        // Funzione per aggiungere il punto di previsione a un grafico
+        function addPredictionPoint(chart, point) {
+            if (!chart) return;
 
-        if (window.regressionChart) {
             // Rimuovi il dataset della previsione precedente se esiste
-            if (window.regressionChart.data.datasets.length > 2) {
-                window.regressionChart.data.datasets.pop();
+            if (chart.data.datasets.length > 2) {
+                chart.data.datasets.pop();
             }
 
             // Aggiungi il nuovo dataset per il punto di previsione
-            window.regressionChart.data.datasets.push({
+            chart.data.datasets.push({
                 label: 'Previsione',
-                data: [newPoint],
+                data: [point],
                 backgroundColor: 'rgba(59, 130, 246, 0.5)',
                 borderColor: 'rgba(59, 130, 246, 1)',
                 borderWidth: 2,
                 pointRadius: 6,
                 pointStyle: 'star'
             });
-            window.regressionChart.update();
+
+            chart.update();
+        }
+
+        // Salva e aggiungi il punto della previsione ai grafici
+        lastPredictionPoint = {
+            x: parseFloat(inputValue),
+            y: data.prediction
+        };
+
+        addPredictionPoint(window.regressionChart, lastPredictionPoint);
+        if (window.modalChart) {
+            addPredictionPoint(window.modalChart, lastPredictionPoint);
         }
     } catch (error) {
         logToConsole('Errore: ' + error.message);

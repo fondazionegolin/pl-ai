@@ -79,7 +79,7 @@
     </div>
 
     <!-- Grid Layout -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
         <!-- Pannello Upload -->
         <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
             <div class="flex items-center mb-5">
@@ -91,13 +91,67 @@
             
             <p class="text-gray-600 mb-6">Carica un file CSV contenente le caratteristiche dei dati e le relative classi target.</p>
             
-            <form id="upload-form" class="space-y-4">
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="csv-file">
-                        File CSV (con headers)
-                    </label>
-                    <input type="file" id="csv-file" accept=".csv" 
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 border rounded-lg p-2">
+            <form id="upload-form" class="space-y-6">
+                <!-- Selezione tipo di dataset -->
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
+                        <div class="relative flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer group peer-checked:border-gray-700">
+                            <input type="radio" id="dataset-custom" name="dataset-type" value="custom" checked
+                                   class="peer mr-3 accent-black">
+                            <label for="dataset-custom" class="cursor-pointer flex items-center">
+                                <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                    Carica il tuo dataset
+                                </span>
+                            </label>
+                        </div>
+                        <div class="relative flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer group peer-checked:border-gray-700">
+                            <input type="radio" id="dataset-example" name="dataset-type" value="example"
+                                   class="peer mr-3 accent-black">
+                            <label for="dataset-example" class="cursor-pointer flex items-center">
+                                <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                    Usa dataset di esempio
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Upload file personalizzato -->
+                    <div id="custom-upload" class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" for="csv-file">
+                            File CSV (con headers)
+                        </label>
+                        <input type="file" id="csv-file" accept=".csv" 
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 border rounded-lg p-2">
+                    </div>
+
+                    <!-- Selezione dataset di esempio -->
+                    <div id="example-select" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" for="example-dataset">
+                            Dataset di esempio
+                        </label>
+                        <div class="relative border border-gray-200 rounded-lg hover:border-gray-300 transition-colors focus-within:border-gray-700">
+                            <select id="example-dataset" class="appearance-none block w-full pl-3 pr-10 py-2 text-base focus:outline-none sm:text-sm rounded-lg bg-transparent">
+                                <option value="" selected disabled>Seleziona un dataset di esempio</option>
+                                <option value="/static/csv/classificazione/Esempio1.csv">Dataset 1: Iris Flower</option>
+                                <option value="/static/csv/classificazione/Esempio2.csv">Dataset 2: Sentiment Analysis</option>
+                                <option value="/static/csv/classificazione/Esempio3.csv">Dataset 3: Customer Segmentation</option>
+                                <option value="/static/csv/classificazione/Esempio4.csv">Dataset 4: Medical Diagnosis</option>
+                                <option value="/static/csv/classificazione/Esempio5.csv">Dataset 5: Credit Risk</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Scegli uno dei dataset pre-caricati per esplorare diversi scenari di classificazione.</p>
+                    </div>
                 </div>
                 
                 <button type="submit" class="w-full flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
@@ -163,6 +217,17 @@
 <script>
 let modelData = null;
 
+// Funzione per resettare i dati della previsione
+function resetPredictionData() {
+    document.getElementById('prediction-section').classList.add('hidden');
+    document.getElementById('data-preview').classList.add('hidden');
+    document.getElementById('preview-headers').innerHTML = '';
+    document.getElementById('preview-data').innerHTML = '';
+    document.getElementById('input-fields').innerHTML = '';
+    document.getElementById('result').classList.add('hidden');
+    modelData = null;
+}
+
 // Funzione per creare l'anteprima dei dati
 function createDataPreview(file) {
     const reader = new FileReader();
@@ -170,7 +235,7 @@ function createDataPreview(file) {
         const text = e.target.result;
         const lines = text.split('\n');
         if (lines.length < 2) {
-            logToConsole('Errore: Il file CSV deve contenere almeno una riga di intestazione e una riga di dati');
+            logToConsole('Il file CSV deve contenere almeno una riga di intestazione e una riga di dati', 'error');
             return;
         }
 
@@ -187,7 +252,7 @@ function createDataPreview(file) {
         const tbody = document.getElementById('preview-data');
         tbody.innerHTML = previewData.map(row => {
             const cells = row.split(',');
-            return `<tr>
+            return `<tr class="hover:bg-gray-50">
                 ${cells.map(cell => `<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${cell.trim()}</td>`).join('')}
             </tr>`;
         }).join('');
@@ -198,28 +263,69 @@ function createDataPreview(file) {
     reader.readAsText(file);
 }
 
-// Gestione del caricamento file
-document.getElementById('csv-file').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        createDataPreview(file);
-    }
+// Gestione della selezione del tipo di dataset
+document.addEventListener('DOMContentLoaded', function() {
+    const customUpload = document.getElementById('custom-upload');
+    const exampleSelect = document.getElementById('example-select');
+    const datasetTypeInputs = document.querySelectorAll('input[name="dataset-type"]');
+    const csvFileInput = document.getElementById('csv-file');
+    const exampleDatasetSelect = document.getElementById('example-dataset');
+
+    // Gestione del cambio di tipo di dataset
+    datasetTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            resetPredictionData();
+            if (this.value === 'custom') {
+                customUpload.classList.remove('hidden');
+                exampleSelect.classList.add('hidden');
+                csvFileInput.value = '';
+            } else {
+                customUpload.classList.add('hidden');
+                exampleSelect.classList.remove('hidden');
+                exampleDatasetSelect.selectedIndex = 0;
+            }
+        });
+    });
+
+    // Gestione della selezione del dataset di esempio
+    exampleDatasetSelect.addEventListener('change', async function() {
+        if (this.value) {
+            try {
+                const response = await fetch(this.value);
+                if (!response.ok) throw new Error('Errore nel caricamento del file');
+                const csvText = await response.text();
+                
+                // Crea un file dal contenuto CSV
+                const file = new File([csvText], 'dataset.csv', { type: 'text/csv' });
+                
+                // Simula il caricamento del file
+                createDataPreview(file);
+                processDataset(file);
+                
+                logToConsole('Dataset di esempio caricato con successo', 'success');
+            } catch (error) {
+                logToConsole('Errore nel caricamento del dataset di esempio: ' + error.message, 'error');
+            }
+        }
+    });
+
+    // Gestione del caricamento file personalizzato
+    csvFileInput.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            createDataPreview(file);
+            processDataset(file);
+        }
+    });
 });
 
-// Gestione del form di upload
-document.getElementById('upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const file = document.getElementById('csv-file').files[0];
-    if (!file) {
-        logToConsole('Errore: Seleziona un file CSV');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+// Funzione per processare il dataset e addestrare il modello
+async function processDataset(file) {
     try {
-        logToConsole('Caricamento del file e addestramento del modello...');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        logToConsole('Caricamento del file e addestramento del modello...', 'info');
         const response = await fetch('/upload-classification', {
             method: 'POST',
             body: formData
@@ -243,24 +349,24 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                         ${column}
                     </label>
                     <input type="number" step="any" id="${column}" name="${column}"
-                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+                           class="block w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-500 sm:text-sm"
                            placeholder="Inserisci un valore">
                 </div>
             `;
         });
 
-        logToConsole('Modello addestrato con successo!');
-        logToConsole('Classi disponibili: ' + data.classes.join(', '));
+        logToConsole('Modello addestrato con successo!', 'success');
+        logToConsole('Classi disponibili: ' + data.classes.join(', '), 'info');
     } catch (error) {
-        logToConsole('Errore: ' + error.message);
+        logToConsole('Errore: ' + error.message, 'error');
     }
-});
+}
 
 // Gestione del form di previsione
 document.getElementById('prediction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!modelData) {
-        logToConsole('Errore: Carica prima un modello');
+        logToConsole('Errore: Carica prima un modello', 'error');
         return;
     }
 
@@ -270,7 +376,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     modelData.columns.forEach(column => {
         const value = document.getElementById(column).value;
         if (!value) {
-            logToConsole(`Errore: Inserisci un valore per ${column}`);
+            logToConsole(`Errore: Inserisci un valore per ${column}`, 'error');
             isValid = false;
             return;
         }
@@ -280,7 +386,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     if (!isValid) return;
 
     try {
-        logToConsole('Calcolo della previsione...');
+        logToConsole('Calcolo della previsione...', 'info');
         const response = await fetch('/predict-classification', {
             method: 'POST',
             headers: {
@@ -296,9 +402,9 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
 
         document.getElementById('result').classList.remove('hidden');
         document.getElementById('prediction-result').textContent = data.prediction;
-        logToConsole(`Previsione calcolata: ${data.prediction}`);
+        logToConsole(`Previsione calcolata: ${data.prediction}`, 'success');
     } catch (error) {
-        logToConsole('Errore: ' + error.message);
+        logToConsole('Errore: ' + error.message, 'error');
     }
 });
 </script>
