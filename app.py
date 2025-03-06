@@ -23,6 +23,7 @@ import time
 
 # Import dei blueprint
 from routes.chatbot import chatbot
+from routes.chatbot2 import chatbot2
 from routes.learning import learning
 
 load_dotenv()
@@ -34,6 +35,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 
 # Registrazione dei blueprint
 app.register_blueprint(chatbot, url_prefix='')  # No prefix per mantenere gli URL come prima
+app.register_blueprint(chatbot2, url_prefix='')
 app.register_blueprint(learning, url_prefix='')
 
 # Variabili globali per i modelli
