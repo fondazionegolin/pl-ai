@@ -1,9 +1,46 @@
 {% extends "base_with_console.html" %}
 
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
 {% block main_content %}
+<!-- Carichiamo Plotly direttamente prima dell'uso, garantendo che sia disponibile -->
+<script>
+// Funzione per caricare Plotly in modo sincrono
+function loadPlotly() {
+    return new Promise((resolve, reject) => {
+        if (typeof Plotly !== 'undefined') {
+            console.log("Plotly già caricato");
+            resolve(true);
+            return;
+        }
+        
+        console.log("Caricamento di Plotly in corso...");
+        const script = document.createElement('script');
+        script.src = "https://cdn.plot.ly/plotly-2.24.1.min.js";
+        script.onload = () => {
+            console.log("Plotly caricato con successo");
+            resolve(true);
+        };
+        script.onerror = () => {
+            console.error("Errore nel caricamento di Plotly");
+            reject(new Error("Impossibile caricare Plotly.js"));
+        };
+        document.head.appendChild(script);
+    });
+}
+
+// Carica Plotly immediatamente
+loadPlotly().catch(error => {
+    console.error("Errore durante il caricamento di Plotly:", error);
+    showToast("Errore nel caricamento della libreria di visualizzazione. Ricarica la pagina.", "error");
+});
+</script>
+
 <!-- Modale per il grafico ingrandito -->
 <div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h3 class="text-lg font-semibold text-gray-800">Visualizzazione dettagliata</h3>
             <button id="close-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
@@ -14,7 +51,7 @@
         </div>
         <div class="p-6">
             <div class="w-full" style="height: 500px">
-                <canvas id="modal-chart"></canvas>
+                <div id="modal-chart-container"></div>
             </div>
         </div>
     </div>
@@ -171,7 +208,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">Scegli uno dei dataset pre-caricati per esplorare diversi scenari di classificazione.</p>
+                        <p class="mt-2 text-sm text-gray-500 text-center">Scegli uno dei dataset pre-caricati per esplorare diversi scenari di classificazione.</p>
                     </div>
                 </div>
             
@@ -236,12 +273,13 @@
                 
                 <!-- Grafico di classificazione -->
                 <div id="chart-container" class="mt-4 pt-4 border-t border-gray-200">
-                    <h4 class="text-md font-medium text-gray-700 mb-2">Visualizzazione dati</h4>
+                    <h4 class="text-md font-medium text-gray-700 mb-2">Visualizzazione dati 3D</h4>
                     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer" id="chart-wrapper" onclick="showChartModal()">
-                        <div style="height: 300px; width: 100%;">
-                            <canvas id="classification-chart"></canvas>
+                        <div id="scatter3d-container" style="height: 300px; width: 100%;">
+                            <!-- Placeholder per lo scatter plot 3D -->
+                            <p id="scatter-placeholder" class="text-center text-gray-500 py-16">Carica un dataset per visualizzare lo scatter plot 3D</p>
                         </div>
-                        <div class="mt-2 text-xs text-gray-500 text-center">Clicca sul grafico per ingrandire</div>
+                        <div class="mt-2 text-xs text-gray-500 text-center">Clicca per ingrandire. Usa il mouse per ruotare la visualizzazione.</div>
                     </div>
                 </div>
                 
@@ -276,7 +314,7 @@
                 <div class="flex justify-between items-start">
                     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Dataset completo</h3>
                     <button id="close-modal" class="text-gray-400 hover:text-gray-500">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -309,6 +347,25 @@
         <div class="p-6 overflow-auto" style="max-height: 80vh">
             <div class="flex justify-center">
                 <img id="modal-tree-img" src="" alt="Albero decisionale" class="max-w-full">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale per visualizzare il grafico a schermo intero -->
+<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800">Scatter Plot 3D</h3>
+            <button id="close-chart-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-auto" style="max-height: 80vh">
+            <div class="flex justify-center">
+                <div id="modal-scatter3d-container" style="width: 100%; height: 70vh;"></div>
             </div>
         </div>
     </div>
@@ -372,7 +429,6 @@
     }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Funzione per mostrare notifiche toast
 function showToast(message, type = 'info') {
@@ -424,7 +480,7 @@ function showToast(message, type = 'info') {
     textDiv.textContent = message;
     notification.appendChild(textDiv);
     
-    // Aggiungi pulsante di chiusura
+    // Aggiunge pulsante di chiusura
     const closeButton = document.createElement('button');
     closeButton.className = 'ml-auto text-gray-400 hover:text-gray-600 focus:outline-none';
     closeButton.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
@@ -620,10 +676,135 @@ document.addEventListener('DOMContentLoaded', function() {
             datasetModal.classList.add('hidden');
         }
     });
+    
+    // Aggiungi l'evento click all'immagine dell'albero
+    const treeImg = document.getElementById('treeImage');
+    if (treeImg) {
+        treeImg.onclick = openTreeModal;
+    }
+    
+    // Chiudi il modale con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTreeModal();
+        }
+    });
+    
+    // Chiudi il modale quando si clicca fuori
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.addEventListener('click', function(e) {
+            if (e.target === treeModal) {
+                closeTreeModal();
+            }
+        });
+    }
+    
+    // Aggiungi gestore per la chiusura del modale del grafico
+    const closeChartModalBtn = document.getElementById('close-chart-modal');
+    if (closeChartModalBtn) {
+        closeChartModalBtn.addEventListener('click', function() {
+            document.getElementById('chart-modal').classList.add('hidden');
+        });
+    }
+    
+    // Chiudi anche con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('chart-modal').classList.add('hidden');
+        }
+    });
+    
+    // Chiudi quando si clicca fuori
+    const chartModal = document.getElementById('chart-modal');
+    if (chartModal) {
+        chartModal.addEventListener('click', function(e) {
+            if (e.target === chartModal) {
+                chartModal.classList.add('hidden');
+            }
+        });
+    }
 });
+
+// Soluzione rapida per il problema di apertura/chiusura del modale dell'albero
+function openTreeModal() {
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.classList.remove('hidden');
+    }
+}
+
+function closeTreeModal() {
+    // Chiudi il modale dell'albero
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.classList.add('hidden');
+    }
+    console.log('Chiusura del modale dell\'albero decisionale completata');
+}
+
+// IMPORTANTE: Inizializza i listener per il modale dell'albero decisionale
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi gestione chiusura al pulsante X per l'albero decisionale
+    const closeTreeButtons = [
+        document.getElementById('close-tree-modal')
+    ];
+    
+    closeTreeButtons.forEach(btn => {
+        if (btn) {
+            console.log('Configurazione del pulsante di chiusura per albero:', btn.id);
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeTreeModal();
+            };
+        }
+    });
+    
+    // Aggiungi chiusura al click fuori dal modale dell'albero
+    const treeModals = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    treeModals.forEach(modal => {
+        if (modal) {
+            console.log('Configurazione della chiusura al click sul background:', modal.id);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeTreeModal();
+                }
+            });
+        }
+    });
+});
+
+// Assegna l'immagine dell'albero all'immagine del modale
+function displayDecisionTree(imageData) {
+    const treeImg = document.getElementById('treeImage');
+    const modalTreeImg = document.getElementById('modal-tree-img');
+    const noTreeMessage = document.getElementById('noTreeMessage');
+    
+    if (treeImg && modalTreeImg) {
+        const imgSrc = 'data:image/png;base64,' + imageData;
+        treeImg.src = imgSrc;
+        modalTreeImg.src = imgSrc;
+        treeImg.style.display = 'block';
+        
+        // Aggiungi l'evento click all'immagine dell'albero
+        treeImg.onclick = openTreeModal;
+        
+        if (noTreeMessage) {
+            noTreeMessage.style.display = 'none';
+        }
+    }
+}
 
 // Funzione per processare il dataset e addestrare il modello
 async function processDataset(file) {
+    // Chiudi il modale prima di addestrare il modello
+    document.getElementById('dataset-modal').classList.add('hidden');
+    
     try {
         const formData = new FormData();
         formData.append('file', file);
@@ -686,390 +867,404 @@ function disableTrainButton() {
     trainModelBtn.classList.add('opacity-50', 'cursor-not-allowed');
 }
 
-// Funzione per creare il grafico di classificazione
-let classificationChart = null;
-let modalChart = null;
+// Funzione per creare lo scatter plot 3D
+let scatter3dPlot = null;
+let modalScatter3dPlot = null;
 let lastChartData = null; // Per memorizzare i dati del grafico
 
 function createClassificationChart(data) {
-    const canvas = document.getElementById('classification-chart');
-    if (!canvas) {
-        showToast('Errore: Canvas per il grafico non trovato', 'error');
-        return;
-    }
-    
-    // Memorizza i dati per il modale
+    // Salva i dati per riuso
     lastChartData = data;
     
-    // Distruggi il grafico precedente se esiste
-    if (classificationChart) {
-        classificationChart.destroy();
-    }
+    console.log('Dati ricevuti per il grafico:', data);
+    console.log('modelData disponibile:', modelData);
     
-    // Prepara i dati per il grafico
-    try {
-        // Seleziona le prime due caratteristiche per la visualizzazione 2D
-        const features = data.features || [];
-        if (features.length < 2) {
-            showToast('Dati insufficienti per creare un grafico', 'warning');
-            return;
-        }
-        
-        // Recupera i dati di addestramento e le classi dal dataset completo
-        // Supponiamo che i dati siano disponibili in modelData.training_data
-        if (!modelData || !modelData.training_data || !modelData.classes) {
-            showToast('Dati di addestramento non disponibili', 'warning');
-            return;
-        }
-        
-        // Organizza i dati per classe
-        const datasets = [];
-        const classes = modelData.classes;
-        
-        // Mappa di colori per le classi (fino a 10 classi)
-        const colorMap = [
-            { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgb(54, 162, 235)' },
-            { bg: 'rgba(255, 99, 132, 0.2)', border: 'rgb(255, 99, 132)' },
-            { bg: 'rgba(75, 192, 192, 0.2)', border: 'rgb(75, 192, 192)' },
-            { bg: 'rgba(255, 206, 86, 0.2)', border: 'rgb(255, 206, 86)' },
-            { bg: 'rgba(153, 102, 255, 0.2)', border: 'rgb(153, 102, 255)' },
-            { bg: 'rgba(255, 159, 64, 0.2)', border: 'rgb(255, 159, 64)' },
-            { bg: 'rgba(199, 199, 199, 0.2)', border: 'rgb(199, 199, 199)' },
-            { bg: 'rgba(83, 102, 255, 0.2)', border: 'rgb(83, 102, 255)' },
-            { bg: 'rgba(40, 167, 69, 0.2)', border: 'rgb(40, 167, 69)' },
-            { bg: 'rgba(220, 53, 69, 0.2)', border: 'rgb(220, 53, 69)' }
-        ];
-        
-        // Prepara i dataset per ogni classe
-        classes.forEach((className, i) => {
-            // Filtra i punti per questa classe
-            const points = modelData.training_data
-                .filter(point => point.target === className)
-                .map(point => ({
-                    x: parseFloat(point.features[0]),
-                    y: parseFloat(point.features[1])
-                }));
-            
-            // Aggiungi il dataset solo se ci sono punti
-            if (points.length > 0) {
-                datasets.push({
-                    label: className,
-                    data: points,
-                    backgroundColor: colorMap[i % colorMap.length].bg,
-                    borderColor: colorMap[i % colorMap.length].border,
-                    borderWidth: 1,
-                    pointRadius: 5,
-                    pointHoverRadius: 7
-                });
+    // Utilizziamo la nostra funzione asincrona per assicurarci che Plotly sia caricato
+    loadPlotly().then(() => {
+        try {
+            // Controlla che ci siano dati sufficienti o modelData
+            if ((!data || !data.features) && (!modelData || !modelData.columns)) {
+                console.error('Dati insufficienti per creare il grafico');
+                showToast('Dati insufficienti per creare il grafico 3D', 'error');
+                return;
             }
-        });
-        
-        // Aggiungi il punto di previsione con una stella più grande
-        if (data.prediction && data.input_values) {
-            const predictionIdx = classes.indexOf(data.prediction);
-            const color = predictionIdx >= 0 ? colorMap[predictionIdx % colorMap.length] : colorMap[0];
-            
-            datasets.push({
-                label: 'Previsione',
-                data: [{
-                    x: parseFloat(data.input_values[0]),
-                    y: parseFloat(data.input_values[1])
-                }],
-                backgroundColor: color.border,
-                borderColor: color.border,
-                borderWidth: 2,
-                pointStyle: 'star',
-                pointRadius: 8,
-                pointHoverRadius: 10
-            });
-        }
-        
-        // Assicurati che il canvas sia correttamente dimensionato
-        canvas.style.height = '100%';
-        canvas.style.width = '100%';
-        
-        // Crea il grafico
-        classificationChart = new Chart(canvas.getContext('2d'), {
-            type: 'scatter',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 1000
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Visualizzazione Classificazione'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.dataset.label || '';
-                                return label + ': (' + context.parsed.x + ', ' + context.parsed.y + ')';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: features[0] || 'Caratteristica 1'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: features[1] || 'Caratteristica 2'
-                        }
-                    }
+
+            // Estrai le caratteristiche dal dataset
+            const features = data.features || modelData.columns || [];
+            if (features.length < 3) {
+                // Caso con meno di 3 caratteristiche, non possiamo creare un vero 3D
+                showToast('Sono necessarie almeno 3 caratteristiche per una visualizzazione 3D completa. La visualizzazione sarà limitata.', 'warning');
+                
+                // Genera caratteristiche fittzie se necessario
+                while (features.length < 3) {
+                    features.push('Dimensione ' + (features.length + 1));
                 }
             }
-        });
-        
-        // Aggiungi event listener per mostrare il modale
-        const chartWrapper = document.getElementById('chart-wrapper');
-        if (chartWrapper) {
-            console.log('Aggiungo event listener al chart-wrapper');
-            // Rimuovi eventuali listener precedenti
-            chartWrapper.removeEventListener('click', showChartModal);
-            // Aggiungi il nuovo listener
-            chartWrapper.addEventListener('click', showChartModal);
-        } else {
-            console.error('chart-wrapper non trovato');
+            
+            // Seleziona le prime 3 caratteristiche per la visualizzazione 3D
+            const xFeature = features[0];
+            const yFeature = features[1];
+            const zFeature = features[2];
+            
+            // Crea un array di punti
+            let plotData = [];
+            
+            // Prima visualizza tutti i dati del CSV caricato
+            if (modelData && modelData.training_data && modelData.classes) {
+                console.log('Visualizzazione di tutti i dati del CSV caricato');
+                
+                // Raggruppa i punti per classe
+                const classes = {};
+                modelData.training_data.forEach(point => {
+                    const className = point.target || 'Sconosciuto';
+                    if (!classes[className]) {
+                        classes[className] = [];
+                    }
+                    classes[className].push(point);
+                });
+                
+                // Crea una traccia per ogni classe
+                Object.keys(classes).forEach((className, idx) => {
+                    const points = classes[className];
+                    
+                    const x = [];
+                    const y = [];
+                    const z = [];
+                    const text = [];
+                    
+                    points.forEach(point => {
+                        if (point.features && point.features.length >= 1) {
+                            // Assicurati che ci siano abbastanza dimensioni
+                            let featureValues = [...point.features];
+                            while (featureValues.length < 3) {
+                                featureValues.push(0);
+                            }
+                            
+                            x.push(parseFloat(featureValues[0]));
+                            y.push(parseFloat(featureValues[1]));
+                            z.push(parseFloat(featureValues[2]));
+                            
+                            let hoverText = `Classe: ${className}<br>`;
+                            features.slice(0, 3).forEach((feat, i) => {
+                                if (i < featureValues.length) {
+                                    hoverText += `${feat}: ${featureValues[i]}<br>`;
+                                }
+                            });
+                            text.push(hoverText);
+                        }
+                    });
+                    
+                    if (x.length > 0) {
+                        // Colori diversi per ogni classe (palette predefinita)
+                        const colorScale = [
+                            'rgba(31, 119, 180, 0.7)',  // blu
+                            'rgba(255, 127, 14, 0.7)',  // arancione
+                            'rgba(44, 160, 44, 0.7)',   // verde
+                            'rgba(214, 39, 40, 0.7)',   // rosso
+                            'rgba(148, 103, 189, 0.7)', // viola
+                            'rgba(140, 86, 75, 0.7)',   // marrone
+                            'rgba(227, 119, 194, 0.7)', // rosa
+                            'rgba(127, 127, 127, 0.7)', // grigio
+                            'rgba(188, 189, 34, 0.7)',  // verde-giallo
+                            'rgba(23, 190, 207, 0.7)'   // ciano
+                        ];
+                        
+                        const colorIndex = idx % colorScale.length;
+                        
+                        const trace = {
+                            type: 'scatter3d',
+                            mode: 'markers',
+                            x: x,
+                            y: y,
+                            z: z,
+                            text: text,
+                            hoverinfo: 'text',
+                            name: className,
+                            marker: {
+                                size: 5,
+                                color: colorScale[colorIndex],
+                                opacity: 0.7,
+                                line: {
+                                    color: colorScale[colorIndex].replace('0.7', '1.0'),
+                                    width: 0.5
+                                }
+                            }
+                        };
+                        
+                        plotData.push(trace);
+                    }
+                });
+            }
+            
+            // Poi aggiungi il punto di previsione se disponibile
+            if (data.input_values && data.prediction) {
+                console.log('Aggiunta del punto di previsione');
+                
+                // Assicurati che ci siano almeno 3 valori per le coordinate
+                let input_values = [...data.input_values];
+                while (input_values.length < 3) {
+                    input_values.push(0); // Usa 0 come valore di default per le dimensioni mancanti
+                }
+                
+                // Crea una traccia per il punto di previsione
+                const trace = {
+                    type: 'scatter3d',
+                    mode: 'markers',
+                    x: [parseFloat(input_values[0])],
+                    y: [parseFloat(input_values[1])],
+                    z: [parseFloat(input_values[2])],
+                    text: [`Previsione: ${data.prediction}<br>${xFeature}: ${input_values[0]}<br>${yFeature}: ${input_values[1]}<br>${zFeature}: ${input_values[2]}`],
+                    hoverinfo: 'text',
+                    name: 'Previsione: ' + data.prediction,
+                    marker: {
+                        size: 12,
+                        symbol: 'circle',
+                        color: 'rgba(255, 0, 0, 1.0)',
+                        line: {
+                            color: 'rgb(255, 255, 255)',
+                            width: 2
+                        }
+                    }
+                };
+                
+                plotData.push(trace);
+            } else if (data.predictions && Array.isArray(data.predictions)) {
+                // Gestione multiple previsioni (se implementata)
+                console.log('Visualizzazione di multiple previsioni');
+            }
+            
+            // Configura il layout
+            const layout = {
+                title: 'Scatter Plot 3D dei dati',
+                scene: {
+                    xaxis: {title: xFeature},
+                    yaxis: {title: yFeature},
+                    zaxis: {title: zFeature}
+                },
+                margin: {l: 0, r: 0, b: 0, t: 30},
+                hovermode: 'closest',
+                legend: {
+                    x: 0,
+                    y: 1
+                },
+                autosize: true
+            };
+            
+            // Pulisci il container prima di creare un nuovo plot
+            document.getElementById('scatter3d-container').innerHTML = '';
+            
+            // Crea il plot principale
+            Plotly.newPlot('scatter3d-container', plotData, layout, {
+                responsive: true, 
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+                displaylogo: false
+            });
+            
+            console.log('Scatter plot 3D creato con successo');
+        } catch (error) {
+            console.error('Errore nella creazione dello scatter plot 3D:', error);
+            showToast('Errore nella creazione del grafico 3D: ' + error.message, 'error');
         }
-        
-        // Aggiungi anche un listener diretto al canvas come backup
-        canvas.addEventListener('click', function(e) {
-            console.log('Click sul canvas');
-            e.stopPropagation();
-            showChartModal();
-        });
-    } catch (error) {
-        showToast('Errore nella creazione del grafico: ' + error.message, 'error');
-        console.error('Errore grafico:', error);
-    }
+    }).catch(error => {
+        console.error('Errore di caricamento Plotly:', error);
+        showToast('Impossibile creare il grafico: libreria di visualizzazione non disponibile', 'error');
+    });
 }
 
-// Funzione per mostrare il modale con il grafico ingrandito
+// Funzione per mostrare lo scatter plot 3D a schermo intero nel modale
 function showChartModal() {
-    console.log('showChartModal chiamato');
-    showToast('Apertura modale...', 'info');
-    
     if (!lastChartData) {
-        showToast('Nessun dato disponibile per il grafico', 'error');
-        return;
-    }
-    
-    const modal = document.getElementById('chart-modal');
-    const canvas = document.getElementById('modal-chart');
-    
-    if (!modal || !canvas) {
-        showToast('Errore: Modale o canvas non trovato', 'error');
-        console.error('Modale o canvas non trovato', { modal, canvas });
+        showToast('Nessun dato disponibile per il grafico', 'warning');
         return;
     }
     
     // Mostra il modale
-    modal.classList.remove('hidden');
-    console.log('Modale visualizzato');
+    document.getElementById('chart-modal').classList.remove('hidden');
     
-    // Distruggi il grafico precedente se esiste
-    if (modalChart) {
-        modalChart.destroy();
-    }
-    
-    try {
-        // Ottieni le configurazioni dal grafico originale
-        const originalConfig = classificationChart.config;
-        
-        // Crea un nuovo grafico con le stesse configurazioni ma più grande
-        const newConfig = {
-            type: originalConfig.type,
-            data: originalConfig.data,
-            options: {
-                ...originalConfig.options,
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    ...originalConfig.options.plugins,
-                    title: {
-                        ...originalConfig.options.plugins.title,
-                        font: {
-                            size: 18
-                        }
-                    },
-                    legend: {
-                        ...originalConfig.options.plugins.legend,
-                        labels: {
-                            font: {
-                                size: 14
+    // Utilizziamo la nostra funzione asincrona per assicurarci che Plotly sia caricato
+    loadPlotly().then(() => {
+        try {
+            // Prepara i dati per il plot esattamente come nella funzione principale
+            const features = lastChartData.features || [];
+            if (features.length < 3) {
+                showToast('Sono necessarie almeno 3 caratteristiche per una visualizzazione 3D completa. La visualizzazione sarà limitata.', 'warning');
+                
+                // Genera caratteristiche fittzie se necessario
+                while (features.length < 3) {
+                    features.push('Dimensione ' + (features.length + 1));
+                }
+            }
+            
+            const xFeature = features[0];
+            const yFeature = features[1];
+            const zFeature = features[2];
+            
+            // Crea un array di punti
+            let plotData = [];
+            
+            // Prima visualizza tutti i dati del CSV caricato
+            if (modelData && modelData.training_data && modelData.classes) {
+                console.log('Visualizzazione di tutti i dati del CSV caricato');
+                
+                // Raggruppa i punti per classe
+                const classes = {};
+                modelData.training_data.forEach(point => {
+                    const className = point.target || 'Sconosciuto';
+                    if (!classes[className]) {
+                        classes[className] = [];
+                    }
+                    classes[className].push(point);
+                });
+                
+                // Crea una traccia per ogni classe
+                Object.keys(classes).forEach((className, idx) => {
+                    const points = classes[className];
+                    
+                    const x = [];
+                    const y = [];
+                    const z = [];
+                    const text = [];
+                    
+                    points.forEach(point => {
+                        if (point.features && point.features.length >= 1) {
+                            // Assicurati che ci siano abbastanza dimensioni
+                            let featureValues = [...point.features];
+                            while (featureValues.length < 3) {
+                                featureValues.push(0);
                             }
+                            
+                            x.push(parseFloat(featureValues[0]));
+                            y.push(parseFloat(featureValues[1]));
+                            z.push(parseFloat(featureValues[2]));
+                            
+                            let hoverText = `Classe: ${className}<br>`;
+                            features.slice(0, 3).forEach((feat, i) => {
+                                if (i < featureValues.length) {
+                                    hoverText += `${feat}: ${featureValues[i]}<br>`;
+                                }
+                            });
+                            text.push(hoverText);
+                        }
+                    });
+                    
+                    if (x.length > 0) {
+                        // Colori diversi per ogni classe (palette predefinita)
+                        const colorScale = [
+                            'rgba(31, 119, 180, 0.7)',  // blu
+                            'rgba(255, 127, 14, 0.7)',  // arancione
+                            'rgba(44, 160, 44, 0.7)',   // verde
+                            'rgba(214, 39, 40, 0.7)',   // rosso
+                            'rgba(148, 103, 189, 0.7)', // viola
+                            'rgba(140, 86, 75, 0.7)',   // marrone
+                            'rgba(227, 119, 194, 0.7)', // rosa
+                            'rgba(127, 127, 127, 0.7)', // grigio
+                            'rgba(188, 189, 34, 0.7)',  // verde-giallo
+                            'rgba(23, 190, 207, 0.7)'   // ciano
+                        ];
+                        
+                        const colorIndex = idx % colorScale.length;
+                        
+                        const trace = {
+                            type: 'scatter3d',
+                            mode: 'markers',
+                            x: x,
+                            y: y,
+                            z: z,
+                            text: text,
+                            hoverinfo: 'text',
+                            name: className,
+                            marker: {
+                                size: 5,
+                                color: colorScale[colorIndex],
+                                opacity: 0.7,
+                                line: {
+                                    color: colorScale[colorIndex].replace('0.7', '1.0'),
+                                    width: 0.5
+                                }
+                            }
+                        };
+                        
+                        plotData.push(trace);
+                    }
+                });
+            }
+            
+            // Poi aggiungi il punto di previsione se disponibile
+            if (lastChartData.input_values && lastChartData.prediction) {
+                console.log('Aggiunta del punto di previsione');
+                
+                // Assicurati che ci siano almeno 3 valori per le coordinate
+                let input_values = [...lastChartData.input_values];
+                while (input_values.length < 3) {
+                    input_values.push(0); // Usa 0 come valore di default per le dimensioni mancanti
+                }
+                
+                // Crea una traccia per il punto di previsione
+                const trace = {
+                    type: 'scatter3d',
+                    mode: 'markers',
+                    x: [parseFloat(input_values[0])],
+                    y: [parseFloat(input_values[1])],
+                    z: [parseFloat(input_values[2])],
+                    text: [`Previsione: ${lastChartData.prediction}<br>${xFeature}: ${input_values[0]}<br>${yFeature}: ${input_values[1]}<br>${zFeature}: ${input_values[2]}`],
+                    hoverinfo: 'text',
+                    name: 'Previsione: ' + lastChartData.prediction,
+                    marker: {
+                        size: 12,
+                        symbol: 'circle',
+                        color: 'rgba(255, 0, 0, 1.0)',
+                        line: {
+                            color: 'rgb(255, 255, 255)',
+                            width: 2
                         }
                     }
+                };
+                
+                plotData.push(trace);
+            } else if (lastChartData.predictions && Array.isArray(lastChartData.predictions)) {
+                // Gestione multiple previsioni (se implementata)
+                console.log('Visualizzazione di multiple previsioni');
+            }
+            
+            // Configura il layout
+            const layout = {
+                title: 'Scatter Plot 3D dei dati',
+                scene: {
+                    xaxis: {title: xFeature},
+                    yaxis: {title: yFeature},
+                    zaxis: {title: zFeature}
                 },
-                scales: {
-                    x: {
-                        ...originalConfig.options.scales.x,
-                        title: {
-                            ...originalConfig.options.scales.x.title,
-                            font: {
-                                size: 14
-                            }
-                        },
-                        ticks: {
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    y: {
-                        ...originalConfig.options.scales.y,
-                        title: {
-                            ...originalConfig.options.scales.y.title,
-                            font: {
-                                size: 14
-                            }
-                        },
-                        ticks: {
-                            font: {
-                                size: 12
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        
-        // Crea il grafico nel modale
-        modalChart = new Chart(canvas.getContext('2d'), newConfig);
-    } catch (error) {
-        showToast('Errore nella creazione del grafico ingrandito: ' + error.message, 'error');
-        console.error('Errore grafico modale:', error);
-    }
-}
-
-// Configura gli eventi del modale appena il DOM è pronto
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM caricato, configurazione modale');
-    const closeModalBtn = document.getElementById('close-modal');
-    const modal = document.getElementById('chart-modal');
-    const chartWrapper = document.getElementById('chart-wrapper');
-    
-    // Setup del pulsante di chiusura
-    if (closeModalBtn && modal) {
-        closeModalBtn.addEventListener('click', function() {
-            modal.classList.add('hidden');
-        });
-        
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
-    } else {
-        console.error('Elementi del modale non trovati', { closeModalBtn, modal });
-    }
-    
-    // Setup del modale dell'albero decisionale
-    const closeTreeModalBtn = document.getElementsByClassName('close')[0];
-    const treeModal = document.getElementById('treeModal');
-    const treeWrapper = document.getElementById('tree-wrapper');
-    
-    if (closeTreeModalBtn && treeModal) {
-        closeTreeModalBtn.addEventListener('click', function() {
-            treeModal.style.display = 'none';
-        });
-        
-        treeModal.addEventListener('click', function(e) {
-            if (e.target === treeModal) {
-                treeModal.style.display = 'none';
-            }
-        });
-    }
-    
-    if (treeWrapper) {
-        treeWrapper.addEventListener('click', showTreeModal);
-    }
-});
-
-// Aggiunge evento per chiudere il modale con ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const chartModal = document.getElementById('chart-modal');
-        if (chartModal && !chartModal.classList.contains('hidden')) {
-            chartModal.classList.add('hidden');
-        }
-        
-        const treeModal = document.getElementById('tree-modal');
-        if (treeModal && !treeModal.classList.contains('hidden')) {
-            treeModal.classList.add('hidden');
-        }
-    }
-});
-
-// Funzione per chiudere il modale dell'albero decisionale
-function closeTreeModal() {
-    // Chiudi tutti i possibili modali dell'albero
-    const modals = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    modals.forEach(modal => {
-        if (modal) {
-            if (modal.classList) {
-                modal.classList.add('hidden');
-            } else {
-                modal.style.display = 'none';
-            }
-        }
-    });
-    
-    console.log('Chiusura del modale dell\'albero decisionale completata');
-}
-
-// Aggiunge l'handler per la chiusura al caricamento della pagina
-document.addEventListener('DOMContentLoaded', function() {
-    // Aggiungi gestione chiusura al pulsante X
-    const closeButtons = [
-        document.getElementById('close-tree-modal')
-    ];
-    
-    closeButtons.forEach(btn => {
-        if (btn) {
-            btn.onclick = closeTreeModal;
-        }
-    });
-    
-    // Aggiungi chiusura al click fuori dal modale
-    const modals = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    modals.forEach(modal => {
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeTreeModal();
-                }
+                margin: {l: 0, r: 0, b: 0, t: 50},
+                hovermode: 'closest',
+                legend: {
+                    x: 0,
+                    y: 1
+                },
+                autosize: true
+            };
+            
+            // Pulisci il container prima di creare un nuovo plot
+            document.getElementById('modal-chart-container').innerHTML = '';
+            
+            // Crea il plot nel modale
+            Plotly.newPlot('modal-chart-container', plotData, layout, {
+                responsive: true, 
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['sendDataToCloud'],
+                displaylogo: false
             });
+            
+            console.log('Scatter plot 3D creato con successo nel modale');
+        } catch (error) {
+            console.error('Errore nella creazione dello scatter plot 3D nel modale:', error);
+            showToast('Errore nella creazione del grafico nel modale: ' + error.message, 'error');
         }
+    }).catch(error => {
+        console.error('Errore di caricamento Plotly:', error);
+        showToast('Impossibile creare il grafico: libreria di visualizzazione non disponibile', 'error');
     });
-    
-    // Aggiungi gestione chiusura con tasto ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeTreeModal();
-        }
-    });
-});
+}
 
 // Gestione del form di upload
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
@@ -1140,7 +1335,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         document.getElementById('prediction-result').textContent = data.prediction;
         showToast(`Previsione calcolata: ${data.prediction}`, 'success');
         
-        // Crea il grafico di classificazione
+        // Crea lo scatter plot 3D
         createClassificationChart(data);
     } catch (error) {
         showToast('Errore: ' + error.message, 'error');
@@ -1158,9 +1353,6 @@ document.getElementById('treeImage').onclick = function(){
   modal.style.display = "block";
   modalImg.src = this.src;
 }
-
-// Get the <span> element that closes the modal
-var span = document.getElementsByClassName("close")[0];
 
 // When the user clicks on <span> (x), close the modal
 span.onclick = function() { 
@@ -1292,114 +1484,54 @@ function closeTreeModal() {
             modal.style.display = 'none';
         }
     });
+    console.log('Chiusura del modale dell\'albero decisionale completata');
 }
 
 // IMPORTANTE: Inizializza i listener per il modale al caricamento della pagina
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Inizializzazione degli eventi per la chiusura del modale dell\'albero decisionale');
+    console.log('DOM caricato, configurazione dei modali');
     
-    // Aggiungi gestione chiusura con tasto ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeTreeModal();
-        }
-    });
+    // Setup del modale dello scatter plot 3D
+    const chartModal = document.getElementById('chart-modal');
+    const closeChartModalBtn = chartModal ? chartModal.querySelector('button') : null;
     
-    // Aggiungi chiusura al click sul pulsante X
-    const closeButtons = [
-        document.getElementById('close-tree-modal')
-    ];
-    
-    closeButtons.forEach(btn => {
-        if (btn) {
-            console.log('Configurazione del pulsante di chiusura:', btn.id);
-            btn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeTreeModal();
-            };
-        }
-    });
-    
-    // Aggiungi chiusura al click fuori dal modale
-    const modals = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    modals.forEach(modal => {
-        if (modal) {
-            console.log('Configurazione della chiusura al click sul background:', modal.id);
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeTreeModal();
-                }
-            });
-        }
-    });
-});
-
-// Soluzione rapida per il problema di apertura/chiusura del modale
-function openTreeModal() {
-    const treeModal = document.getElementById('tree-modal');
-    if (treeModal) {
-        treeModal.classList.remove('hidden');
-    }
-}
-
-function closeTreeModal() {
-    const treeModal = document.getElementById('tree-modal');
-    if (treeModal) {
-        treeModal.classList.add('hidden');
-    }
-}
-
-// Assegna l'immagine dell'albero all'immagine del modale
-function displayDecisionTree(imageData) {
-    const treeImg = document.getElementById('treeImage');
-    const modalTreeImg = document.getElementById('modal-tree-img');
-    const noTreeMessage = document.getElementById('noTreeMessage');
-    
-    if (treeImg && modalTreeImg) {
-        const imgSrc = 'data:image/png;base64,' + imageData;
-        treeImg.src = imgSrc;
-        modalTreeImg.src = imgSrc;
-        treeImg.style.display = 'block';
+    if (closeChartModalBtn && chartModal) {
+        console.log('Configurazione degli eventi per il modale dello scatter plot 3D');
         
-        // Aggiungi l'evento click all'immagine dell'albero
-        treeImg.onclick = openTreeModal;
+        // Chiudi il modale quando si clicca sul pulsante X
+        closeChartModalBtn.addEventListener('click', function() {
+            chartModal.classList.add('hidden');
+            console.log('Modale dello scatter plot 3D chiuso dal pulsante');
+        });
         
-        if (noTreeMessage) {
-            noTreeMessage.style.display = 'none';
-        }
-    }
-}
-
-// Setup al caricamento della pagina
-document.addEventListener('DOMContentLoaded', function() {
-    // Aggiungi l'evento click all'immagine dell'albero
-    const treeImg = document.getElementById('treeImage');
-    if (treeImg) {
-        treeImg.onclick = openTreeModal;
-    }
-    
-    // Chiudi il modale con ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeTreeModal();
-        }
-    });
-    
-    // Chiudi il modale quando si clicca fuori
-    const treeModal = document.getElementById('tree-modal');
-    if (treeModal) {
-        treeModal.addEventListener('click', function(e) {
-            if (e.target === treeModal) {
-                closeTreeModal();
+        // Chiudi il modale quando si clicca fuori dal contenuto
+        chartModal.addEventListener('click', function(e) {
+            if (e.target === chartModal) {
+                chartModal.classList.add('hidden');
+                console.log('Modale dello scatter plot 3D chiuso cliccando fuori');
             }
         });
     }
+    
+    // Aggiunge evento ESC per chiudere entrambi i modali
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            // Chiudi il modale del grafico
+            if (chartModal && !chartModal.classList.contains('hidden')) {
+                chartModal.classList.add('hidden');
+                console.log('Modale dello scatter plot 3D chiuso con ESC');
+            }
+            
+            // Chiudi il modale dell'albero decisionale
+            closeTreeModal();
+        }
+    });
 });
+
+document.getElementById('close-chart-modal').addEventListener('click', function() {
+    document.getElementById('chart-modal').classList.add('hidden');
+});
+
 </script>
 
 {% endblock %}
