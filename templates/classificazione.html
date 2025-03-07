@@ -816,7 +816,15 @@ async function processDataset(file) {
         });
         const data = await response.json();
 
-        if (data.error) throw new Error(data.error);
+        if (data.error) {
+            // Controlla se è un errore di campo mancante
+            if (data.error.startsWith('Inserisci un valore per')) {
+                showToast(data.error, 'warning');
+            } else {
+                showToast(data.error, 'error');
+            }
+            throw new Error(data.error);
+        }
 
         modelData = data;
         document.getElementById('prediction-section').classList.remove('hidden');
@@ -850,7 +858,12 @@ async function processDataset(file) {
         showToast('Modello addestrato con successo!', 'success');
         logToConsole('Classi disponibili: ' + data.classes.join(', '), 'info');
     } catch (error) {
-        showToast('Errore: ' + error.message, 'error');
+        // Controlla se è un errore di campo mancante
+        if (error.message.startsWith('Inserisci un valore per')) {
+            showToast(error.message, 'warning');
+        } else {
+            showToast(error.message, 'error');
+        }
     }
 }
 
@@ -1307,7 +1320,7 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     modelData.columns.forEach(column => {
         const value = document.getElementById(column).value;
         if (!value) {
-            showToast(`Errore: Inserisci un valore per ${column}`, 'error');
+            showToast(`Inserisci un valore per ${column}`, 'warning');
             isValid = false;
             return;
         }
@@ -1328,6 +1341,12 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         const data = await response.json();
 
         if (data.error) {
+            // Controlla se è un errore di campo mancante
+            if (data.error.startsWith('Errore: Inserisci un valore per')) {
+                showToast(data.error, 'warning');
+            } else {
+                showToast('Errore: ' + data.error, 'error');
+            }
             throw new Error(data.error);
         }
 
@@ -1338,7 +1357,12 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         // Crea lo scatter plot 3D
         createClassificationChart(data);
     } catch (error) {
-        showToast('Errore: ' + error.message, 'error');
+        // Controlla se è un errore di campo mancante
+        if (error.message.startsWith('Errore: Inserisci un valore per')) {
+            showToast(error.message, 'warning');
+        } else {
+            showToast('Errore: ' + error.message, 'error');
+        }
     }
 });
 
