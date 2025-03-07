@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pl-ai-app:
+    build: .
+    container_name: pl-ai-container
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./static/generated:/app/static/generated
+      - ./database.sqlite:/app/database.sqlite
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Uncomment le seguenti righe e inserisci le tue chiavi API
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # - STABILITY_API_KEY=${STABILITY_API_KEY}
+    restart: unless-stopped
