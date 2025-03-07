@@ -13,6 +13,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
+import pydotplus
+from io import StringIO
+import base64
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
@@ -136,7 +140,7 @@ def predict_regression():
 
 @app.route('/upload-classification', methods=['POST'])
 def upload_classification():
-    global model, le, X_train, feature_names, training_data
+    global model, le, X_train, feature_names, training_data, tree_data
     if 'file' not in request.files:
         return jsonify({'error': 'Nessun file caricato'}), 400
     
@@ -146,6 +150,18 @@ def upload_classification():
 
     try:
         df = pd.read_csv(file)
+        
+        # Validate dataset
+        if len(df.columns) < 2:
+            return jsonify({'error': 'Il dataset deve avere almeno due colonne (features e target)'}), 400
+
+        # Ensure target column is string type
+        df.iloc[:, -1] = df.iloc[:, -1].astype(str)
+
+        # Check for sufficient data
+        if len(df) < 5:
+            return jsonify({'error': 'Insufficienti dati per il training (minimo 5 esempi richiesti)'}), 400
+
         X = df.iloc[:, :-1]
         y = df.iloc[:, -1]
 
@@ -156,9 +172,29 @@ def upload_classification():
         feature_names = X.columns.tolist()
         X_train = X.values
 
-        # Addestra il modello
-        model = RandomForestClassifier()
+        # Addestra il modello RandomForest
+        model = RandomForestClassifier(n_estimators=10)
         model.fit(X, y_encoded)
+        
+        # Crea e addestra un albero decisionale per la visualizzazione
+        tree_model = DecisionTreeClassifier(max_depth=4)
+        tree_model.fit(X, y_encoded)
+        
+        # Genera la visualizzazione dell'albero in formato DOT
+        dot_data = StringIO()
+        export_graphviz(tree_model, out_file=dot_data, 
+                        feature_names=feature_names,
+                        class_names=le.classes_.tolist(),
+                        filled=True, rounded=True,
+                        special_characters=True,
+                        impurity=False)
+        
+        # Ottieni la rappresentazione grafica
+        graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+        tree_png = graph.create_png()
+        
+        # Codifica l'immagine in base64 per il frontend
+        tree_data = base64.b64encode(tree_png).decode('utf-8')
 
         # Prepara i dati di addestramento per la visualizzazione
         training_data = []
@@ -172,7 +208,8 @@ def upload_classification():
             'success': True,
             'columns': feature_names,
             'classes': le.classes_.tolist(),
-            'training_data': training_data
+            'training_data': training_data,
+            'tree_image': tree_data
         })
 
     except Exception as e:

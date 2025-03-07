@@ -244,6 +244,19 @@
                         <div class="mt-2 text-xs text-gray-500 text-center">Clicca sul grafico per ingrandire</div>
                     </div>
                 </div>
+                
+                <!-- Albero decisionale -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Albero decisionale</h3>
+                    <div id="treeContainer" class="bg-white p-4 rounded-lg shadow-md">
+                        <div id="treeImageContainer" class="overflow-x-auto">
+                            <img id="treeImage" src="" alt="Albero decisionale" class="mx-auto cursor-pointer" style="display: none;" onclick="document.getElementById('tree-modal').classList.remove('hidden')">
+                            <!-- Nascondo esplicitamente il messaggio di errore quando l'albero è visibile -->
+                            <p id="noTreeMessage" class="text-center text-red-500 py-4" style="display: none;">Nessun albero decisionale disponibile</p>
+                        </div>
+                        <p class="text-center text-sm text-gray-500 mt-2">Clicca sull'albero per ingrandire</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -282,82 +295,156 @@
     </div>
 </div>
 
+<!-- Modale per l'albero decisionale -->
+<div id="tree-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full mx-4 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800">Albero decisionale</h3>
+            <button class="text-gray-500 hover:text-gray-700 focus:outline-none" onclick="document.getElementById('tree-modal').classList.add('hidden')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-auto" style="max-height: 80vh">
+            <div class="flex justify-center">
+                <img id="modal-tree-img" src="" alt="Albero decisionale" class="max-w-full">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Stili per le animazioni di notifica */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    .opacity-0 {
+        opacity: 0;
+        transition: opacity 0.3s ease-out;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.9);
+    }
+
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 90vh;
+    }
+
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 35px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #bbb;
+      text-decoration: none;
+      cursor: pointer;
+    }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Funzione per mostrare notifiche toast
 function showToast(message, type = 'info') {
-    // Registra anche nella console
-    logToConsole(message, type);
-    
-    const container = document.getElementById('notifications-container');
-    const toast = document.createElement('div');
-    
-    // Colori in base al tipo di notifica
-    let bgColor, textColor, iconPath;
-    switch(type) {
-        case 'success':
-            bgColor = 'bg-green-50 border-green-400';
-            textColor = 'text-green-800';
-            iconPath = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
-            break;
-        case 'error':
-            bgColor = 'bg-red-50 border-red-400';
-            textColor = 'text-red-800';
-            iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z';
-            break;
-        case 'warning':
-            bgColor = 'bg-yellow-50 border-yellow-400';
-            textColor = 'text-yellow-800';
-            iconPath = 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z';
-            break;
-        default: // info
-            bgColor = 'bg-blue-50 border-blue-400';
-            textColor = 'text-blue-800';
-            iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+    // Se il messaggio è relativo all'albero e abbiamo già un'immagine dell'albero, non mostrare la notifica
+    if ((message.includes('Nessun albero') || message.includes('albero decisionale')) && 
+        document.getElementById('decision-tree-img') && 
+        document.getElementById('decision-tree-img').style.display !== 'none') {
+        console.log('Notifica albero soppressa perché l\'albero è visibile');
+        return;
     }
     
-    // Creare la notifica con animazioni
-    toast.className = `flex items-start p-4 mb-2 border rounded-lg shadow-lg ${bgColor} animate-fade-in`;
-    toast.innerHTML = `
-        <div class="flex-shrink-0 mr-3">
-            <svg class="w-5 h-5 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
-            </svg>
-        </div>
-        <div class="ml-2 ${textColor} flex-grow">${message}</div>
-        <button class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 text-gray-500 hover:text-gray-700 focus:outline-none">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    `;
+    const container = document.getElementById('notifications-container');
+    const notification = document.createElement('div');
     
-    // Aggiungere la notifica al container
-    container.appendChild(toast);
+    notification.className = 'notification animate-fade-in rounded-lg shadow-md p-4 mb-4 flex items-center';
     
-    // Pulsante di chiusura
-    const closeButton = toast.querySelector('button');
+    // Imposta i colori in base al tipo
+    if (type === 'success') {
+        notification.classList.add('bg-green-100', 'text-green-800', 'border-l-4', 'border-green-500');
+    } else if (type === 'error') {
+        notification.classList.add('bg-red-100', 'text-red-800', 'border-l-4', 'border-red-500');
+    } else if (type === 'warning') {
+        notification.classList.add('bg-yellow-100', 'text-yellow-800', 'border-l-4', 'border-yellow-500');
+    } else {
+        notification.classList.add('bg-blue-100', 'text-blue-800', 'border-l-4', 'border-blue-500');
+    }
+    
+    // Crea l'icona
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'mr-3';
+    let iconSvg = '';
+    
+    if (type === 'success') {
+        iconSvg = '<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+    } else if (type === 'error') {
+        iconSvg = '<svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414-1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+    } else if (type === 'warning') {
+        iconSvg = '<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>';
+    } else {
+        iconSvg = '<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>';
+    }
+    
+    iconDiv.innerHTML = iconSvg;
+    notification.appendChild(iconDiv);
+    
+    // Aggiungi il testo del messaggio
+    const textDiv = document.createElement('div');
+    textDiv.className = 'flex-grow';
+    textDiv.textContent = message;
+    notification.appendChild(textDiv);
+    
+    // Aggiungi pulsante di chiusura
+    const closeButton = document.createElement('button');
+    closeButton.className = 'ml-auto text-gray-400 hover:text-gray-600 focus:outline-none';
+    closeButton.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
     closeButton.addEventListener('click', () => {
-        // Animazione di uscita
-        toast.classList.add('opacity-0');
-        setTimeout(() => {
-            if (container.contains(toast)) {
-                container.removeChild(toast);
-            }
-        }, 300);
+        notification.remove();
     });
+    notification.appendChild(closeButton);
     
-    // Auto-rimozione dopo 5 secondi
+    // Aggiungi al container
+    container.appendChild(notification);
+    
+    // Rimuovi dopo 5 secondi
     setTimeout(() => {
-        if (container.contains(toast)) {
-            toast.classList.add('opacity-0');
-            setTimeout(() => {
-                if (container.contains(toast)) {
-                    container.removeChild(toast);
-                }
-            }, 300);
-        }
+        notification.classList.add('opacity-0');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
     }, 5000);
+    
+    return notification;
 }
 
 let modelData = null;
@@ -373,6 +460,7 @@ function resetPredictionData() {
     document.getElementById('result').classList.add('hidden');
     disableTrainButton();
     modelData = null;
+    treeImageData = null;
     fullDataset = null;
 }
 
@@ -547,12 +635,20 @@ async function processDataset(file) {
         });
         const data = await response.json();
 
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        if (data.error) throw new Error(data.error);
 
         modelData = data;
         document.getElementById('prediction-section').classList.remove('hidden');
+        
+        // Process and display the tree image if available
+        if (data.tree_image) {
+            displayDecisionTree(data.tree_image);
+            showToast('Albero decisionale generato', 'success');
+        } else {
+            document.getElementById('treeImage').style.display = 'none';
+            document.getElementById('noTreeMessage').style.display = 'block';
+            showToast('Impossibile generare l\'albero decisionale', 'warning');
+        }
         
         // Genera i campi di input dinamicamente
         const inputFields = document.getElementById('input-fields');
@@ -868,14 +964,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup del pulsante di chiusura
     if (closeModalBtn && modal) {
         closeModalBtn.addEventListener('click', function() {
-            console.log('Chiusura modale tramite pulsante');
             modal.classList.add('hidden');
         });
         
-        // Chiudi il modale anche quando si clicca fuori
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
-                console.log('Chiusura modale cliccando fuori');
                 modal.classList.add('hidden');
             }
         });
@@ -883,26 +976,99 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Elementi del modale non trovati', { closeModalBtn, modal });
     }
     
-    // Aggiungi listener diretto al wrapper del grafico
-    if (chartWrapper) {
-        console.log('Configurazione click sul chart-wrapper');      
-        chartWrapper.addEventListener('click', function() {
-            console.log('Click sul chart-wrapper (da DOMContentLoaded)');
-            showChartModal();
+    // Setup del modale dell'albero decisionale
+    const closeTreeModalBtn = document.getElementsByClassName('close')[0];
+    const treeModal = document.getElementById('treeModal');
+    const treeWrapper = document.getElementById('tree-wrapper');
+    
+    if (closeTreeModalBtn && treeModal) {
+        closeTreeModalBtn.addEventListener('click', function() {
+            treeModal.style.display = 'none';
         });
-    } else {
-        console.log('chart-wrapper non disponibile durante il DOMContentLoaded');
+        
+        treeModal.addEventListener('click', function(e) {
+            if (e.target === treeModal) {
+                treeModal.style.display = 'none';
+            }
+        });
+    }
+    
+    if (treeWrapper) {
+        treeWrapper.addEventListener('click', showTreeModal);
     }
 });
 
 // Aggiunge evento per chiudere il modale con ESC
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        const modal = document.getElementById('chart-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            modal.classList.add('hidden');
+        const chartModal = document.getElementById('chart-modal');
+        if (chartModal && !chartModal.classList.contains('hidden')) {
+            chartModal.classList.add('hidden');
+        }
+        
+        const treeModal = document.getElementById('tree-modal');
+        if (treeModal && !treeModal.classList.contains('hidden')) {
+            treeModal.classList.add('hidden');
         }
     }
+});
+
+// Funzione per chiudere il modale dell'albero decisionale
+function closeTreeModal() {
+    // Chiudi tutti i possibili modali dell'albero
+    const modals = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    modals.forEach(modal => {
+        if (modal) {
+            if (modal.classList) {
+                modal.classList.add('hidden');
+            } else {
+                modal.style.display = 'none';
+            }
+        }
+    });
+    
+    console.log('Chiusura del modale dell\'albero decisionale completata');
+}
+
+// Aggiunge l'handler per la chiusura al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi gestione chiusura al pulsante X
+    const closeButtons = [
+        document.getElementById('close-tree-modal')
+    ];
+    
+    closeButtons.forEach(btn => {
+        if (btn) {
+            btn.onclick = closeTreeModal;
+        }
+    });
+    
+    // Aggiungi chiusura al click fuori dal modale
+    const modals = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    modals.forEach(modal => {
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeTreeModal();
+                }
+            });
+        }
+    });
+    
+    // Aggiungi gestione chiusura con tasto ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTreeModal();
+        }
+    });
 });
 
 // Gestione del form di upload
@@ -980,27 +1146,260 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
         showToast('Errore: ' + error.message, 'error');
     }
 });
+
+// Get the modal
+var modal = document.getElementById("treeModal");
+
+// Get the image and insert it inside the modal
+var modalImg = document.getElementById("modalTreeImage");
+
+// When the tree image is clicked, open the modal
+document.getElementById('treeImage').onclick = function(){
+  modal.style.display = "block";
+  modalImg.src = this.src;
+}
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() { 
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+// Funzione per mostrare l'albero decisionale
+function displayDecisionTree(imageData) {
+    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
+    const treeImgElements = [
+        document.getElementById('decision-tree-img'),
+        document.getElementById('treeImage')
+    ];
+    
+    const modalImgElements = [
+        document.getElementById('modal-tree-img'),
+        document.getElementById('modalTreeImage')
+    ];
+    
+    const placeholderElements = [
+        document.getElementById('tree-placeholder'),
+        document.getElementById('noTreeMessage')
+    ];
+    
+    // Crea la source dell'immagine
+    const imgSrc = 'data:image/png;base64,' + imageData;
+    
+    // Aggiorna tutte le possibili immagini dell'albero
+    treeImgElements.forEach(img => {
+        if (img) {
+            img.src = imgSrc;
+            img.style.display = 'block';
+        }
+    });
+    
+    // Aggiorna tutte le possibili immagini del modale
+    modalImgElements.forEach(img => {
+        if (img) {
+            img.src = imgSrc;
+        }
+    });
+    
+    // Nascondi tutti i possibili placeholder
+    placeholderElements.forEach(placeholder => {
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+    });
+    
+    // Rimuovi le notifiche di errore relative all'albero
+    removeTreeErrorNotifications();
+    
+    // Aggiungi funzione di click per aprire il modale
+    treeImgElements.forEach(img => {
+        if (img) {
+            img.onclick = showTreeModal;
+        }
+    });
+    
+    // Logging per debug
+    console.log('Albero decisionale visualizzato, placeholder nascosti');
+    
+    // Chiamata esplicita per nascondere il messaggio di errore
+    if (window.hideNoTreeMessage) {
+        window.hideNoTreeMessage();
+    }
+}
+
+// Funzione per rimuovere le notifiche di errore relative all'albero
+function removeTreeErrorNotifications() {
+    // Rimuovi eventuali notifiche di errore per l'albero
+    const notifications = document.querySelectorAll('.notification');
+    notifications.forEach(notification => {
+        const notificationText = notification.textContent || '';
+        if (notificationText.includes('albero') && notificationText.includes('disponibile')) {
+            notification.remove();
+        }
+    });
+}
+
+// Funzione per mostrare il modale dell'albero decisionale
+function showTreeModal() {
+    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
+    const modalElements = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    // Mostra tutti i possibili modali
+    modalElements.forEach(modal => {
+        if (modal) {
+            if (modal.classList) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.style.display = 'flex';
+            }
+        }
+    });
+    
+    console.log('Modale dell\'albero decisionale aperto');
+}
+
+// Funzione per chiudere il modale dell'albero decisionale
+function closeTreeModal() {
+    console.log('Tentativo di chiusura del modale dell\'albero decisionale');
+    
+    // Chiudi tutti i possibili modali dell'albero
+    const modals = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    modals.forEach(modal => {
+        if (modal) {
+            console.log('Chiusura modale:', modal.id);
+            
+            if (modal.classList) {
+                modal.classList.add('hidden');
+            }
+            
+            // Assicurati che il display sia impostato su 'none'
+            modal.style.display = 'none';
+        }
+    });
+}
+
+// IMPORTANTE: Inizializza i listener per il modale al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inizializzazione degli eventi per la chiusura del modale dell\'albero decisionale');
+    
+    // Aggiungi gestione chiusura con tasto ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTreeModal();
+        }
+    });
+    
+    // Aggiungi chiusura al click sul pulsante X
+    const closeButtons = [
+        document.getElementById('close-tree-modal')
+    ];
+    
+    closeButtons.forEach(btn => {
+        if (btn) {
+            console.log('Configurazione del pulsante di chiusura:', btn.id);
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeTreeModal();
+            };
+        }
+    });
+    
+    // Aggiungi chiusura al click fuori dal modale
+    const modals = [
+        document.getElementById('tree-modal'),
+        document.getElementById('treeModal')
+    ];
+    
+    modals.forEach(modal => {
+        if (modal) {
+            console.log('Configurazione della chiusura al click sul background:', modal.id);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeTreeModal();
+                }
+            });
+        }
+    });
+});
+
+// Soluzione rapida per il problema di apertura/chiusura del modale
+function openTreeModal() {
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.classList.remove('hidden');
+    }
+}
+
+function closeTreeModal() {
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.classList.add('hidden');
+    }
+}
+
+// Assegna l'immagine dell'albero all'immagine del modale
+function displayDecisionTree(imageData) {
+    const treeImg = document.getElementById('treeImage');
+    const modalTreeImg = document.getElementById('modal-tree-img');
+    const noTreeMessage = document.getElementById('noTreeMessage');
+    
+    if (treeImg && modalTreeImg) {
+        const imgSrc = 'data:image/png;base64,' + imageData;
+        treeImg.src = imgSrc;
+        modalTreeImg.src = imgSrc;
+        treeImg.style.display = 'block';
+        
+        // Aggiungi l'evento click all'immagine dell'albero
+        treeImg.onclick = openTreeModal;
+        
+        if (noTreeMessage) {
+            noTreeMessage.style.display = 'none';
+        }
+    }
+}
+
+// Setup al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi l'evento click all'immagine dell'albero
+    const treeImg = document.getElementById('treeImage');
+    if (treeImg) {
+        treeImg.onclick = openTreeModal;
+    }
+    
+    // Chiudi il modale con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTreeModal();
+        }
+    });
+    
+    // Chiudi il modale quando si clicca fuori
+    const treeModal = document.getElementById('tree-modal');
+    if (treeModal) {
+        treeModal.addEventListener('click', function(e) {
+            if (e.target === treeModal) {
+                closeTreeModal();
+            }
+        });
+    }
+});
 </script>
 
-<style>
-    /* Stili per le animazioni di notifica */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
-    }
-    
-    .animate-fade-in {
-        animation: fadeIn 0.3s ease-out forwards;
-    }
-    
-    .opacity-0 {
-        opacity: 0;
-        transition: opacity 0.3s ease-out;
-    }
-</style>
 {% endblock %}
