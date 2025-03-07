@@ -1,21 +1,26 @@
-OreDiStudio,VotoEsame
-8,84
-16,82
-13,54
-18,91
-15,88
-13,90
-9,77
-15,56
-13,58
-1,57
-7,61
-9,83
-1,82
-12,97
-8,72
-11,73
-19,86
-17,84
-8,93
-3,89
+eta,genere_num,pressione_sistolica,pressione_diastolica,colesterolo,frequenza_cardiaca,glicemia,fumo_num,storia_familiare_num,esercizio_num,diagnosi
+45,1,135,85,250,75,110,1,1,1,Malattia Cardiaca
+62,0,145,95,280,85,130,1,1,1,Malattia Cardiaca
+52,1,125,80,210,72,95,0,0,3,Sano
+38,0,115,75,190,68,85,0,0,3,Sano
+57,1,160,100,300,90,150,1,1,1,Malattia Cardiaca
+42,0,120,80,200,70,100,0,0,2,Sano
+50,1,150,95,270,82,140,1,0,1,Malattia Cardiaca
+35,0,110,75,180,65,90,0,0,3,Sano
+65,1,170,105,320,95,160,1,1,1,Malattia Cardiaca
+48,0,125,85,220,75,105,0,1,2,Sano
+59,1,155,100,290,88,145,1,1,1,Malattia Cardiaca
+41,0,118,78,195,69,95,0,0,3,Sano
+55,1,140,90,260,80,135,1,0,2,Malattia Cardiaca
+36,0,112,76,185,67,92,0,0,3,Sano
+68,1,175,110,330,98,165,1,1,1,Malattia Cardiaca
+44,0,122,82,205,72,100,0,1,2,Sano
+53,1,138,88,255,78,130,1,0,1,Malattia Cardiaca
+39,0,116,76,188,68,94,0,0,3,Sano
+61,1,158,98,295,86,148,1,1,1,Malattia Cardiaca
+46,0,123,83,215,74,102,0,0,2,Sano
+58,1,148,93,275,84,140,1,1,1,Malattia Cardiaca
+40,0,117,77,192,69,96,0,0,3,Sano
+64,1,165,102,310,92,155,1,1,1,Malattia Cardiaca
+43,0,121,81,202,71,98,0,0,2,Sano
+56,1,142,92,265,81,138,1,0,1,Malattia Cardiaca
