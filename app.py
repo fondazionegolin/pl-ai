@@ -32,7 +32,7 @@ from routes.chatbot2 import chatbot2
 from routes.learning import learning
 
 # Configurazione dell'applicazione
-app = Flask(__name__, static_url_path='/pl-ai/static')
+app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
@@ -40,10 +40,10 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-# Registrazione dei blueprint con il prefisso
-app.register_blueprint(chatbot, url_prefix='/pl-ai')
-app.register_blueprint(chatbot2, url_prefix='/pl-ai')
-app.register_blueprint(learning, url_prefix='/pl-ai')
+# Registrazione dei blueprint
+app.register_blueprint(chatbot)
+app.register_blueprint(chatbot2)
+app.register_blueprint(learning)
 
 # Variabili globali per i modelli
 model = None
