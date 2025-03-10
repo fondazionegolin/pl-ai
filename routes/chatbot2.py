@@ -1,12 +1,18 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session
 import sqlite3
 import json
 import os
+import base64
+import tempfile
 from datetime import datetime
 from openai import OpenAI
 from anthropic import Anthropic
 import google.generativeai as genai
 from dotenv import load_dotenv
+import fitz  # PyMuPDF per l'elaborazione di PDF
+import pandas as pd
+import pytesseract
+from PIL import Image
 
 load_dotenv()
 
@@ -61,8 +67,11 @@ chatbot2 = Blueprint('chatbot2', __name__)
 def init_db():
     conn = sqlite3.connect('database.sqlite')
     c = conn.cursor()
+    
+    # Crea la tabella delle chat con il campo user_id
     c.execute('''CREATE TABLE IF NOT EXISTS chatbot2_chats
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  user_id INTEGER,
                   title TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
     
@@ -83,8 +92,110 @@ def init_db():
                   model TEXT,
                   system_prompt TEXT,
                   FOREIGN KEY (chat_id) REFERENCES chatbot2_chats(id))''')
+    
+    # Verifica se la colonna user_id esiste già, altrimenti la aggiunge
+    try:
+        # Controlla se la colonna user_id esiste
+        c.execute("SELECT user_id FROM chatbot2_chats LIMIT 1")
+    except sqlite3.OperationalError:
+        # Se non esiste, aggiungila
+        c.execute("ALTER TABLE chatbot2_chats ADD COLUMN user_id INTEGER")
     conn.commit()
     conn.close()
+
+# Funzioni per l'elaborazione dei documenti per RAG
+def extract_text_from_pdf(pdf_path):
+    """Estrae il testo da un file PDF usando pdfplumber"""
+    try:
+        print(f"Estrazione testo da PDF: {pdf_path}")
+        import pdfplumber
+        
+        text = ""
+        with pdfplumber.open(pdf_path) as pdf:
+            num_pages = len(pdf.pages)
+            print(f"PDF contiene {num_pages} pagine")
+            
+            for i, page in enumerate(pdf.pages):
+                page_text = page.extract_text() or ""
+                text += page_text + "\n"
+                print(f"Estratti {len(page_text)} caratteri dalla pagina {i+1}")
+        
+        print(f"Estrazione completata: {len(text)} caratteri totali")
+        return text
+    except Exception as e:
+        print(f"Errore nell'estrazione del testo dal PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        return ""
+
+def extract_text_from_image(image_path):
+    """Estrae il testo da un'immagine usando OCR"""
+    try:
+        print(f"Estrazione testo da immagine: {image_path}")
+        image = Image.open(image_path)
+        print(f"Immagine caricata: dimensioni {image.width}x{image.height}, formato {image.format}")
+        
+        text = pytesseract.image_to_string(image, lang='ita+eng')
+        print(f"Estrazione completata: {len(text)} caratteri estratti")
+        return text
+    except Exception as e:
+        print(f"Errore nell'estrazione del testo dall'immagine: {e}")
+        import traceback
+        traceback.print_exc()
+        return ""
+
+def extract_text_from_csv(csv_path):
+    """Estrae il testo da un file CSV"""
+    try:
+        print(f"Estrazione testo da CSV: {csv_path}")
+        df = pd.read_csv(csv_path)
+        print(f"CSV caricato: {df.shape[0]} righe, {df.shape[1]} colonne")
+        
+        # Converti il DataFrame in una stringa formattata
+        text = df.to_string()
+        print(f"Estrazione completata: {len(text)} caratteri estratti")
+        return text
+    except Exception as e:
+        print(f"Errore nell'estrazione del testo dal CSV: {e}")
+        import traceback
+        traceback.print_exc()
+        return ""
+
+def get_document_content(file_id):
+    """Ottiene il contenuto di un documento in base al suo ID"""
+    conn = sqlite3.connect('database.sqlite')
+    c = conn.cursor()
+    c.execute('SELECT path, type FROM resources WHERE id = ?', (file_id,))
+    result = c.fetchone()
+    conn.close()
+    
+    if not result:
+        print(f"File non trovato nel database: {file_id}")
+        return ""
+    
+    file_path, file_type = result
+    
+    # Verifica se il percorso è già assoluto o relativo
+    if not os.path.isabs(file_path):
+        # Se è relativo, costruisci il percorso assoluto
+        file_path = os.path.abspath(file_path)
+    
+    if not os.path.exists(file_path):
+        print(f"File non trovato sul disco: {file_path}")
+        return ""
+    
+    # Estrai il testo in base al tipo di file
+    if file_type == 'application/pdf':
+        return extract_text_from_pdf(file_path)
+    elif file_type.startswith('image/'):
+        return extract_text_from_image(file_path)
+    elif file_type == 'text/csv':
+        return extract_text_from_csv(file_path)
+    elif file_type == 'text/plain':
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        return ""
 
 # Initialize database tables
 init_db()
@@ -95,9 +206,19 @@ def chat_page():
 
 @chatbot2.route('/api/chat-history')
 def get_chat_history():
+    # Verifica se l'utente è autenticato
+    user_id = session.get('user_id')
+    
     conn = sqlite3.connect('database.sqlite')
     c = conn.cursor()
-    c.execute('SELECT id, title, created_at FROM chatbot2_chats ORDER BY created_at DESC')
+    
+    if user_id:
+        # Se l'utente è autenticato, mostra solo le sue chat
+        c.execute('SELECT id, title, created_at FROM chatbot2_chats WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
+    else:
+        # Se l'utente non è autenticato, mostra solo le chat senza user_id (chat anonime)
+        c.execute('SELECT id, title, created_at FROM chatbot2_chats WHERE user_id IS NULL ORDER BY created_at DESC')
+    
     chats = [{'id': row[0], 'title': row[1], 'created_at': row[2]} for row in c.fetchall()]
     conn.close()
     return jsonify(chats)
@@ -106,8 +227,20 @@ def get_chat_history():
 def delete_chat(chat_id):
     conn = None
     try:
+        # Verifica se l'utente è autenticato
+        user_id = session.get('user_id')
+        
         conn = sqlite3.connect('database.sqlite')
         c = conn.cursor()
+        
+        # Verifica che la chat esista e appartenga all'utente corrente
+        if user_id:
+            c.execute('SELECT id FROM chatbot2_chats WHERE id = ? AND user_id = ?', (chat_id, user_id))
+        else:
+            c.execute('SELECT id FROM chatbot2_chats WHERE id = ? AND user_id IS NULL', (chat_id,))
+            
+        if not c.fetchone():
+            return jsonify({'success': False, 'error': 'Chat non trovata o non autorizzata'}), 404
         
         # Delete chat messages
         c.execute('DELETE FROM chatbot2_messages WHERE chat_id = ?', (chat_id,))
@@ -132,17 +265,40 @@ def delete_chat(chat_id):
 def delete_all_chats():
     conn = None
     try:
+        # Verifica se l'utente è autenticato
+        user_id = session.get('user_id')
+        
         conn = sqlite3.connect('database.sqlite')
         c = conn.cursor()
         
-        # Delete all chat messages
-        c.execute('DELETE FROM chatbot2_messages')
-        
-        # Delete all chat settings
-        c.execute('DELETE FROM chatbot2_settings')
-        
-        # Delete all chats
-        c.execute('DELETE FROM chatbot2_chats')
+        if user_id:
+            # Ottieni tutte le chat dell'utente
+            c.execute('SELECT id FROM chatbot2_chats WHERE user_id = ?', (user_id,))
+            chat_ids = [row[0] for row in c.fetchall()]
+            
+            if chat_ids:
+                # Elimina i messaggi delle chat dell'utente
+                c.execute('DELETE FROM chatbot2_messages WHERE chat_id IN ({})'.format(','.join('?' * len(chat_ids))), chat_ids)
+                
+                # Elimina le impostazioni delle chat dell'utente
+                c.execute('DELETE FROM chatbot2_settings WHERE chat_id IN ({})'.format(','.join('?' * len(chat_ids))), chat_ids)
+                
+                # Elimina le chat dell'utente
+                c.execute('DELETE FROM chatbot2_chats WHERE user_id = ?', (user_id,))
+        else:
+            # Ottieni tutte le chat anonime
+            c.execute('SELECT id FROM chatbot2_chats WHERE user_id IS NULL')
+            chat_ids = [row[0] for row in c.fetchall()]
+            
+            if chat_ids:
+                # Elimina i messaggi delle chat anonime
+                c.execute('DELETE FROM chatbot2_messages WHERE chat_id IN ({})'.format(','.join('?' * len(chat_ids))), chat_ids)
+                
+                # Elimina le impostazioni delle chat anonime
+                c.execute('DELETE FROM chatbot2_settings WHERE chat_id IN ({})'.format(','.join('?' * len(chat_ids))), chat_ids)
+                
+                # Elimina le chat anonime
+                c.execute('DELETE FROM chatbot2_chats WHERE user_id IS NULL')
         
         conn.commit()
         return jsonify({'success': True})
@@ -156,8 +312,20 @@ def delete_all_chats():
 
 @chatbot2.route('/api/chat/<int:chat_id>')
 def get_chat(chat_id):
+    # Verifica se l'utente è autenticato
+    user_id = session.get('user_id')
+    
     conn = sqlite3.connect('database.sqlite')
     c = conn.cursor()
+    
+    # Verifica che la chat esista e appartenga all'utente corrente
+    if user_id:
+        c.execute('SELECT id FROM chatbot2_chats WHERE id = ? AND user_id = ?', (chat_id, user_id))
+    else:
+        c.execute('SELECT id FROM chatbot2_chats WHERE id = ? AND user_id IS NULL', (chat_id,))
+        
+    if not c.fetchone():
+        return jsonify({'success': False, 'error': 'Chat non trovata o non autorizzata'}), 404
     
     # Get chat messages
     c.execute('SELECT role, content, model FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at', (chat_id,))
@@ -203,7 +371,16 @@ def chat():
         
         # Create new chat if needed
         if not chat_id:
-            c.execute('INSERT INTO chatbot2_chats (title) VALUES (?)', (message[:50],))
+            # Verifica se l'utente è autenticato
+            user_id = session.get('user_id')
+            
+            if user_id:
+                # Se l'utente è autenticato, associa la chat all'utente
+                c.execute('INSERT INTO chatbot2_chats (user_id, title) VALUES (?, ?)', (user_id, message[:50]))
+            else:
+                # Se l'utente non è autenticato, crea una chat anonima
+                c.execute('INSERT INTO chatbot2_chats (title) VALUES (?)', (message[:50],))
+                
             chat_id = c.lastrowid
             
             # Save chat settings
@@ -251,6 +428,31 @@ def chat():
                 else:
                     # For regular messages in interview mode, include context
                     message = f"[CONTESTO PERSONAGGIO]\n{system_prompt}\n\n[DOMANDA UTENTE]\n{message}"
+        elif mode == 'rag':
+            # Modalità RAG - Retrieval Augmented Generation
+            files = context.get('files', [])
+            if files:
+                # Imposta il titolo della chat
+                c.execute('UPDATE chatbot2_chats SET title = ? WHERE id = ?',
+                         (f"Analisi documenti: {message[:30]}...", chat_id))
+                conn.commit()
+                
+                # Estrai il contenuto dei documenti
+                documents_content = []
+                for file_id in files:
+                    content = get_document_content(file_id)
+                    if content:
+                        # Ottieni il nome del file
+                        c.execute('SELECT original_name, type FROM resources WHERE id = ?', (file_id,))
+                        file_info = c.fetchone()
+                        if file_info:
+                            file_name, file_type = file_info
+                            documents_content.append(f"--- Documento: {file_name} (Tipo: {file_type}) ---\n{content}\n")
+                
+                # Aggiungi il contenuto dei documenti al messaggio
+                if documents_content:
+                    documents_text = "\n\n".join(documents_content)
+                    message = f"[DOCUMENTI]\n{documents_text}\n\n[DOMANDA]\n{message}"
         
         try:
             if model_name in ['gpt4o-mini', 'o3-mini', 'o3-mini-reasoning']:

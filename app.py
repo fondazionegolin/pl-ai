@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from openai import OpenAI
 import os
@@ -19,6 +19,7 @@ import pydotplus
 from io import StringIO
 import base64
 import tensorflow as tf
+import time
 from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
@@ -26,16 +27,23 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
 
-# Import dei blueprint
+# Import dei blueprint e funzioni di autenticazione
 from routes.chatbot import chatbot
 from routes.chatbot2 import chatbot2
 from routes.learning import learning
+from routes.resources import resources
+from routes.db import get_db, get_user_db, register_user, authenticate_user, login_required
 
 # Configurazione dell'applicazione
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chiave_segreta_predefinita')
+app.config['USER_DB_DIR'] = os.path.join(os.path.dirname(__file__), 'user_databases')
+
+# Assicurati che la directory per i database degli utenti esista
+os.makedirs(app.config['USER_DB_DIR'], exist_ok=True)
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -44,6 +52,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 app.register_blueprint(chatbot)
 app.register_blueprint(chatbot2)
 app.register_blueprint(learning)
+app.register_blueprint(resources)
 
 # Variabili globali per i modelli
 model = None
@@ -79,6 +88,243 @@ class CustomCallback(tf.keras.callbacks.Callback):
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    success = None
+    
+    if 'user_id' in session and request.method == 'GET':
+        return redirect(url_for('profile'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            error = 'Username e password sono obbligatori'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'error': error})
+        else:
+            success_auth, message = authenticate_user(username, password)
+            if success_auth:
+                # Ottieni l'ID dell'utente e altre informazioni dal database
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, email, avatar FROM users WHERE username = ?", (username,))
+                user = cursor.fetchone()
+                conn.close()
+                
+                # Imposta la sessione
+                session['user_id'] = user['id']
+                session['username'] = username
+                
+                # Gestisci email e avatar (sqlite3.Row non ha il metodo get())
+                if 'email' in user.keys() and user['email']:
+                    session['user_email'] = user['email']
+                else:
+                    session['user_email'] = ''
+                
+                # Se l'utente ha un avatar, salvalo nella sessione
+                if 'avatar' in user.keys() and user['avatar']:
+                    session['user_avatar'] = user['avatar']
+                
+                # Se è una richiesta AJAX, restituisci un JSON
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': True, 'redirect': url_for('profile')})
+                
+                # Altrimenti reindirizza alla pagina del profilo
+                return redirect(url_for('profile'))
+            else:
+                error = message
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'error': error})
+    
+    return render_template('login.html', error=error, success=success)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    error = None
+    success = None
+    
+    if 'user_id' in session:
+        return redirect(url_for('profile'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not username or not password or not confirm_password:
+            error = 'Tutti i campi sono obbligatori'
+        elif password != confirm_password:
+            error = 'Le password non corrispondono'
+        else:
+            success_reg, message = register_user(username, password)
+            if success_reg:
+                success = message
+            else:
+                error = message
+    
+    return render_template('register.html', error=error, success=success)
+
+@app.route('/logout')
+def logout():
+    # Rimuovi tutte le variabili di sessione
+    session.clear()
+    return redirect(url_for('home'))
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    username = session.get('username')
+    error = None
+    success = None
+    
+    # Ottieni informazioni sull'utente
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    
+    # Gestisci l'aggiornamento del profilo
+    if request.method == 'POST':
+        # Gestisci l'upload dell'avatar
+        if 'avatar' in request.files:
+            avatar_file = request.files['avatar']
+            if avatar_file and avatar_file.filename != '':
+                # Verifica l'estensione del file
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+                file_ext = avatar_file.filename.rsplit('.', 1)[1].lower() if '.' in avatar_file.filename else ''
+                
+                if file_ext in allowed_extensions:
+                    # Crea la directory per gli avatar se non esiste
+                    avatar_dir = os.path.join(app.static_folder, 'avatars')
+                    os.makedirs(avatar_dir, exist_ok=True)
+                    
+                    # Genera un nome file sicuro e unico
+                    filename = f"user_{session['user_id']}_{int(time.time())}.{file_ext}"
+                    filepath = os.path.join(avatar_dir, filename)
+                    
+                    # Salva il file
+                    avatar_file.save(filepath)
+                    
+                    # Aggiorna il database con il percorso dell'avatar
+                    avatar_url = url_for('static', filename=f'avatars/{filename}')
+                    cursor.execute("UPDATE users SET avatar = ? WHERE username = ?", (avatar_url, username))
+                    conn.commit()
+                    
+                    # Aggiorna la sessione
+                    session['user_avatar'] = avatar_url
+                    
+                    success = "Avatar aggiornato con successo!"
+                else:
+                    error = "Formato file non supportato. Usa PNG, JPG, JPEG o GIF."
+        
+        # Aggiorna le informazioni del profilo
+        firstname = request.form.get('firstname', '')
+        lastname = request.form.get('lastname', '')
+        email = request.form.get('email', '')
+        
+        # Aggiorna il database
+        cursor.execute("UPDATE users SET firstname = ?, lastname = ?, email = ? WHERE username = ?", 
+                      (firstname, lastname, email, username))
+        conn.commit()
+        
+        # Aggiorna la sessione
+        session['user_email'] = email
+        
+        if not error:
+            success = "Profilo aggiornato con successo!"
+    
+    # Ottieni le informazioni aggiornate dell'utente
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    # Ottieni i dati dell'utente dal suo database personalizzato
+    user_conn = get_user_db(username)
+    user_cursor = user_conn.cursor()
+    user_cursor.execute("SELECT * FROM user_data ORDER BY created_at DESC")
+    user_data = user_cursor.fetchall()
+    user_conn.close()
+    
+    # Formatta i dati utente per renderli accessibili nel template
+    user_dict = {}
+    if user:
+        for key in user.keys():
+            user_dict[key] = user[key]
+    
+    # Passa eventuali messaggi di errore o successo dalla query string
+    if not error:
+        error = request.args.get('error')
+    if not success:
+        success = request.args.get('success')
+    
+    return render_template('profile.html', 
+                           username=username, 
+                           user=user_dict,
+                           created_at=user['created_at'], 
+                           user_data=user_data,
+                           error=error,
+                           success=success)
+
+@app.route('/save_user_data', methods=['POST'])
+@login_required
+def save_user_data():
+    username = session.get('username')
+    data_type = request.form.get('data_type')
+    data_name = request.form.get('data_name')
+    data_value = request.form.get('data_value')
+    
+    if not data_type or not data_name or not data_value:
+        return redirect(url_for('profile', error='Tutti i campi sono obbligatori'))
+    
+    try:
+        conn = get_user_db(username)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO user_data (data_type, data_name, data_value) VALUES (?, ?, ?)",
+            (data_type, data_name, data_value)
+        )
+        conn.commit()
+        conn.close()
+        
+        return redirect(url_for('profile', success='Dati salvati con successo'))
+    except Exception as e:
+        return redirect(url_for('profile', error=f'Errore durante il salvataggio: {str(e)}'))
+
+@app.route('/view_user_data/<int:data_id>')
+@login_required
+def view_user_data(data_id):
+    username = session.get('username')
+    
+    conn = get_user_db(username)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_data WHERE id = ?", (data_id,))
+    data = cursor.fetchone()
+    conn.close()
+    
+    if not data:
+        return redirect(url_for('profile', error='Dati non trovati'))
+    
+    return render_template('view_data.html', data=data)
+
+@app.route('/delete_user_data/<int:data_id>')
+@login_required
+def delete_user_data(data_id):
+    username = session.get('username')
+    
+    try:
+        conn = get_user_db(username)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM user_data WHERE id = ?", (data_id,))
+        conn.commit()
+        conn.close()
+        
+        return redirect(url_for('profile', success='Dati eliminati con successo'))
+    except Exception as e:
+        return redirect(url_for('profile', error=f'Errore durante l\'eliminazione: {str(e)}'))
 
 @app.route('/regressione')
 def regressione():

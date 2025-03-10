@@ -25,6 +25,7 @@
                     <option value="interrogazione">Modalità Interrogazione</option>
                     <option value="interazione">Modalità Interazione</option>
                     <option value="intervista">Modalità Intervista Impossibile</option>
+                    <option value="rag">Modalità RAG (Analisi Documenti)</option>
                 </select>
             </div>
             <div class="flex-1">
@@ -76,6 +77,21 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- RAG Documents Area -->
+            <div id="rag-documents" class="mt-3 hidden">
+                <div class="text-sm text-gray-600 mb-2">Seleziona i documenti da analizzare:</div>
+                <div class="flex flex-wrap gap-2 mb-3" id="selected-files-container">
+                    <!-- I file selezionati verranno visualizzati qui -->
+                    <div class="text-sm text-gray-500 italic">Nessun file selezionato</div>
+                </div>
+                <button id="select-files-btn" class="px-3 py-1.5 bg-black text-white rounded hover:bg-gray-800 text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Seleziona Risorse
+                </button>
             </div>
         </div>
 
@@ -129,6 +145,42 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per la selezione dei file -->
+<div id="file-select-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+        <div class="px-6 py-4 border-b flex justify-between items-center">
+            <h3 class="text-lg font-semibold">Seleziona Risorse</h3>
+            <button id="close-file-modal" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-4 border-b">
+            <div class="relative">
+                <input type="text" id="modal-search-files" placeholder="Cerca file..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
+                <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <button data-filter="all" class="file-filter-btn px-3 py-1 text-sm bg-black text-white rounded-full">Tutti</button>
+                <button data-filter="image" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Immagini</button>
+                <button data-filter="document" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Documenti</button>
+                <button data-filter="csv" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">CSV</button>
+                <button data-filter="text" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Testo</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4" id="modal-files-container">
+            <!-- I file verranno caricati qui dinamicamente -->
+            <div class="text-center py-10 text-gray-500">Caricamento file in corso...</div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end">
+            <button id="confirm-file-selection" class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">Conferma selezione</button>
         </div>
     </div>
 </div>
@@ -385,26 +437,89 @@
                 const contextInput = document.getElementById('context-input');
                 const messageInput = document.getElementById('message-input');
                 const interviewQuestions = document.getElementById('interview-questions');
+                const ragDocuments = document.getElementById('rag-documents');
                 
                 if (this.value === 'interrogazione') {
                     contextInput.placeholder = 'Descrivi l\'argomento specifico su cui vuoi essere interrogato...';
                     messageInput.disabled = true;
                     contextInput.disabled = false;
                     interviewQuestions.classList.add('hidden');
+                    ragDocuments.classList.add('hidden');
                 } else if (this.value === 'intervista') {
                     contextInput.placeholder = 'Informazioni aggiuntive sul personaggio e il contesto storico (opzionale)...';
                     messageInput.disabled = true;
                     contextInput.disabled = false;
                     interviewQuestions.classList.remove('hidden');
+                    ragDocuments.classList.add('hidden');
+                } else if (this.value === 'rag') {
+                    contextInput.placeholder = 'Inserisci una domanda o un compito specifico per analizzare i documenti selezionati...';
+                    messageInput.disabled = true;
+                    contextInput.disabled = false;
+                    interviewQuestions.classList.add('hidden');
+                    ragDocuments.classList.remove('hidden');
                 } else {
                     contextInput.placeholder = 'Descrivi la personalità del bot e il modo in cui dovrà esserti utile....';
                     messageInput.disabled = true;
                     contextInput.disabled = false;
                     interviewQuestions.classList.add('hidden');
+                    ragDocuments.classList.add('hidden');
                 }
             });
         }
-
+        
+        // Gestione del pulsante per selezionare i file
+        const selectFilesBtn = document.getElementById('select-files-btn');
+        if (selectFilesBtn) {
+            selectFilesBtn.addEventListener('click', function() {
+                openFileSelectModal();
+            });
+        }
+        
+        // Gestione della chiusura della finestra modale
+        const closeFileModal = document.getElementById('close-file-modal');
+        if (closeFileModal) {
+            closeFileModal.addEventListener('click', function() {
+                document.getElementById('file-select-modal').classList.add('hidden');
+            });
+        }
+        
+        // Gestione della conferma della selezione dei file
+        const confirmFileSelection = document.getElementById('confirm-file-selection');
+        if (confirmFileSelection) {
+            confirmFileSelection.addEventListener('click', function() {
+                confirmSelectedFiles();
+                document.getElementById('file-select-modal').classList.add('hidden');
+            });
+        }
+        
+        // Gestione della ricerca dei file nella modale
+        const modalSearchFiles = document.getElementById('modal-search-files');
+        if (modalSearchFiles) {
+            modalSearchFiles.addEventListener('input', function() {
+                filterModalFiles(this.value);
+            });
+        }
+        
+        // Gestione dei filtri per tipo di file
+        const fileFilterBtns = document.querySelectorAll('.file-filter-btn');
+        fileFilterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Rimuovi la classe attiva da tutti i pulsanti
+                fileFilterBtns.forEach(b => {
+                    b.classList.remove('bg-black', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                
+                // Aggiungi la classe attiva a questo pulsante
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-black', 'text-white');
+                
+                // Filtra i file per tipo
+                const filterType = this.getAttribute('data-filter');
+                filterModalFilesByType(filterType);
+            });
+        });
+        
         // Handle submit context button
         const submitButton = document.querySelector('button[onclick="submitContext()"]');
         if (submitButton) {
@@ -414,7 +529,7 @@
                 submitContext(e);
             });
         }
-
+        
         // Handle send message button
         const sendButton = document.querySelector('button[onclick="sendMessage()"]');
         if (sendButton) {
@@ -424,7 +539,7 @@
                 sendMessage();
             });
         }
-
+        
         // Handle model change
         const modelSelect = document.getElementById('model-select');
         if (modelSelect) {
@@ -432,6 +547,232 @@
                 updateModel(e.target.value);
             });
         }
+    }
+
+    // Funzioni per gestire la selezione dei file e l'integrazione con la modalità RAG
+    let selectedFiles = [];
+    
+    function openFileSelectModal() {
+        // Mostra la finestra modale
+        document.getElementById('file-select-modal').classList.remove('hidden');
+        // Carica i file disponibili
+        loadAvailableFiles();
+    }
+    
+    async function loadAvailableFiles() {
+        try {
+            const response = await fetch('/api/files');
+            if (response.ok) {
+                const data = await response.json();
+                // Verifica che data.files sia un array
+                if (data && Array.isArray(data.files)) {
+                    renderModalFiles(data.files);
+                } else {
+                    console.error('Formato dati non valido:', data);
+                    document.getElementById('modal-files-container').innerHTML = '<div class="text-center py-10 text-red-500">Formato dati non valido</div>';
+                }
+            } else {
+                console.error('Errore nel caricamento dei file:', response.statusText);
+                document.getElementById('modal-files-container').innerHTML = '<div class="text-center py-10 text-red-500">Errore nel caricamento dei file</div>';
+            }
+        } catch (error) {
+            console.error('Errore nella richiesta:', error);
+            document.getElementById('modal-files-container').innerHTML = '<div class="text-center py-10 text-red-500">Errore nel caricamento dei file</div>';
+        }
+    }
+    
+    function renderModalFiles(files) {
+        const container = document.getElementById('modal-files-container');
+        
+        if (!files || files.length === 0) {
+            container.innerHTML = '<div class="text-center py-10 text-gray-500">Nessun file disponibile</div>';
+            return;
+        }
+        
+        let html = '';
+        files.forEach(file => {
+            const isSelected = selectedFiles.some(f => f.id === file.id);
+            const fileTypeClass = getFileTypeClass(file.type);
+            
+            html += `
+            <div class="file-item p-3 border-b hover:bg-gray-50 flex items-center ${isSelected ? 'bg-gray-100' : ''}" data-file-id="${file.id}" data-file-type="${file.type}">
+                <div class="mr-3 ${fileTypeClass} p-2 rounded">
+                    ${getFileIcon(file.type)}
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium">${file.name}</div>
+                    <div class="text-xs text-gray-500">${getReadableFileType(file.type)} · ${formatFileSize(file.size)}</div>
+                </div>
+                <div>
+                    <input type="checkbox" class="file-select-checkbox w-5 h-5" ${isSelected ? 'checked' : ''}>
+                </div>
+            </div>`;
+        });
+        
+        container.innerHTML = html;
+        
+        // Aggiungi event listener per la selezione dei file
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (e.target.classList.contains('file-select-checkbox')) {
+                    return; // Lascia che il checkbox gestisca il suo stato
+                }
+                
+                const checkbox = this.querySelector('.file-select-checkbox');
+                checkbox.checked = !checkbox.checked;
+                
+                // Trigger change event
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            });
+        });
+        
+        document.querySelectorAll('.file-select-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const fileItem = this.closest('.file-item');
+                const fileId = fileItem.getAttribute('data-file-id');
+                
+                if (this.checked) {
+                    fileItem.classList.add('bg-gray-100');
+                    // Aggiungi il file alla selezione se non è già presente
+                    if (!selectedFiles.some(f => f.id === fileId)) {
+                        selectedFiles.push({
+                            id: fileId,
+                            name: fileItem.querySelector('.font-medium').textContent,
+                            type: fileItem.getAttribute('data-file-type')
+                        });
+                    }
+                } else {
+                    fileItem.classList.remove('bg-gray-100');
+                    // Rimuovi il file dalla selezione
+                    selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+                }
+            });
+        });
+    }
+    
+    function getFileTypeClass(fileType) {
+        if (fileType.startsWith('image/')) {
+            return 'bg-blue-100 text-blue-600';
+        } else if (fileType === 'application/pdf') {
+            return 'bg-red-100 text-red-600';
+        } else if (fileType === 'text/csv') {
+            return 'bg-green-100 text-green-600';
+        } else if (fileType.startsWith('text/')) {
+            return 'bg-purple-100 text-purple-600';
+        } else {
+            return 'bg-gray-100 text-gray-600';
+        }
+    }
+    
+    function getFileIcon(fileType) {
+        if (fileType.startsWith('image/')) {
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+        } else if (fileType === 'application/pdf') {
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>';
+        } else if (fileType === 'text/csv') {
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>';
+        } else if (fileType.startsWith('text/')) {
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
+        } else {
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>';
+        }
+    }
+    
+    function getReadableFileType(fileType) {
+        if (fileType.startsWith('image/')) {
+            return 'Immagine';
+        } else if (fileType === 'application/pdf') {
+            return 'PDF';
+        } else if (fileType === 'text/csv') {
+            return 'CSV';
+        } else if (fileType.startsWith('text/')) {
+            return 'Testo';
+        } else {
+            return 'File';
+        }
+    }
+    
+    function formatFileSize(size) {
+        if (size < 1024) {
+            return size + ' B';
+        } else if (size < 1024 * 1024) {
+            return (size / 1024).toFixed(1) + ' KB';
+        } else {
+            return (size / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+    }
+    
+    function filterModalFiles(searchTerm) {
+        const fileItems = document.querySelectorAll('.file-item');
+        searchTerm = searchTerm.toLowerCase();
+        
+        fileItems.forEach(item => {
+            const fileName = item.querySelector('.font-medium').textContent.toLowerCase();
+            if (fileName.includes(searchTerm)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    function filterModalFilesByType(filterType) {
+        const fileItems = document.querySelectorAll('.file-item');
+        
+        fileItems.forEach(item => {
+            const fileType = item.getAttribute('data-file-type');
+            
+            if (filterType === 'all') {
+                item.style.display = '';
+            } else if (filterType === 'image' && fileType.startsWith('image/')) {
+                item.style.display = '';
+            } else if (filterType === 'document' && fileType === 'application/pdf') {
+                item.style.display = '';
+            } else if (filterType === 'csv' && fileType === 'text/csv') {
+                item.style.display = '';
+            } else if (filterType === 'text' && fileType.startsWith('text/') && fileType !== 'text/csv') {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    function confirmSelectedFiles() {
+        const container = document.getElementById('selected-files-container');
+        
+        if (selectedFiles.length === 0) {
+            container.innerHTML = '<div class="text-sm text-gray-500 italic">Nessun file selezionato</div>';
+            return;
+        }
+        
+        let html = '';
+        selectedFiles.forEach(file => {
+            const fileTypeClass = getFileTypeClass(file.type);
+            
+            html += `
+            <div class="file-badge flex items-center bg-gray-100 rounded px-2 py-1 text-sm">
+                <span class="${fileTypeClass.split(' ')[1]} mr-1">${getFileIcon(file.type)}</span>
+                <span class="mr-2">${file.name}</span>
+                <button class="text-gray-500 hover:text-gray-700 remove-file" data-file-id="${file.id}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>`;
+        });
+        
+        container.innerHTML = html;
+        
+        // Aggiungi event listener per rimuovere i file
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const fileId = this.getAttribute('data-file-id');
+                selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+                confirmSelectedFiles(); // Aggiorna la visualizzazione
+            });
+        });
     }
 
     async function loadChatHistory() {
@@ -516,6 +857,18 @@
                 }
 
                 contextInput.value = interviewContext;
+            } else if (modeSelect?.value === 'rag') {
+                // Verifica che siano stati selezionati dei file per la modalità RAG
+                if (selectedFiles.length === 0) {
+                    alert('Per favore, seleziona almeno un file da analizzare.');
+                    return;
+                }
+                
+                const context = contextInput?.value?.trim() || '';
+                if (!context) {
+                    alert('Per favore, inserisci una domanda o un compito specifico per analizzare i documenti.');
+                    return;
+                }
             } else {
                 const context = contextInput?.value?.trim() || '';
                 if (!context) {
@@ -557,28 +910,38 @@
 
             let data;
             try {
+                // Prepara il corpo della richiesta in base alla modalità
+                let requestBody = {
+                    message: modeSelect.value === 'interrogazione' ? 'START_INTERROGATION' :
+                           modeSelect.value === 'intervista' ? 'START_INTERVIEW' : contextInput.value,
+                    context: {
+                        grade: gradeSelect.value,
+                        mode: modeSelect.value,
+                        subject: subjectSelect.value,
+                        model: modelSelect.value
+                    },
+                    chatId: currentChatId
+                };
+                
+                // Aggiungi il system prompt in base alla modalità
+                if (modeSelect.value === 'interrogazione') {
+                    requestBody.context.systemPrompt = `Sei un insegnante di ${subjectSelect.value} che sta conducendo un\'interrogazione. L\'argomento è: ${contextInput.value}. Fai domande appropriate per il livello scolastico ${gradeSelect.value}. Dopo ogni risposta dell\'utente, fornisci un feedback costruttivo, correggendo eventuali errori e incoraggiando l\'apprendimento. Poi procedi con una nuova domanda.`;
+                } else if (modeSelect.value === 'intervista') {
+                    requestBody.context.systemPrompt = `Sei un chatbot che interpreta un personaggio storico in un\'intervista impossibile. ${contextInput.value}. Mantieni sempre il carattere e la personalità del personaggio nelle tue risposte, tenendo conto del grado scolastico ${gradeSelect.value} e dell\'argomento ${subjectSelect.value}. Rispondi in modo coinvolgente e educativo, mantenendo la coerenza storica.`;
+                } else if (modeSelect.value === 'rag') {
+                    requestBody.context.systemPrompt = `Sei un assistente AI esperto nell'analisi di documenti. La tua funzione è analizzare i documenti forniti e rispondere alla seguente domanda o compito: ${contextInput.value}. Considera attentamente il contenuto di tutti i documenti forniti e fornisci una risposta completa e accurata basata esclusivamente sulle informazioni contenute nei documenti. Se le informazioni non sono sufficienti, indica chiaramente quali aspetti non possono essere determinati dai documenti forniti.`;
+                    requestBody.context.files = selectedFiles.map(file => file.id);
+                } else {
+                    requestBody.context.systemPrompt = contextInput.value;
+                }
+                
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        message: modeSelect.value === 'interrogazione' ? 'START_INTERROGATION' :
-                               modeSelect.value === 'intervista' ? 'START_INTERVIEW' : contextInput.value,
-                        context: {
-                            grade: gradeSelect.value,
-                            mode: modeSelect.value,
-                            subject: subjectSelect.value,
-                            model: modelSelect.value,
-                            systemPrompt: modeSelect.value === 'interrogazione' ?
-                                `Sei un insegnante di ${subjectSelect.value} che sta conducendo un\'interrogazione. L\'argomento è: ${contextInput.value}. Fai domande appropriate per il livello scolastico ${gradeSelect.value}. Dopo ogni risposta dell\'utente, fornisci un feedback costruttivo, correggendo eventuali errori e incoraggiando l\'apprendimento. Poi procedi con una nuova domanda.` :
-                                modeSelect.value === 'intervista' ?
-                                    `Sei un chatbot che interpreta un personaggio storico in un\'intervista impossibile. ${contextInput.value}. Mantieni sempre il carattere e la personalità del personaggio nelle tue risposte, tenendo conto del grado scolastico ${gradeSelect.value} e dell\'argomento ${subjectSelect.value}. Rispondi in modo coinvolgente e educativo, mantenendo la coerenza storica.` :
-                                    contextInput.value
-                        },
-                        chatId: currentChatId
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const contentType = response.headers.get('content-type');

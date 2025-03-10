@@ -1,32 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-indigo-600 mb-8">Benvenuto in ML per Tutti</h1>
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8">Benvenuto in ML per Tutti</h1>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Classificazione di Dati -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Classificazione di Dati</h2>
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Classificazione di Dati</h2>
+            </div>
             <p class="text-gray-600 mb-4">Carica i tuoi dati CSV e crea un modello di classificazione per prevedere categorie basate su caratteristiche multiple.</p>
-            <a href="/classificazione" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Inizia</a>
+            <a href="/classificazione" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
         </div>
 
+        <!-- Regressione -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Regressione</h2>
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Regressione</h2>
+            </div>
             <p class="text-gray-600 mb-4">Esplora la relazione tra due variabili e fai previsioni usando la regressione lineare.</p>
-            <a href="/regressione" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Inizia</a>
+            <a href="/regressione" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
         </div>
 
+        <!-- Classificazione Immagini -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Classificazione Immagini</h2>
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Classificazione Immagini</h2>
+            </div>
             <p class="text-gray-600 mb-4">Crea il tuo modello di classificazione di immagini personalizzato usando TensorFlow e Keras.</p>
-            <a href="/classificazione-immagini" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Inizia</a>
+            <a href="/classificazione-immagini" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
         </div>
 
+        <!-- Chatbot -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <h2 class="text-2xl font-semibold text-indigo-600 mb-4">Prossimamente</h2>
-            <p class="text-gray-600 mb-4">Chatbot personalizzato e generazione di immagini - Nuove funzionalità in arrivo!</p>
-            <span class="inline-block bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed">In Sviluppo</span>
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Chatbot</h2>
+            </div>
+            <p class="text-gray-600 mb-4">Interagisci con un chatbot personalizzato basato su intelligenza artificiale.</p>
+            <a href="/chatbot2" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
+        </div>
+
+        <!-- Generazione Immagini -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Generazione Immagini</h2>
+            </div>
+            <p class="text-gray-600 mb-4">Genera immagini personalizzate utilizzando modelli di intelligenza artificiale avanzati.</p>
+            <a href="/generazione-immagini" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
+        </div>
+
+        <!-- Visione -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <h2 class="text-2xl font-semibold text-gray-800">Visione</h2>
+            </div>
+            <p class="text-gray-600 mb-4">Esplora le capacità di visione artificiale e classificazione delle immagini.</p>
+            <a href="/class_img_2" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
         </div>
     </div>
 </div>

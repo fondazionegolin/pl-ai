@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden my-10 p-8">
+    <div class="mb-8">
+        <h1 class="page-title text-3xl font-bold text-black" style="font-family: 'Fira Sans', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">
+            DETTAGLIO DATI
+        </h1>
+        <p class="text-gray-600 mt-2">Visualizza i dettagli dei tuoi dati salvati</p>
+    </div>
+
+    <div class="bg-gray-50 p-6 rounded-lg mb-8">
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold">{{ data.data_name }}</h2>
+            <p class="text-gray-500 text-sm">Tipo: {{ data.data_type }}</p>
+            <p class="text-gray-500 text-sm">Creato il: {{ data.created_at }}</p>
+        </div>
+        
+        <div class="mt-6 border-t pt-4">
+            <h3 class="font-semibold mb-2">Contenuto:</h3>
+            {% if data.data_type == 'image' %}
+                <img src="data:image/jpeg;base64,{{ data.data_value }}" alt="{{ data.data_name }}" class="max-w-full h-auto rounded-lg">
+            {% elif data.data_type == 'json' %}
+                <pre class="bg-gray-100 p-4 rounded overflow-x-auto">{{ data.data_value | tojson(indent=2) }}</pre>
+            {% else %}
+                <div class="bg-gray-100 p-4 rounded">
+                    {{ data.data_value }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="flex justify-between">
+        <a href="{{ url_for('profile') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-all duration-300">
+            Torna al Profilo
+        </a>
+        <a href="{{ url_for('delete_user_data', data_id=data.id) }}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-all duration-300" onclick="return confirm('Sei sicuro di voler eliminare questo elemento?')">
+            Elimina
+        </a>
+    </div>
+</div>
+{% endblock %}
