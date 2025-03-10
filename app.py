@@ -767,5 +767,7 @@ def predict_image_v2():
         print(traceback.format_exc())  # Debug
         return jsonify({'error': str(e)}), 400
 
+# Configurazione per il deployment
 if __name__ == '__main__':
+    # In ambiente di sviluppo
     app.run(debug=True)
