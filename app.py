@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file
+from werkzeug.middleware.proxy_fix import ProxyFix
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -30,17 +31,19 @@ from routes.chatbot import chatbot
 from routes.chatbot2 import chatbot2
 from routes.learning import learning
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-app = Flask(__name__)
+# Configurazione dell'applicazione
+app = Flask(__name__, static_url_path='/pl-ai/static')
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 
-# Registrazione dei blueprint
-app.register_blueprint(chatbot, url_prefix='')  # No prefix per mantenere gli URL come prima
-app.register_blueprint(chatbot2, url_prefix='')
-app.register_blueprint(learning, url_prefix='')
+load_dotenv()
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Registrazione dei blueprint con il prefisso
+app.register_blueprint(chatbot, url_prefix='/pl-ai')
+app.register_blueprint(chatbot2, url_prefix='/pl-ai')
+app.register_blueprint(learning, url_prefix='/pl-ai')
 
 # Variabili globali per i modelli
 model = None
