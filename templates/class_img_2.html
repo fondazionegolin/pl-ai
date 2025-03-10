@@ -1,11 +1,121 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- CSS per nascondere completamente la console -->
+<style>
+    /* Nascondi completamente la console */
+    #console-container {
+        display: none !important;
+    }
+</style>
+
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center" style="opacity: 0; transition: opacity 0.3s ease-in-out;">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida all'utilizzo della Visione Artificiale</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">1</span>
+                    Crea classi per il riconoscimento
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Fai clic su "Aggiungi Classe"</strong> per creare una nuova categoria di oggetti da riconoscere.</p>
+                    <p class="text-gray-600"><strong>• Dai un nome significativo</strong> alla classe (es. "Penna", "Telefono", "Viso").</p>
+                    <p class="text-gray-600"><strong>• Puoi creare più classi</strong> per distinguere tra diversi oggetti o concetti visivi.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">2</span>
+                    Cattura esempi di immagini
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Per ogni classe, fai clic su "Avvia Cattura"</strong> e mostra l'oggetto alla webcam.</p>
+                    <p class="text-gray-600"><strong>• Cattura almeno 20-30 esempi</strong> per ciascuna classe, variando posizione, angolazione e illuminazione.</p>
+                    <p class="text-gray-600"><strong>• Puoi visualizzare gli esempi catturati</strong> all'interno di ciascuna classe.</p>
+                    <p class="text-gray-600"><strong>• Al termine della cattura, fai clic su "Stop"</strong> per interrompere l'acquisizione.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">3</span>
+                    Addestra il modello
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Una volta catturati esempi per almeno 2 classi</strong>, il pulsante "TRAIN" diventerà attivo.</p>
+                    <p class="text-gray-600"><strong>• Fai clic su "TRAIN"</strong> per avviare l'addestramento del modello di visione artificiale.</p>
+                    <p class="text-gray-600"><strong>• Attendi il completamento dell'addestramento</strong>, osservando la barra di avanzamento.</p>
+                    <p class="text-gray-600"><strong>• L'addestramento avviene direttamente nel browser</strong>, senza inviare i tuoi dati a server esterni.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">4</span>
+                    Testa il riconoscimento in tempo reale
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Dopo l'addestramento, il modello inizierà automaticamente</strong> a classificare le immagini in tempo reale.</p>
+                    <p class="text-gray-600"><strong>• Mostra gli oggetti alla webcam</strong> per vedere le previsioni del modello.</p>
+                    <p class="text-gray-600"><strong>• Le barre colorate</strong> mostrano la probabilità di appartenenza a ciascuna classe.</p>
+                    <p class="text-gray-600"><strong>• Per migliorare la precisione</strong>, aggiungi più esempi alle classi esistenti e riaddestra il modello.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">5</span>
+                    Consigli per risultati ottimali
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Utilizza una buona illuminazione</strong> per migliorare la qualità delle immagini catturate.</p>
+                    <p class="text-gray-600"><strong>• Cattura esempi da diverse angolazioni</strong> e distanze per aumentare la robustezza del modello.</p>
+                    <p class="text-gray-600"><strong>• Mantieni uno sfondo consistente</strong> durante la fase di test per ridurre i falsi positivi.</p>
+                    <p class="text-gray-600"><strong>• Per oggetti simili</strong>, assicurati di catturare abbastanza esempi per distinguerli.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Visione</h1>
-    
     <!-- SVG per le connessioni Bezier -->
     <svg id="connections-svg" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: -1; transition: all 0.3s ease;"></svg>
+    
+    <!-- Header con titolo e descrizione -->
+    <div class="w-full max-w-6xl mx-auto py-8">
+        <div class="w-full bg-gray-50 rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-3">Visione Artificiale</h1>
+            <p class="text-gray-600 max-w-lg mb-6">Addestra un modello di classificazione delle immagini in tempo reale utilizzando la webcam e riconosci oggetti e scene direttamente dal tuo browser.</p>
+            
+            <!-- Tutorial Button -->
+            <div class="">
+                <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Come utilizzare la Visione Artificiale</span>
+                </button>
+            </div>
+        </div>
+    </div>
     
     <div class="mb-8">
         <button onclick="addNewClass()" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center">
@@ -84,6 +194,10 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Stile per l'animazione del tutorial */
+</style>
 
 <script>
 let classCounter = 0;
@@ -706,6 +820,59 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Aggiornamento periodico delle connessioni
     setInterval(updateConnections, 1000);
+});
+
+// Aggiungi evento per il toggle del tutorial
+document.getElementById('tutorial-toggle').addEventListener('click', function() {
+    const tutorialModal = document.getElementById('tutorial-modal');
+    
+    // Mostra il modal
+    tutorialModal.classList.remove('hidden');
+    tutorialModal.classList.add('flex');
+    
+    // Animazione di apertura
+    setTimeout(() => {
+        tutorialModal.style.opacity = '1';
+    }, 10);
+});
+
+// Aggiungi evento per la chiusura del tutorial con il pulsante X
+document.getElementById('tutorial-close').addEventListener('click', function() {
+    const tutorialModal = document.getElementById('tutorial-modal');
+    
+    // Animazione di chiusura
+    tutorialModal.style.opacity = '0';
+    
+    setTimeout(() => {
+        tutorialModal.classList.remove('flex');
+        tutorialModal.classList.add('hidden');
+    }, 300);
+});
+
+// Aggiungi evento per la chiusura del tutorial con il pulsante "Ho capito"
+document.getElementById('tutorial-understand').addEventListener('click', function() {
+    const tutorialModal = document.getElementById('tutorial-modal');
+    
+    // Animazione di chiusura
+    tutorialModal.style.opacity = '0';
+    
+    setTimeout(() => {
+        tutorialModal.classList.remove('flex');
+        tutorialModal.classList.add('hidden');
+    }, 300);
+});
+
+// Chiudi il modal quando si clicca all'esterno del contenuto
+document.getElementById('tutorial-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        // Animazione di chiusura
+        this.style.opacity = '0';
+        
+        setTimeout(() => {
+            this.classList.remove('flex');
+            this.classList.add('hidden');
+        }, 300);
+    }
 });
 </script>
 {% endblock %}

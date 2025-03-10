@@ -4,6 +4,71 @@
 <!-- Contenitore delle notifiche -->
 <div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
 
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida all'utilizzo dello strumento di Regressione Lineare</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">1. Cos'è la Regressione Lineare?</h4>
+                <p class="text-gray-700 mb-2">La regressione lineare è una tecnica statistica che permette di modellare la relazione tra una variabile dipendente (y) e una o più variabili indipendenti (x). Il modello risultante è una linea che meglio si adatta ai dati.</p>
+                <ul class="list-disc pl-5 text-gray-700">
+                    <li>Utile per prevedere valori futuri basandosi su dati esistenti</li>
+                    <li>Ideale per identificare relazioni lineari tra variabili</li>
+                    <li>Fornisce informazioni sulla forza della relazione tra le variabili</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">2. Preparazione dei Dati</h4>
+                <p class="text-gray-700 mb-2">Per utilizzare questo strumento, è necessario fornire un dataset in formato CSV contenente almeno due colonne numeriche:</p>
+                <ul class="list-disc pl-5 text-gray-700">
+                    <li>Una colonna per la variabile indipendente (X)</li>
+                    <li>Una colonna per la variabile dipendente (Y)</li>
+                    <li>I dati devono essere puliti (senza valori mancanti o anomali)</li>
+                    <li>È consigliabile avere intestazioni di colonna</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">3. Utilizzo dello Strumento</h4>
+                <ol class="list-decimal pl-5 text-gray-700 space-y-2">
+                    <li>Scegli se utilizzare un dataset personalizzato o di esempio</li>
+                    <li>Se personalizzato, carica il tuo file CSV</li>
+                    <li>Seleziona quali colonne utilizzare come X e Y</li>
+                    <li>Fai clic su "Addestra Modello" per generare la regressione</li>
+                    <li>Visualizza i risultati nel grafico e nella tabella dei parametri</li>
+                    <li>Utilizza il campo di input per effettuare nuove previsioni</li>
+                </ol>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">4. Interpretazione dei Risultati</h4>
+                <ul class="list-disc pl-5 text-gray-700">
+                    <li><strong>Coefficiente Angolare (m):</strong> Indica quanto varia Y al variare di X. Un valore positivo mostra una relazione crescente, negativo una decrescente.</li>
+                    <li><strong>Intercetta (q):</strong> Il valore di Y quando X è zero.</li>
+                    <li><strong>Coefficiente di Determinazione (R²):</strong> Misura quanto bene il modello spiega i dati (da 0 a 1). Più è vicino a 1, migliore è l'adattamento.</li>
+                    <li><strong>Errore Quadratico Medio (MSE):</strong> L'errore medio del modello. Valori più bassi indicano previsioni più precise.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Header con grafico stilizzato -->
     <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
@@ -11,6 +76,14 @@
             <div class="mb-6 md:mb-0">
                 <h1 class="text-4xl font-bold text-gray-800 mb-3">Regressione Lineare</h1>
                 <p class="text-gray-600 max-w-lg">Analizza le relazioni tra variabili e ottieni previsioni precise basate sui tuoi dati.</p>
+                
+                <!-- Pulsante Tutorial -->
+                <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Guida alla Regressione Lineare</span>
+                </button>
             </div>
             <!-- Grafico stilizzato (non animato) -->
             <div class="w-60 h-36 bg-white rounded-lg shadow-inner flex items-center justify-center p-4 border border-gray-200">
@@ -41,43 +114,6 @@
                 </svg>
             </div>
         </div>
-        
-        <!-- Tutorial e spiegazione -->
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Cos'è la regressione lineare -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Cos'è la Regressione Lineare?
-                    </h3>
-                    <div class="text-sm text-gray-600 space-y-2">
-                        <p>La regressione lineare è un modello statistico che analizza la relazione tra una <strong>variabile dipendente (Y)</strong> e una o più <strong>variabili indipendenti (X)</strong>.</p>
-                        <p>Il modello trova la <strong>linea retta</strong> che meglio rappresenta questa relazione, descritta dall'equazione:</p>
-                        <div class="font-mono bg-gray-50 p-2 rounded text-center">Y = mX + b</div>
-                        <p>dove <strong>m</strong> è il coefficiente (pendenza) e <strong>b</strong> è l'intercetta. Questa equazione può essere usata per fare previsioni su nuovi dati.</p>
-                    </div>
-                </div>
-                
-                <!-- Come usare lo strumento -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                        </svg>
-                        Come usare questo strumento
-                    </h3>
-                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
-                        <li><strong>Prepara i dati</strong>: Crea un file CSV con <em>esattamente due colonne numeriche</em>. La prima colonna sarà usata per predire la seconda.</li>
-                        <li><strong>Carica il file</strong>: Seleziona il tuo file CSV. Un'anteprima mostrerà i primi 5 record.</li>
-                        <li><strong>Addestra il modello</strong>: Clicca su "Addestra Modello" per analizzare i dati e creare il modello di regressione.</li>
-                        <li><strong>Fai previsioni</strong>: Inserisci un valore nel campo di input e ottieni la previsione corrispondente dal modello.</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Grid Layout -->
@@ -86,7 +122,7 @@
         <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
             <div class="flex items-center mb-5">
                 <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
                 </svg>
                 <h2 class="text-2xl font-semibold text-gray-800">Carica Dataset</h2>
             </div>
@@ -102,7 +138,7 @@
                                    class="peer mr-3 accent-black">
                             <label for="dataset-custom" class="cursor-pointer flex items-center">
                                 <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                                 </svg>
                                 <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                                     Carica il tuo dataset
@@ -114,7 +150,7 @@
                                    class="peer mr-3 accent-black">
                             <label for="dataset-example" class="cursor-pointer flex items-center">
                                 <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path>
                                 </svg>
                                 <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                                     Usa dataset di esempio
@@ -235,7 +271,7 @@
                         <h3 class="text-lg font-semibold text-gray-800">Visualizzazione Grafica</h3>
                     </div>
                     <div class="h-64 border border-gray-200 rounded-lg overflow-hidden">
-                        <canvas id="regression-chart" style="width:100%; height:100%;"></canvas>
+                        <canvas id="regression-chart" style="width:100%;height:100%;"></canvas>
                     </div>
                 </div>
             </div>
@@ -262,8 +298,8 @@
 </style>
 
 <!-- Modal per il CSV -->
-<div id="csv-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col">
+<div id="csv-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col m-auto">
         <!-- Header del modale -->
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold text-gray-800">Dataset Completo</h3>
@@ -286,8 +322,8 @@
 </div>
 
 <!-- Modal per il grafico -->
-<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col">
+<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-4xl max-h-[90vh] flex flex-col m-auto">
         <!-- Header del modale -->
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold text-gray-800">Grafico di Regressione</h3>
@@ -395,7 +431,7 @@ function showToast(message, type = 'info') {
         notification.innerHTML = `
             <div class="mr-3">
                 <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                 </svg>
             </div>
             <div class="flex-grow">
@@ -582,13 +618,14 @@ function displayCsvPreview(csvContent) {
     // Salva il contenuto CSV corrente
     currentCsvContent = csvContent;
     
-    // Mostra i primi 5 record nella preview
-    displayCsvData(
-        csvContent,
-        document.getElementById('preview-headers'),
-        document.getElementById('preview-data'),
-        5
-    );
+    // Seleziona i primi 5 record per la preview
+    const previewData = csvContent.split('\n').slice(0, 6).join('\n');
+    
+    // Aggiorna la preview
+    const headersElement = document.getElementById('preview-headers');
+    const dataElement = document.getElementById('preview-data');
+    
+    displayCsvData(previewData, headersElement, dataElement, 5);
     
     // Mostra la preview e rendi cliccabile
     const previewElement = document.getElementById('data-preview');
@@ -597,8 +634,7 @@ function displayCsvPreview(csvContent) {
     
     // Aggiungi evento click per aprire il modale
     previewElement.onclick = () => {
-        const modal = document.getElementById('csv-modal');
-        modal.classList.remove('hidden');
+        document.getElementById('csv-modal').classList.remove('hidden');
         
         // Usa la funzione dedicata per aggiornare il modale
         updateCsvModal();
@@ -891,8 +927,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         // Aggiungi click handler per aprire il modale
         document.getElementById('regression-chart').style.cursor = 'pointer';
         document.getElementById('regression-chart').addEventListener('click', () => {
-            const modal = document.getElementById('chart-modal');
-            modal.classList.remove('hidden');
+            document.getElementById('chart-modal').classList.remove('hidden');
             
             // Crea il grafico nel modale
             updateModalChart();
@@ -901,8 +936,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
 
         // Gestione chiusura modale
         document.getElementById('close-modal').addEventListener('click', () => {
-            const modal = document.getElementById('chart-modal');
-            modal.classList.add('hidden');
+            document.getElementById('chart-modal').classList.add('hidden');
         });
 
         // Chiudi il modale quando si clicca fuori
@@ -991,6 +1025,63 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     } catch (error) {
         logToConsole('Errore: ' + error.message);
         showToast('Si è verificato un errore durante l\'elaborazione', 'error');
+    }
+});
+
+// Inizializza e configura il tutorial toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const tutorialToggle = document.getElementById('tutorial-toggle');
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const tutorialClose = document.getElementById('tutorial-close');
+    const tutorialUnderstand = document.getElementById('tutorial-understand');
+    
+    if (tutorialToggle && tutorialModal) {
+        // Apri il modal quando si clicca sul pulsante tutorial
+        tutorialToggle.addEventListener('click', function() {
+            tutorialModal.classList.remove('hidden');
+            tutorialModal.classList.add('flex');
+            
+            // Animazione di apertura
+            setTimeout(() => {
+                tutorialModal.style.opacity = '1';
+            }, 10);
+        });
+        
+        // Chiudi il modal quando si clicca sul pulsante di chiusura
+        if (tutorialClose) {
+            tutorialClose.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca sul pulsante "Ho capito"
+        if (tutorialUnderstand) {
+            tutorialUnderstand.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca all'esterno del contenuto
+        tutorialModal.addEventListener('click', function(e) {
+            if (e.target === tutorialModal) {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            }
+        });
     }
 });
 </script>

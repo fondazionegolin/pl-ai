@@ -1,10 +1,85 @@
 {% extends "base_with_console.html" %}
 
 {% block main_content %}
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center" style="opacity: 0; transition: opacity 0.3s ease-in-out;">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida alla Classificazione di Immagini</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Cos'è la Classificazione di Immagini?</h4>
+                <p class="text-gray-700 mb-2">La classificazione di immagini è una tecnica di intelligenza artificiale che permette di identificare automaticamente a quale categoria appartiene un'immagine, sulla base del suo contenuto visivo.</p>
+                <p class="text-gray-700 mb-2">Il modello apprende dai dati di esempio che gli vengono forniti per ogni classe, imparando a riconoscere le caratteristiche distintive di ciascuna categoria.</p>
+                <p class="text-gray-700 mb-2">Applicazioni comuni includono:</p>
+                <ul class="list-disc ml-5 text-gray-700 space-y-1">
+                    <li>Riconoscimento oggetti in fotografie</li>
+                    <li>Scansione documenti e riconoscimento automatico</li>
+                    <li>Diagnosi medica tramite immagini</li>
+                    <li>Controllo qualità industriale</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Come usare questo strumento</h4>
+                <ol class="list-decimal ml-5 text-gray-700 space-y-2">
+                    <li><strong>Crea delle classi</strong>: Inserisci il nome di una classe (es. "Gatti", "Cani", "Paesaggi") e clicca su "Aggiungi Classe".</li>
+                    <li><strong>Aggiungi immagini di esempio</strong>: Per ogni classe, carica immagini rappresentative utilizzando il pulsante "Carica immagini" o la webcam.</li>
+                    <li><strong>Addestra il modello</strong>: Una volta aggiunte abbastanza immagini per ogni classe (almeno 5-10 per classe), clicca su "Addestra Modello".</li>
+                    <li><strong>Classifica nuove immagini</strong>: Dopo l'addestramento, puoi caricare nuove immagini e classificarle cliccando su "Classifica".</li>
+                </ol>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Consigli per ottenere buoni risultati</h4>
+                <ul class="list-disc ml-5 text-gray-700">
+                    <li><strong>Varietà nei dati</strong>: Carica immagini diverse per ogni classe, con angolazioni, luci e sfondi differenti.</li>
+                    <li><strong>Quantità sufficienti</strong>: Più immagini carichi per ogni classe, migliori saranno i risultati.</li>
+                    <li><strong>Classi distinte</strong>: Scegli classi che siano visivamente ben distinguibili tra loro.</li>
+                    <li><strong>Qualità delle immagini</strong>: Usa immagini nitide e ben inquadrate.</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Utilizzo della webcam</h4>
+                <p class="text-gray-700 mb-2">Puoi utilizzare la webcam per acquisire immagini in tempo reale:</p>
+                <ul class="list-disc ml-5 text-gray-700">
+                    <li>Clicca su "Usa webcam" per attivarla</li>
+                    <li>Utilizza il pulsante "Scatta" per catturare un'immagine</li>
+                    <li>"Cattura automatica" scatterà foto a intervalli regolari</li>
+                    <li>Clicca su "Chiudi webcam" quando hai terminato</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold text-gray-800">Classificazione Immagini</h2>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Classificazione Immagini</h2>
+                <!-- Pulsante Tutorial -->
+                <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Guida alla Classificazione di Immagini</span>
+                </button>
+            </div>
             <div class="actions-container">
                 <form id="training-form" class="inline">
                     <button type="submit" class="btn btn-training">
@@ -296,6 +371,61 @@ window.captureImage = function(className) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Tutorial modal
+    const tutorialToggle = document.getElementById('tutorial-toggle');
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const tutorialClose = document.getElementById('tutorial-close');
+    const tutorialUnderstand = document.getElementById('tutorial-understand');
+    
+    if (tutorialToggle && tutorialModal) {
+        // Apri il modal quando si clicca sul pulsante tutorial
+        tutorialToggle.addEventListener('click', function() {
+            tutorialModal.classList.remove('hidden');
+            tutorialModal.classList.add('flex');
+            
+            // Animazione di apertura
+            setTimeout(() => {
+                tutorialModal.style.opacity = '1';
+            }, 10);
+        });
+        
+        // Chiudi il modal quando si clicca sul pulsante di chiusura
+        if (tutorialClose) {
+            tutorialClose.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca sul pulsante "Ho capito"
+        if (tutorialUnderstand) {
+            tutorialUnderstand.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca all'esterno del contenuto
+        tutorialModal.addEventListener('click', function(e) {
+            if (e.target === tutorialModal) {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            }
+        });
+    }
+    
     // Training form handler
     document.getElementById('training-form').addEventListener('submit', async (e) => {
         e.preventDefault();

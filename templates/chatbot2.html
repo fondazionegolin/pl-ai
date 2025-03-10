@@ -1,43 +1,186 @@
-{% extends "base.html" %}
+{% extends "base_with_console.html" %}
 
-{% block content %}
+{% block console_content %}
+<!-- Override del blocco console per nasconderla completamente -->
+{% endblock %}
+
+{% block main_content %}
+<!-- CSS per nascondere completamente la console -->
+<style>
+    /* Nascondi completamente la console */
+    #console-container {
+        display: none !important;
+    }
+    
+    /* Assicura che il contenuto principale occupi tutto lo spazio disponibile */
+    #main-content-container {
+        grid-column: 1 / -1 !important;
+        padding-left: 0 !important;
+        padding-bottom: 0 !important; /* Rimuovi il padding inferiore che lascerebbe spazio per la console */
+    }
+</style>
+
 <!-- Add Marked.js for Markdown parsing -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <!-- Add Highlight.js for code syntax highlighting -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<div class="container mx-auto p-4">
-    <div class="w-[1200px] h-[800px] mx-auto bg-white rounded-lg shadow-lg flex flex-col">
+
+<!-- Contenitore delle notifiche -->
+<div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
+
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida all'utilizzo del Chatbot Didattico</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">1</span>
+                    Configura il tuo assistente
+                </h4>
+                <p class="text-gray-600 ml-8">Seleziona <strong>grado scolastico</strong>, <strong>modalità</strong>, <strong>materia</strong> e <strong>modello AI</strong> in base alle tue esigenze. Ogni selezione personalizza l'assistente per un'esperienza ottimale.</p>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">2</span>
+                    Scegli una modalità
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Interrogazione:</strong> L'assistente ti pone domande sull'argomento per verificare la tua conoscenza.</p>
+                    <p class="text-gray-600"><strong>• Intervista:</strong> Simula un'intervista con un personaggio storico o un esperto del settore.</p>
+                    <p class="text-gray-600"><strong>• Domande e risposte:</strong> Risposte dirette alle tue domande specifiche sull'argomento.</p>
+                    <p class="text-gray-600"><strong>• Spiegazione:</strong> Spiegazioni dettagliate di concetti complessi, adattate al tuo livello.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">3</span>
+                    Inserisci il contesto
+                </h4>
+                <p class="text-gray-600 ml-8">Fornisci ulteriori dettagli nell'area di testo per personalizzare l'interazione. Ad esempio, specifica l'argomento su cui vuoi essere interrogato o il personaggio che desideri intervistare.</p>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">4</span>
+                    Gestisci le conversazioni
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Nuova chat:</strong> Inizia una nuova conversazione mantenendo le conversazioni precedenti nella sidebar.</p>
+                    <p class="text-gray-600"><strong>• Elimina chat:</strong> Rimuovi una conversazione specifica.</p>
+                    <p class="text-gray-600"><strong>• Elimina tutto:</strong> Rimuovi tutte le conversazioni salvate.</p>
+                    <p class="text-gray-600"><strong>• Scarica chat:</strong> Salva la conversazione in formato Markdown sul tuo dispositivo.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">5</span>
+                    Consigli per risultati ottimali
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Sii specifico</strong> nelle tue domande per ottenere risposte più precise.</p>
+                    <p class="text-gray-600"><strong>• Fornisci contesto dettagliato</strong> per personalizzare l'esperienza di apprendimento.</p>
+                    <p class="text-gray-600"><strong>• Prova diverse modalità</strong> per esplorare vari approcci all'apprendimento.</p>
+                    <p class="text-gray-600"><strong>• Utilizza la funzione di download</strong> per conservare sessioni utili per lo studio futuro.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmation dialog -->
+<div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div class="bg-gray-50 px-6 py-4 border-b">
+            <h3 class="text-lg font-medium text-gray-900" id="modal-title">Conferma</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700" id="modal-message">Sei sicuro di voler continuare?</p>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 flex justify-end space-x-3 border-t">
+            <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition">
+                Annulla
+            </button>
+            <button id="modal-confirm" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                Conferma
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Header con titolo e descrizione -->
+    <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
+        <div class="flex flex-col md:flex-row items-center justify-between">
+            <div class="mb-6 md:mb-0">
+                <h1 class="text-4xl font-bold text-gray-800 mb-3">Chatbot Didattico</h1>
+            </div>
+        </div>
+        
+        <!-- Tutorial Button -->
+        <div class="">
+            <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                <span>Come utilizzare il Chatbot Didattico</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 mb-10">
         <!-- Header con menu a tendina -->
-        <div class="flex gap-4 p-4 bg-gray-50 rounded-t-lg border-b">
+        <div class="flex flex-col md:flex-row gap-4 p-4 bg-gray-50 rounded-t-lg border-b">
             <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Grado scolastico</label>
                 <select id="grade-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Grado scolastico</option>
+                    <option value="" disabled selected>Seleziona un'opzione</option>
                     <option value="sec1">Scuola Sec. I grado</option>
                     <option value="sec2-biennio">Scuola Sec. II grado - Biennio</option>
                     <option value="sec2-triennio">Scuola Sec. II grado - Triennio</option>
                 </select>
             </div>
             <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Modalità</label>
                 <select id="mode-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Modalità</option>
+                    <option value="" disabled selected>Seleziona un'opzione</option>
                     <option value="interrogazione">Modalità Interrogazione</option>
                     <option value="interazione">Modalità Interazione</option>
                     <option value="intervista">Modalità Intervista Impossibile</option>
                 </select>
             </div>
             <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Argomento</label>
                 <select id="subject-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Argomento</option>
+                    <option value="" disabled selected>Seleziona un'opzione</option>
                     <option value="ai">AI</option>
                     <option value="scienze">Scienze</option>
                     <option value="storia">Storia</option>
                 </select>
             </div>
             <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Modello AI</label>
                 <select id="model-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Modello AI</option>
+                    <option value="" disabled selected>Seleziona un'opzione</option>
                     <option value="gpt4o-mini">GPT-4 O Mini</option>
                     <option value="o3-mini">O3 Mini</option>
                     <option value="o3-mini-reasoning">O3 Mini con Ragionamento</option>
@@ -80,7 +223,7 @@
         </div>
 
         <!-- Main Content Area -->
-        <div class="flex flex-1 overflow-hidden">
+        <div class="flex flex-1 min-h-[600px]">
             <!-- Chat History Sidebar -->
             <div class="w-1/4 border-r bg-gray-50 flex flex-col">
                 <div class="p-3 border-b space-y-2">
@@ -136,12 +279,28 @@
 <style>
     /* Message Styling */
     .message {
-        padding: 12px;
-        margin: 8px 0;
-        border-radius: 8px;
         max-width: 80%;
+        padding: 1rem;
+        border-radius: 1rem;
+        margin: 0.5rem 0;
         white-space: pre-wrap;
-        word-break: break-word;
+        word-wrap: break-word;
+        line-height: 1.5;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-message {
+        background-color: #e2e8f0;
+        margin-left: auto;
+        color: #1a202c;
+        border: 1px solid #cbd5e0;
+    }
+
+    .bot-message {
+        background-color: #f8fafc;
+        margin-right: auto;
+        color: #2d3748;
+        border: 1px solid #e2e8f0;
     }
 
     /* Markdown Styling */
@@ -155,6 +314,7 @@
         margin-bottom: 8px;
         font-weight: 600;
         line-height: 1.25;
+        color: #1a202c;
     }
 
     .bot-message h1 { font-size: 1.5em; }
@@ -177,17 +337,19 @@
 
     .bot-message code {
         padding: 2px 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: #f1f1f1;
         border-radius: 4px;
         font-family: monospace;
+        color: #1a202c;
     }
 
     .bot-message pre {
         margin: 8px 0;
         padding: 12px;
-        background: rgba(0, 0, 0, 0.8);
+        background: #f8fafc;
         border-radius: 8px;
         overflow-x: auto;
+        border: 1px solid #e2e8f0;
     }
 
     .bot-message pre code {
@@ -196,7 +358,7 @@
     }
 
     .bot-message a {
-        color: #58a6ff;
+        color: #3182ce;
         text-decoration: none;
     }
 
@@ -207,19 +369,8 @@
     .bot-message blockquote {
         margin: 8px 0;
         padding-left: 12px;
-        border-left: 3px solid rgba(255, 255, 255, 0.3);
-        color: rgba(255, 255, 255, 0.8);
-    }
-
-    .user-message {
-        background: #f3f4f6;
-        margin-left: auto;
-    }
-
-    .bot-message {
-        background: #000;
-        color: #fff;
-        margin-right: auto;
+        border-left: 3px solid #e2e8f0;
+        color: #4a5568;
     }
 
     /* Loading Animation */
@@ -228,17 +379,19 @@
         align-items: center;
         gap: 4px;
         padding: 12px 16px;
-        background: #000;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         margin: 8px 0;
         margin-right: auto;
         max-width: 80px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .loading-dots span {
         width: 6px;
         height: 6px;
-        background: #fff;
+        background: #4a5568;
         border-radius: 50%;
         animation: bounce 1.4s infinite ease-in-out;
         opacity: 0.7;
@@ -269,32 +422,6 @@
 
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
         background: #555;
-    }
-
-    /* Message Styling */
-    .message {
-        max-width: 80%;
-        padding: 1rem;
-        border-radius: 1rem;
-        margin: 0.5rem 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        line-height: 1.5;
-    }
-
-    .user-message {
-        background-color: #e2e8f0;
-        margin-left: auto;
-        color: #1a202c;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .bot-message {
-        background-color: #f8fafc;
-        margin-right: auto;
-        color: #2d3748;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
     }
 
     /* Chat History Item Styling */
@@ -331,21 +458,245 @@
         border-radius: 0.5rem;
         margin: 1rem;
     }
+    
+    /* Notification Animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+
+    .notification {
+        animation: fadeIn 0.3s ease forwards;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        transform-origin: top right;
+    }
+
+    .notification.fade-out {
+        animation: fadeOut 0.3s ease forwards;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .notification-icon {
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .notification-message {
+        flex-grow: 1;
+        font-size: 0.875rem;
+    }
+
+    .notification-close {
+        margin-left: 0.75rem;
+        flex-shrink: 0;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .notification-close:hover {
+        opacity: 1;
+    }
+
+    .notification-progress {
+        height: 3px;
+        width: 100%;
+    }
+
+    .notification-progress-bar {
+        height: 100%;
+        width: 100%;
+        transform-origin: left;
+        animation: progress-shrink 5s linear forwards;
+    }
+
+    @keyframes progress-shrink {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(0); }
+    }
 </style>
 
 <script>
     let currentChatId = null;
     let chatMessages = [];
+    let confirmCallback = null;
+    
+    // Show confirmation modal
+    function showConfirmModal(title, message, callback) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = message;
+        document.getElementById('confirm-modal').classList.remove('hidden');
+        confirmCallback = callback;
+    }
+    
+    // Hide confirmation modal
+    function hideConfirmModal() {
+        document.getElementById('confirm-modal').classList.add('hidden');
+        confirmCallback = null;
+    }
+
+    document.getElementById('modal-cancel').addEventListener('click', hideConfirmModal);
+    document.getElementById('modal-confirm').addEventListener('click', function() {
+        if (confirmCallback) {
+            confirmCallback();
+        }
+        hideConfirmModal();
+    });
+
+    // Function to show toast notifications
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('notifications-container');
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        
+        // Set background color based on type
+        let bgColor, iconSvg, progressColor;
+        switch(type) {
+            case 'success':
+                bgColor = 'bg-green-50';
+                iconSvg = '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                progressColor = 'bg-green-500';
+                break;
+            case 'error':
+                bgColor = 'bg-red-50';
+                iconSvg = '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                progressColor = 'bg-red-500';
+                break;
+            case 'warning':
+                bgColor = 'bg-yellow-50';
+                iconSvg = '<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                progressColor = 'bg-yellow-500';
+                break;
+            default: // info
+                bgColor = 'bg-blue-50';
+                iconSvg = '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                progressColor = 'bg-blue-500';
+        }
+        
+        // Set notification content
+        notification.innerHTML = `
+            <div class="notification-content ${bgColor}">
+                <div class="notification-icon">${iconSvg}</div>
+                <div class="notification-message">${message}</div>
+                <div class="notification-close">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="notification-progress">
+                <div class="notification-progress-bar ${progressColor}"></div>
+            </div>
+        `;
+        
+        // Add to container
+        container.appendChild(notification);
+        
+        // Set up close handler
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                container.removeChild(notification);
+            }, 300);
+        });
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (container.contains(notification)) {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    if (container.contains(notification)) {
+                        container.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, 5000);
+        
+        return notification;
+    }
 
     // Initialize event listeners
     document.addEventListener('DOMContentLoaded', function() {
         loadChatHistory();
         setupEventListeners();
+        setupTutorialToggle();
         // Disable message input initially
         document.getElementById('message-input').disabled = true;
         // Enable context input
         document.getElementById('context-input').disabled = false;
     });
+
+    // Set up tutorial toggle functionality
+    function setupTutorialToggle() {
+        const tutorialToggle = document.getElementById('tutorial-toggle');
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const tutorialClose = document.getElementById('tutorial-close');
+        const tutorialUnderstand = document.getElementById('tutorial-understand');
+        
+        if (tutorialToggle && tutorialModal) {
+            // Apri il modal quando si clicca sul pulsante tutorial
+            tutorialToggle.addEventListener('click', function() {
+                tutorialModal.classList.remove('hidden');
+                tutorialModal.classList.add('flex');
+                
+                // Animazione di apertura
+                setTimeout(() => {
+                    tutorialModal.style.opacity = '1';
+                }, 10);
+            });
+            
+            // Chiudi il modal quando si clicca sul pulsante di chiusura
+            if (tutorialClose) {
+                tutorialClose.addEventListener('click', function() {
+                    tutorialModal.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        tutorialModal.classList.remove('flex');
+                        tutorialModal.classList.add('hidden');
+                    }, 300);
+                });
+            }
+            
+            // Chiudi il modal quando si clicca sul pulsante "Ho capito"
+            if (tutorialUnderstand) {
+                tutorialUnderstand.addEventListener('click', function() {
+                    tutorialModal.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        tutorialModal.classList.remove('flex');
+                        tutorialModal.classList.add('hidden');
+                    }, 300);
+                });
+            }
+            
+            // Chiudi il modal quando si clicca all'esterno del contenuto
+            tutorialModal.addEventListener('click', function(e) {
+                if (e.target === tutorialModal) {
+                    tutorialModal.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        tutorialModal.classList.remove('flex');
+                        tutorialModal.classList.add('hidden');
+                    }, 300);
+                }
+            });
+        }
+    }
 
     function setupEventListeners() {
         // Handle enter key in message input
@@ -467,7 +818,7 @@
                 </svg>`;
             deleteButton.onclick = (e) => {
                 e.stopPropagation();
-                deleteChat(chat.id);
+                showConfirmModal('Elimina Chat', 'Sei sicuro di voler eliminare questa chat?', () => deleteChat(chat.id));
             };
             
             div.appendChild(titleSpan);
@@ -493,7 +844,7 @@
             if (modeSelect?.value === 'intervista') {
                 const character = document.getElementById('character-input')?.value?.trim();
                 if (!character) {
-                    alert('Per favore, specifica il personaggio da interpretare.');
+                    showToast('Per favore, specifica il personaggio da interpretare.', 'warning');
                     return;
                 }
 
@@ -520,9 +871,9 @@
                 const context = contextInput?.value?.trim() || '';
                 if (!context) {
                     if (modeSelect?.value === 'interrogazione') {
-                        alert('Per favore inserisci l\'argomento su cui vuoi essere interrogato.');
+                        showToast('Per favore inserisci l\'argomento su cui vuoi essere interrogato.', 'warning');
                     } else {
-                        alert('Per favore descrivi la personalità del bot.');
+                        showToast('Per favore descrivi la personalità del bot.', 'warning');
                     }
                     return;
                 }
@@ -535,7 +886,7 @@
 
             // Validate all required fields
             if (!gradeSelect?.value || !modeSelect?.value || !subjectSelect?.value || !modelSelect?.value) {
-                alert('Per favore seleziona tutte le opzioni prima di iniziare.');
+                showToast('Per favore seleziona tutte le opzioni prima di iniziare.', 'warning');
                 return;
             }
 
@@ -652,7 +1003,10 @@
     async function sendMessage() {
         const input = document.getElementById('message-input');
         const message = input.value.trim();
-        if (!message) return;
+        if (!message) {
+            showToast('Inserisci un messaggio prima di inviare.', 'info');
+            return;
+        }
 
         try {
             // Disable input and button while sending
@@ -828,8 +1182,6 @@
     }
 
     async function deleteChat(chatId) {
-        if (!confirm('Sei sicuro di voler eliminare questa chat?')) return;
-        
         try {
             const response = await fetch(`/api/chat/${chatId}`, {
                 method: 'DELETE'
@@ -846,81 +1198,81 @@
             if (chatId === currentChatId) {
                 startNewChat();
             }
+            showToast('Chat eliminata con successo.', 'success');
         } catch (error) {
             console.error('Error deleting chat:', error);
-            alert('Errore durante l\'eliminazione della chat: ' + error.message);
+            showToast('Errore durante l\'eliminazione della chat: ' + error.message, 'error');
         }
     }
 
     async function clearAllChats() {
-        if (!confirm('Sei sicuro di voler eliminare tutte le chat? Questa azione non può essere annullata.')) {
-            return;
-        }
-        
-        try {
-            // Delete all chats from the server
-            const response = await fetch('/api/chats', {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            // Reset UI
-            document.getElementById('chat-history').innerHTML = '';
-            document.getElementById('chat-messages').innerHTML = '';
-            
-            // Reset selectors
-            document.getElementById('grade-select').selectedIndex = 0;
-            document.getElementById('mode-select').selectedIndex = 0;
-            document.getElementById('subject-select').selectedIndex = 0;
-            document.getElementById('model-select').selectedIndex = 0;
-            
-            // Reset inputs
-            document.getElementById('context-input').value = '';
-            document.getElementById('message-input').value = '';
-            document.getElementById('message-input').disabled = true;
-            
-            // Hide interview questions if visible
-            const interviewQuestions = document.getElementById('interview-questions');
-            if (interviewQuestions) {
-                interviewQuestions.classList.add('hidden');
-                if (document.getElementById('character-input')) {
-                    document.getElementById('character-input').value = '';
+        showConfirmModal('Elimina Tutte le Chat', 'Sei sicuro di voler eliminare tutte le chat? Questa azione non può essere annullata.', async () => {
+            try {
+                // Delete all chats from the server
+                const response = await fetch('/api/chats', {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                if (document.getElementById('historical-accuracy')) {
-                    document.getElementById('historical-accuracy').checked = false;
+                
+                // Reset UI
+                document.getElementById('chat-history').innerHTML = '';
+                document.getElementById('chat-messages').innerHTML = '';
+                
+                // Reset selectors
+                document.getElementById('grade-select').selectedIndex = 0;
+                document.getElementById('mode-select').selectedIndex = 0;
+                document.getElementById('subject-select').selectedIndex = 0;
+                document.getElementById('model-select').selectedIndex = 0;
+                
+                // Reset inputs
+                document.getElementById('context-input').value = '';
+                document.getElementById('message-input').value = '';
+                document.getElementById('message-input').disabled = true;
+                
+                // Hide interview questions if visible
+                const interviewQuestions = document.getElementById('interview-questions');
+                if (interviewQuestions) {
+                    interviewQuestions.classList.add('hidden');
+                    if (document.getElementById('character-input')) {
+                        document.getElementById('character-input').value = '';
+                    }
+                    if (document.getElementById('historical-accuracy')) {
+                        document.getElementById('historical-accuracy').checked = false;
+                    }
+                    if (document.getElementById('period-language')) {
+                        document.getElementById('period-language').checked = false;
+                    }
                 }
-                if (document.getElementById('period-language')) {
-                    document.getElementById('period-language').checked = false;
+                
+                // Reset current chat ID
+                currentChatId = null;
+                
+                // Show and enable the submit button
+                const startButton = document.querySelector('button[onclick="submitContext()"]');
+                if (startButton) {
+                    startButton.style.display = '';
+                    startButton.disabled = false;
                 }
+                
+                // Refresh chat history
+                await loadChatHistory();
+                showToast('Tutte le chat sono state eliminate.', 'success');
+            } catch (error) {
+                console.error('Error clearing all chats:', error);
+                showToast('Errore durante l\'eliminazione di tutte le chat: ' + error.message, 'error');
             }
-            
-            // Reset current chat ID
-            currentChatId = null;
-            
-            // Show and enable the submit button
-            const startButton = document.querySelector('button[onclick="submitContext()"]');
-            if (startButton) {
-                startButton.style.display = '';
-                startButton.disabled = false;
-            }
-            
-            // Refresh chat history
-            await loadChatHistory();
-        } catch (error) {
-            console.error('Error clearing all chats:', error);
-            alert('Errore durante l\'eliminazione di tutte le chat: ' + error.message);
-        }
+        });
     }
 
     async function downloadChat() {
         if (!currentChatId) {
-            alert('Nessuna chat da scaricare');
+            showToast('Nessuna chat da scaricare.', 'warning');
             return;
         }
-
+        
         try {
             const response = await fetch(`/api/chat/${currentChatId}`);
             const data = await response.json();
@@ -946,9 +1298,10 @@
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            showToast('Chat scaricata con successo.', 'success');
         } catch (error) {
             console.error('Error downloading chat:', error);
-            alert('Errore durante il download della chat: ' + error.message);
+            showToast('Errore durante il download della chat: ' + error.message, 'error');
         }
     }
 

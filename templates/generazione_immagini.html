@@ -1,115 +1,240 @@
-{% extends "base.html" %}
+{% extends "base_with_console.html" %}
 
-{% block content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Generazione Immagini AI</h1>
+{% block main_content %}
+<!-- CSS per nascondere completamente la console -->
+<style>
+    /* Nascondi completamente la console */
+    #console-container {
+        display: none !important;
+    }
     
-    <!-- Prompt Input -->
-    <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
-        <div class="mb-6">
-            <label for="prompt" class="block text-sm font-medium text-gray-700 mb-2">Descrivi l'immagine che vuoi generare</label>
-            <div class="space-y-3">
-                <textarea id="prompt" rows="3" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200"
-                    placeholder="Es: Un gatto persiano che gioca con un gomitolo di lana al tramonto, stile acquerello"></textarea>
-                <div class="flex justify-end">
-                    <button onclick="translateAndEnhancePrompt()" 
-                        class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clip-rule="evenodd" />
-                        </svg>
-                        Traduci e Migliora Prompt
-                    </button>
-                </div>
-            </div>
-        </div>
+    /* Assicura che il contenuto principale occupi tutto lo spazio disponibile */
+    #main-content-container {
+        grid-column: 1 / -1 !important;
+        padding-left: 0 !important;
+        padding-bottom: 0 !important; /* Rimuovi il padding inferiore che lascerebbe spazio per la console */
+    }
+</style>
 
-        <!-- Advanced Options -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="style" class="block text-sm font-medium text-gray-700 mb-2">Stile Artistico</label>
-                <select id="style" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
-                    <option value="photographic">Fotografico</option>
-                    <option value="digital-art">Digital Art</option>
-                    <option value="oil-painting">Dipinto ad Olio</option>
-                    <option value="watercolor">Acquerello</option>
-                    <option value="anime">Anime</option>
-                    <option value="3d-render">3D Render</option>
-                </select>
-            </div>
-            <div>
-                <div class="flex items-center gap-1 mb-2">
-                    <label for="model" class="block text-sm font-medium text-gray-700">Modello</label>
-                    <div class="relative group">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 cursor-help" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                        </svg>
-                        <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 px-3 py-2 bg-black text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg pointer-events-none">
-                            <div class="font-medium mb-1">SDXL Ultra:</div>
-                            <div class="text-gray-300 mb-2">Massima qualità e dettaglio, ideale per immagini professionali. Più lento ma con risultati superiori.</div>
-                            <div class="font-medium mb-1">SD 3.0:</div>
-                            <div class="text-gray-300 mb-2">Bilanciamento tra velocità e qualità. Ottimo per la maggior parte degli usi.</div>
-                            <div class="font-medium mb-1">SD Flux:</div>
-                            <div class="text-gray-300">Più creativo e sperimentale, ottimo per stili artistici unici e risultati non convenzionali.</div>
-                            <div class="absolute left-1/2 -translate-x-1/2 top-full -mt-1 border-4 border-transparent border-t-black"></div>
-                        </div>
-                    </div>
-                </div>
-                <select id="model" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
-                    <option value="stable-diffusion-xl-1024-v1-0">SDXL Ultra - Massima Qualità</option>
-                    <option value="stable-diffusion-512-v2-1">SD 3.0 - Bilanciato</option>
-                    <option value="stable-diffusion-v1-6">SD Flux - Creativo</option>
-                </select>
-            </div>
-            <div>
-                <label for="aspect-ratio" class="block text-sm font-medium text-gray-700 mb-2">Proporzioni</label>
-                <select id="aspect-ratio" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
-                    <option value="1:1">Quadrata (1:1)</option>
-                    <option value="3:2">Paesaggio (3:2)</option>
-                    <option value="2:3">Ritratto (2:3)</option>
-                    <option value="16:9">Widescreen (16:9)</option>
-                </select>
-            </div>
-        </div>
+<!-- Contenitore delle notifiche -->
+<div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
 
-        <div class="flex justify-between items-center">
-            <div class="flex items-center">
-                <input type="checkbox" id="high-quality" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded transition-colors duration-200">
-                <label for="high-quality" class="ml-2 block text-sm text-gray-700">Alta Qualità</label>
-            </div>
-            <button onclick="generateImage()" 
-                class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-                </svg>
-                Genera Immagine
+<!-- Modal di conferma -->
+<div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+        <h3 id="confirm-title" class="text-lg font-medium text-gray-900 mb-2">Conferma</h3>
+        <p id="confirm-message" class="text-gray-600 mb-4">Sei sicuro di voler procedere?</p>
+        <div class="flex justify-end gap-3">
+            <button id="confirm-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                Annulla
+            </button>
+            <button id="confirm-ok" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                Conferma
             </button>
         </div>
     </div>
+</div>
 
-    <!-- Loading Indicator -->
-    <div id="loading" class="hidden">
-        <div class="flex justify-center items-center mb-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-black/10 border-r-black"></div>
-            <span class="ml-3 text-black font-medium">Generazione in corso...</span>
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida all'utilizzo del Generatore di Immagini AI</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">1</span>
+                    Descrivi l'immagine desiderata
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Inserisci una descrizione dettagliata</strong> dell'immagine che desideri generare.</p>
+                    <p class="text-gray-600"><strong>• Specifica gli elementi principali</strong>, lo stile artistico e l'atmosfera.</p>
+                    <p class="text-gray-600"><strong>• Più dettagli fornisci</strong>, più preciso sarà il risultato.</p>
+                    <p class="text-gray-600"><strong>• Usa il pulsante "Traduci e Migliora Prompt"</strong> per ottimizzare la tua descrizione.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">2</span>
+                    Personalizza le opzioni
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Stile Artistico:</strong> Seleziona lo stile visivo dell'immagine.</p>
+                    <p class="text-gray-600"><strong>• Modello:</strong> Scegli il modello AI più adatto (SDXL Ultra per massima qualità).</p>
+                    <p class="text-gray-600"><strong>• Proporzioni:</strong> Imposta il formato dell'immagine in base alle tue esigenze.</p>
+                    <p class="text-gray-600"><strong>• Alta Qualità:</strong> Attiva per aumentare la risoluzione e i dettagli (richiede più tempo).</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">3</span>
+                    Genera e salva l'immagine
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Clicca su "Genera Immagine"</strong> per avviare il processo.</p>
+                    <p class="text-gray-600"><strong>• Attendi qualche secondo</strong> mentre l'IA elabora la tua richiesta.</p>
+                    <p class="text-gray-600"><strong>• Visualizza il risultato</strong> nell'area sottostante.</p>
+                    <p class="text-gray-600"><strong>• Usa il pulsante "Scarica Immagine"</strong> per salvare il risultato sul tuo dispositivo.</p>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
+                    <span class="bg-blue-100 text-blue-800 font-bold rounded-full h-6 w-6 flex items-center justify-center mr-2">4</span>
+                    Consigli per risultati ottimali
+                </h4>
+                <div class="ml-8 space-y-2">
+                    <p class="text-gray-600"><strong>• Sii specifico:</strong> Includi dettagli su elementi, colori, stile, atmosfera e composizione.</p>
+                    <p class="text-gray-600"><strong>• Usa aggettivi descrittivi:</strong> "vibrante", "tenue", "drammatico", "minimalista", ecc.</p>
+                    <p class="text-gray-600"><strong>• Menziona stili artistici:</strong> "impressionista", "realismo", "fantasy", "concept art".</p>
+                    <p class="text-gray-600"><strong>• Sperimenta:</strong> Prova diverse combinazioni di prompt e impostazioni.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- Results Area -->
-    <div id="results" class="hidden">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Risultato</h2>
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <img id="generated-image" src="" alt="Immagine generata" class="w-full h-auto">
-            <div class="p-4">
-                <p id="prompt-text" class="text-gray-600 text-sm"></p>
-                <div class="mt-4 flex justify-end">
-                    <button onclick="downloadImage()" 
+<!-- Main Container -->
+<div class="max-w-7xl mx-auto">
+    <!-- Header con titolo e descrizione -->
+    <div class="w-full max-w-6xl mx-auto px-4 py-8">
+        <div class="w-full bg-gray-50 rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-3">Generazione Immagini AI</h1>
+            <p class="text-gray-600 max-w-lg mb-6">Crea immagini straordinarie partendo da semplici descrizioni testuali utilizzando modelli avanzati di intelligenza artificiale.</p>
+            
+            <!-- Pulsante Tutorial -->
+            <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                <span>Come utilizzare il Generatore di Immagini</span>
+            </button>
+        </div>
+        
+        <!-- Prompt Input -->
+        <div class="w-full max-w-10xl mx-auto">
+            <div class="w-full bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+                <div class="mb-6">
+                    <label for="prompt" class="block text-sm font-medium text-gray-700 mb-2">Descrivi l'immagine che vuoi generare</label>
+                    <div class="space-y-3">
+                        <textarea id="prompt" rows="3" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200"
+                            placeholder="Es: Un gatto persiano che gioca con un gomitolo di lana al tramonto, stile acquerello"></textarea>
+                        <div class="flex justify-end">
+                            <button onclick="translateAndEnhancePrompt()" 
+                                class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clip-rule="evenodd" />
+                                </svg>
+                                Traduci e Migliora Prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Advanced Options -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label for="style" class="block text-sm font-medium text-gray-700 mb-2">Stile Artistico</label>
+                        <select id="style" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                            <option value="photographic">Fotografico</option>
+                            <option value="digital-art">Digital Art</option>
+                            <option value="oil-painting">Dipinto ad Olio</option>
+                            <option value="watercolor">Acquerello</option>
+                            <option value="anime">Anime</option>
+                            <option value="3d-render">3D Render</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1 mb-2">
+                            <label for="model" class="block text-sm font-medium text-gray-700">Modello</label>
+                            <div class="relative group">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 cursor-help" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clip-rule="evenodd" />
+                                </svg>
+                                <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 px-3 py-2 bg-black text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg pointer-events-none">
+                                    <div class="font-medium mb-1">SDXL Ultra:</div>
+                                    <div class="text-gray-300 mb-2">Massima qualità e dettaglio, ideale per immagini professionali. Più lento ma con risultati superiori.</div>
+                                    <div class="font-medium mb-1">SD 3.0:</div>
+                                    <div class="text-gray-300 mb-2">Bilanciamento tra velocità e qualità. Ottimo per la maggior parte degli usi.</div>
+                                    <div class="font-medium mb-1">SD Flux:</div>
+                                    <div class="text-gray-300">Più creativo e sperimentale, ottimo per stili artistici unici e risultati non convenzionali.</div>
+                                    <div class="absolute left-1/2 -translate-x-1/2 top-full -mt-1 border-4 border-transparent border-t-black"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <select id="model" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                            <option value="stable-diffusion-xl-1024-v1-0">SDXL Ultra - Massima Qualità</option>
+                            <option value="stable-diffusion-512-v2-1">SD 3.0 - Bilanciato</option>
+                            <option value="stable-diffusion-v1-6">SD Flux - Creativo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="aspect-ratio" class="block text-sm font-medium text-gray-700 mb-2">Proporzioni</label>
+                        <select id="aspect-ratio" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                            <option value="1:1">Quadrata (1:1)</option>
+                            <option value="3:2">Paesaggio (3:2)</option>
+                            <option value="2:3">Ritratto (2:3)</option>
+                            <option value="16:9">Widescreen (16:9)</option>
+                        </select>
+                    </div>
+                </div>
+        
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="high-quality" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded transition-colors duration-200">
+                        <label for="high-quality" class="ml-2 block text-sm text-gray-700">Alta Qualità</label>
+                    </div>
+                    <button onclick="generateImage()" 
                         class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
                         </svg>
-                        Scarica Immagine
+                        Genera Immagine
                     </button>
+                </div>
+            </div>
+        
+            <!-- Loading Indicator -->
+            <div id="loading" class="hidden">
+                <div class="flex justify-center items-center mb-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-black/10 border-r-black"></div>
+                    <span class="ml-3 text-black font-medium">Generazione in corso...</span>
+                </div>
+            </div>
+        
+            <!-- Results Area -->
+            <div id="results" class="hidden">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Risultato</h2>
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <img id="generated-image" src="" alt="Immagine generata" class="w-full h-auto">
+                    <div class="p-4">
+                        <p id="prompt-text" class="text-gray-600 text-sm"></p>
+                        <div class="mt-4 flex justify-end">
+                            <button onclick="downloadImage()" 
+                                class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" clip-rule="evenodd" />
+                                </svg>
+                                Scarica Immagine
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,10 +242,165 @@
 </div>
 
 <script>
+// Funzione per mostrare notifiche toast
+function showToast(message, type = 'info') {
+    const notificationsContainer = document.getElementById('notifications-container');
+    const toast = document.createElement('div');
+    
+    // Creare struttura del toast
+    toast.className = 'bg-white rounded-lg shadow-lg overflow-hidden flex transform transition-all duration-300 ease-in-out translate-x-full';
+    
+    // Seleziona i colori in base al tipo
+    let typeClass, icon;
+    switch(type) {
+        case 'success':
+            typeClass = 'border-l-4 border-green-500';
+            icon = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            break;
+        case 'error':
+            typeClass = 'border-l-4 border-red-500';
+            icon = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            break;
+        case 'warning':
+            typeClass = 'border-l-4 border-yellow-500';
+            icon = '<svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            break;
+        default: // info
+            typeClass = 'border-l-4 border-blue-500';
+            icon = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    }
+    
+    toast.classList.add(typeClass);
+    
+    // Contenuto del toast
+    toast.innerHTML = `
+        <div class="flex items-center p-4 w-full">
+            <div class="flex-shrink-0">
+                ${icon}
+            </div>
+            <div class="ml-3 flex-grow">
+                <p class="text-sm text-gray-800">${message}</p>
+            </div>
+            <div class="flex-shrink-0 ml-2">
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none" onclick="this.parentElement.parentElement.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Aggiungi al container
+    notificationsContainer.appendChild(toast);
+    
+    // Animazione di entrata
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 10);
+    
+    // Rimuovi dopo 5 secondi
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 5000);
+}
+
+// Funzione per aprire il modal di conferma
+function openConfirmModal(title, message, confirmCallback) {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    
+    const confirmButton = document.getElementById('confirm-ok');
+    const cancelButton = document.getElementById('confirm-cancel');
+    
+    // Rimuovi event listener precedenti
+    const newConfirmButton = confirmButton.cloneNode(true);
+    const newCancelButton = cancelButton.cloneNode(true);
+    confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
+    cancelButton.parentNode.replaceChild(newCancelButton, cancelButton);
+    
+    // Aggiungi nuovo event listener
+    newConfirmButton.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        confirmCallback();
+    });
+    
+    newCancelButton.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    });
+    
+    // Mostra il modal
+    modal.classList.add('flex');
+    modal.classList.remove('hidden');
+}
+
+// Funzione per configurare il tutorial toggle
+function setupTutorialToggle() {
+    const tutorialToggle = document.getElementById('tutorial-toggle');
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const tutorialClose = document.getElementById('tutorial-close');
+    const tutorialUnderstand = document.getElementById('tutorial-understand');
+    
+    if (tutorialToggle && tutorialModal) {
+        // Apri il modal quando si clicca sul pulsante tutorial
+        tutorialToggle.addEventListener('click', function() {
+            tutorialModal.classList.remove('hidden');
+            tutorialModal.classList.add('flex');
+            
+            // Animazione di apertura
+            setTimeout(() => {
+                tutorialModal.style.opacity = '1';
+            }, 10);
+        });
+        
+        // Chiudi il modal quando si clicca sul pulsante di chiusura
+        if (tutorialClose) {
+            tutorialClose.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca sul pulsante "Ho capito"
+        if (tutorialUnderstand) {
+            tutorialUnderstand.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+        
+        // Chiudi il modal quando si clicca all'esterno del contenuto
+        tutorialModal.addEventListener('click', function(e) {
+            if (e.target === tutorialModal) {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+            }
+        });
+    }
+}
+
 async function translateAndEnhancePrompt() {
     const prompt = document.getElementById('prompt').value;
     if (!prompt) {
-        alert('Per favore inserisci una descrizione dell\'immagine');
+        showToast('Per favore inserisci una descrizione dell\'immagine', 'error');
         return;
     }
 
@@ -143,15 +423,16 @@ async function translateAndEnhancePrompt() {
 
         // Update the prompt field with the enhanced version
         document.getElementById('prompt').value = data.enhanced_prompt;
+        showToast('Prompt tradotto e migliorato con successo', 'success');
     } catch (error) {
-        alert('Errore durante la traduzione: ' + error.message);
+        showToast('Errore durante la traduzione: ' + error.message, 'error');
     }
 }
 
 async function generateImage() {
     const prompt = document.getElementById('prompt').value;
     if (!prompt) {
-        alert('Per favore inserisci una descrizione dell\'immagine');
+        showToast('Per favore inserisci una descrizione dell\'immagine', 'error');
         return;
     }
 
@@ -184,8 +465,9 @@ async function generateImage() {
         document.getElementById('generated-image').src = data.image_url;
         document.getElementById('prompt-text').textContent = prompt;
         document.getElementById('results').classList.remove('hidden');
+        showToast('Immagine generata con successo', 'success');
     } catch (error) {
-        alert('Errore durante la generazione dell\'immagine: ' + error.message);
+        showToast('Errore durante la generazione dell\'immagine: ' + error.message, 'error');
     } finally {
         document.getElementById('loading').classList.add('hidden');
     }
@@ -199,6 +481,12 @@ function downloadImage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast('Immagine scaricata con successo', 'success');
 }
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    setupTutorialToggle();
+});
 </script>
 {% endblock %}

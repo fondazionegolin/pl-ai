@@ -59,6 +59,71 @@ loadPlotly().catch(error => {
 
 <!-- Contenitore delle notifiche -->
 <div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
+
+<!-- Tutorial Modal -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden justify-center items-center" style="opacity: 0; transition: opacity 0.3s ease-in-out;">
+    <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-medium text-gray-900">Guida alla Classificazione di Dati</h3>
+            <button id="tutorial-close" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Cos'è la Classificazione?</h4>
+                <p class="text-gray-700 mb-2">La classificazione è una tecnica di machine learning che permette di <strong>categorizzare dati</strong> in classi predefinite basandosi sulle loro caratteristiche.</p>
+                <p class="text-gray-700 mb-2">Il modello impara dai dati di esempio a riconoscere i pattern che distinguono le diverse classi.</p>
+                <p class="text-gray-700 mb-2">Applicazioni comuni includono:</p>
+                <ul class="list-disc ml-5 text-gray-700 space-y-1">
+                    <li>Riconoscimento di spam</li>
+                    <li>Diagnosi mediche</li>
+                    <li>Analisi del sentiment</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Come usare questo strumento</h4>
+                <ol class="list-decimal ml-5 text-gray-700 space-y-2">
+                    <li><strong>Prepara i dati</strong>: Crea un file CSV con le colonne delle caratteristiche e l'ultima colonna per la classe target.</li>
+                    <li><strong>Carica il file</strong>: Seleziona il tuo file CSV e verifica l'anteprima dei dati.</li>
+                    <li><strong>Addestra il modello</strong>: Il sistema analizzerà i dati e creerà un modello di classificazione.</li>
+                    <li><strong>Fai previsioni</strong>: Inserisci i valori delle caratteristiche per ottenere la classe prevista.</li>
+                </ol>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Interpretazione dei Risultati</h4>
+                <ul class="list-disc ml-5 text-gray-700">
+                    <li><strong>Matrice di Confusione</strong>: Mostra quante previsioni sono state corrette (diagonale) e quante errate.</li>
+                    <li><strong>Accuratezza</strong>: Percentuale di previsioni corrette sul totale.</li>
+                    <li><strong>Precisione</strong>: Quanto sono affidabili le previsioni positive (quante delle previsioni positive sono effettivamente positive).</li>
+                    <li><strong>Recall</strong>: Capacità del modello di trovare tutti i casi positivi (quanti dei casi realmente positivi sono stati trovati).</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">Visualizzazione dei Dati</h4>
+                <p class="text-gray-700 mb-2">Il grafico 3D mostra come il modello separa le diverse classi nello spazio delle caratteristiche:</p>
+                <ul class="list-disc ml-5 text-gray-700">
+                    <li>Punti di colori diversi rappresentano le diverse classi</li>
+                    <li>La superficie di decisione mostra il confine che il modello utilizza per classificare i nuovi punti</li>
+                    <li>Puoi ruotare e zoomare il grafico per esplorare meglio i dati</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button id="tutorial-understand" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ho capito
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Header con grafico stilizzato -->
     <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
@@ -66,6 +131,14 @@ loadPlotly().catch(error => {
             <div class="mb-6 md:mb-0">
                 <h1 class="text-4xl font-bold text-gray-800 mb-3">Classificazione di Dati</h1>
                 <p class="text-gray-600 max-w-lg">Analizza e categorizza i tuoi dati utilizzando algoritmi di machine learning avanzati.</p>
+                
+                <!-- Pulsante Tutorial -->
+                <button id="tutorial-toggle" class="flex items-center text-blue-600 hover:text-blue-800 font-medium focus:outline-none mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Guida alla Classificazione di Dati</span>
+                </button>
             </div>
             <!-- Grafico stilizzato per classificazione -->
             <div class="w-60 h-36 bg-white rounded-lg shadow-inner flex items-center justify-center p-4 border border-gray-200">
@@ -91,47 +164,6 @@ loadPlotly().catch(error => {
                     <!-- Linea di decisione -->
                     <path d="M 20 80 Q 100 20 180 80" stroke="#6b7280" stroke-width="2" fill="none" stroke-dasharray="4"/>
                 </svg>
-            </div>
-        </div>
-        
-        <!-- Tutorial e spiegazione -->
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Cos'è la classificazione -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Cos'è la Classificazione?
-                    </h3>
-                    <div class="text-sm text-gray-600 space-y-2">
-                        <p>La classificazione è una tecnica di machine learning che permette di <strong>categorizzare dati</strong> in classi predefinite basandosi sulle loro caratteristiche.</p>
-                        <p>Il modello impara dai dati di esempio a riconoscere i pattern che distinguono le diverse classi.</p>
-                        <p>Applicazioni comuni includono:</p>
-                        <ul class="list-disc ml-4 space-y-1">
-                            <li>Riconoscimento di spam</li>
-                            <li>Diagnosi mediche</li>
-                            <li>Analisi del sentiment</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <!-- Come usare lo strumento -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                        </svg>
-                        Come usare questo strumento
-                    </h3>
-                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
-                        <li><strong>Prepara i dati</strong>: Crea un file CSV con le colonne delle caratteristiche e l'ultima colonna per la classe target.</li>
-                        <li><strong>Carica il file</strong>: Seleziona il tuo file CSV e verifica l'anteprima dei dati.</li>
-                        <li><strong>Addestra il modello</strong>: Il sistema analizzerà i dati e creerà un modello di classificazione.</li>
-                        <li><strong>Fai previsioni</strong>: Inserisci i valori delle caratteristiche per ottenere la classe prevista.</li>
-                    </ol>
-                </div>
             </div>
         </div>
     </div>
@@ -779,741 +811,122 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Assegna l'immagine dell'albero all'immagine del modale
-function displayDecisionTree(imageData) {
-    const treeImg = document.getElementById('treeImage');
-    const modalTreeImg = document.getElementById('modal-tree-img');
-    const noTreeMessage = document.getElementById('noTreeMessage');
-    
-    if (treeImg && modalTreeImg) {
-        const imgSrc = 'data:image/png;base64,' + imageData;
-        treeImg.src = imgSrc;
-        modalTreeImg.src = imgSrc;
-        treeImg.style.display = 'block';
-        
-        // Aggiungi l'evento click all'immagine dell'albero
-        treeImg.onclick = openTreeModal;
-        
-        if (noTreeMessage) {
-            noTreeMessage.style.display = 'none';
-        }
-    }
+// Aggiungi l'evento click all'immagine dell'albero
+const treeImg = document.getElementById('treeImage');
+if (treeImg) {
+    treeImg.onclick = openTreeModal;
 }
 
-// Funzione per processare il dataset e addestrare il modello
-async function processDataset(file) {
-    // Chiudi il modale prima di addestrare il modello
-    document.getElementById('dataset-modal').classList.add('hidden');
-    
-    try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        logToConsole('Caricamento del file e addestramento del modello...', 'info');
-        const response = await fetch('/upload-classification', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-
-        if (data.error) {
-            // Controlla se è un errore di campo mancante
-            if (data.error.startsWith('Inserisci un valore per')) {
-                showToast(data.error, 'warning');
-            } else {
-                showToast(data.error, 'error');
-            }
-            throw new Error(data.error);
-        }
-
-        modelData = data;
-        document.getElementById('prediction-section').classList.remove('hidden');
-        
-        // Process and display the tree image if available
-        if (data.tree_image) {
-            displayDecisionTree(data.tree_image);
-            showToast('Albero decisionale generato', 'success');
-        } else {
-            document.getElementById('treeImage').style.display = 'none';
-            document.getElementById('noTreeMessage').style.display = 'block';
-            showToast('Impossibile generare l\'albero decisionale', 'warning');
-        }
-        
-        // Genera i campi di input dinamicamente
-        const inputFields = document.getElementById('input-fields');
-        inputFields.innerHTML = '';
-        data.columns.forEach(column => {
-            inputFields.innerHTML += `
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="${column}">
-                        ${column}
-                    </label>
-                    <input type="number" step="any" id="${column}" name="${column}"
-                           class="block w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-500 sm:text-sm"
-                           placeholder="Inserisci un valore">
-                </div>
-            `;
-        });
-
-        showToast('Modello addestrato con successo!', 'success');
-        logToConsole('Classi disponibili: ' + data.classes.join(', '), 'info');
-    } catch (error) {
-        // Controlla se è un errore di campo mancante
-        if (error.message.startsWith('Inserisci un valore per')) {
-            showToast(error.message, 'warning');
-        } else {
-            showToast(error.message, 'error');
-        }
-    }
-}
-
-// Funzioni per abilitare/disabilitare il pulsante di addestramento
-function enableTrainButton() {
-    const trainModelBtn = document.getElementById('train-model-btn');
-    trainModelBtn.disabled = false;
-    trainModelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-}
-
-function disableTrainButton() {
-    const trainModelBtn = document.getElementById('train-model-btn');
-    trainModelBtn.disabled = true;
-    trainModelBtn.classList.add('opacity-50', 'cursor-not-allowed');
-}
-
-// Funzione per creare lo scatter plot 3D
-let scatter3dPlot = null;
-let modalScatter3dPlot = null;
-let lastChartData = null; // Per memorizzare i dati del grafico
-
-function createClassificationChart(data) {
-    // Salva i dati per riuso
-    lastChartData = data;
-    
-    console.log('Dati ricevuti per il grafico:', data);
-    console.log('modelData disponibile:', modelData);
-    
-    // Utilizziamo la nostra funzione asincrona per assicurarci che Plotly sia caricato
-    loadPlotly().then(() => {
-        try {
-            // Controlla che ci siano dati sufficienti o modelData
-            if ((!data || !data.features) && (!modelData || !modelData.columns)) {
-                console.error('Dati insufficienti per creare il grafico');
-                showToast('Dati insufficienti per creare il grafico 3D', 'error');
-                return;
-            }
-
-            // Estrai le caratteristiche dal dataset
-            const features = data.features || modelData.columns || [];
-            if (features.length < 3) {
-                // Caso con meno di 3 caratteristiche, non possiamo creare un vero 3D
-                showToast('Sono necessarie almeno 3 caratteristiche per una visualizzazione 3D completa. La visualizzazione sarà limitata.', 'warning');
-                
-                // Genera caratteristiche fittzie se necessario
-                while (features.length < 3) {
-                    features.push('Dimensione ' + (features.length + 1));
-                }
-            }
-            
-            // Seleziona le prime 3 caratteristiche per la visualizzazione 3D
-            const xFeature = features[0];
-            const yFeature = features[1];
-            const zFeature = features[2];
-            
-            // Crea un array di punti
-            let plotData = [];
-            
-            // Prima visualizza tutti i dati del CSV caricato
-            if (modelData && modelData.training_data && modelData.classes) {
-                console.log('Visualizzazione di tutti i dati del CSV caricato');
-                
-                // Raggruppa i punti per classe
-                const classes = {};
-                modelData.training_data.forEach(point => {
-                    const className = point.target || 'Sconosciuto';
-                    if (!classes[className]) {
-                        classes[className] = [];
-                    }
-                    classes[className].push(point);
-                });
-                
-                // Crea una traccia per ogni classe
-                Object.keys(classes).forEach((className, idx) => {
-                    const points = classes[className];
-                    
-                    const x = [];
-                    const y = [];
-                    const z = [];
-                    const text = [];
-                    
-                    points.forEach(point => {
-                        if (point.features && point.features.length >= 1) {
-                            // Assicurati che ci siano abbastanza dimensioni
-                            let featureValues = [...point.features];
-                            while (featureValues.length < 3) {
-                                featureValues.push(0);
-                            }
-                            
-                            x.push(parseFloat(featureValues[0]));
-                            y.push(parseFloat(featureValues[1]));
-                            z.push(parseFloat(featureValues[2]));
-                            
-                            let hoverText = `Classe: ${className}<br>`;
-                            features.slice(0, 3).forEach((feat, i) => {
-                                if (i < featureValues.length) {
-                                    hoverText += `${feat}: ${featureValues[i]}<br>`;
-                                }
-                            });
-                            text.push(hoverText);
-                        }
-                    });
-                    
-                    if (x.length > 0) {
-                        // Colori diversi per ogni classe (palette predefinita)
-                        const colorScale = [
-                            'rgba(31, 119, 180, 0.7)',  // blu
-                            'rgba(255, 127, 14, 0.7)',  // arancione
-                            'rgba(44, 160, 44, 0.7)',   // verde
-                            'rgba(214, 39, 40, 0.7)',   // rosso
-                            'rgba(148, 103, 189, 0.7)', // viola
-                            'rgba(140, 86, 75, 0.7)',   // marrone
-                            'rgba(227, 119, 194, 0.7)', // rosa
-                            'rgba(127, 127, 127, 0.7)', // grigio
-                            'rgba(188, 189, 34, 0.7)',  // verde-giallo
-                            'rgba(23, 190, 207, 0.7)'   // ciano
-                        ];
-                        
-                        const colorIndex = idx % colorScale.length;
-                        
-                        const trace = {
-                            type: 'scatter3d',
-                            mode: 'markers',
-                            x: x,
-                            y: y,
-                            z: z,
-                            text: text,
-                            hoverinfo: 'text',
-                            name: className,
-                            marker: {
-                                size: 5,
-                                color: colorScale[colorIndex],
-                                opacity: 0.7,
-                                line: {
-                                    color: colorScale[colorIndex].replace('0.7', '1.0'),
-                                    width: 0.5
-                                }
-                            }
-                        };
-                        
-                        plotData.push(trace);
-                    }
-                });
-            }
-            
-            // Poi aggiungi il punto di previsione se disponibile
-            if (data.input_values && data.prediction) {
-                console.log('Aggiunta del punto di previsione');
-                
-                // Assicurati che ci siano almeno 3 valori per le coordinate
-                let input_values = [...data.input_values];
-                while (input_values.length < 3) {
-                    input_values.push(0); // Usa 0 come valore di default per le dimensioni mancanti
-                }
-                
-                // Crea una traccia per il punto di previsione
-                const trace = {
-                    type: 'scatter3d',
-                    mode: 'markers',
-                    x: [parseFloat(input_values[0])],
-                    y: [parseFloat(input_values[1])],
-                    z: [parseFloat(input_values[2])],
-                    text: [`Previsione: ${data.prediction}<br>${xFeature}: ${input_values[0]}<br>${yFeature}: ${input_values[1]}<br>${zFeature}: ${input_values[2]}`],
-                    hoverinfo: 'text',
-                    name: 'Previsione: ' + data.prediction,
-                    marker: {
-                        size: 12,
-                        symbol: 'circle',
-                        color: 'rgba(255, 0, 0, 1.0)',
-                        line: {
-                            color: 'rgb(255, 255, 255)',
-                            width: 2
-                        }
-                    }
-                };
-                
-                plotData.push(trace);
-            } else if (data.predictions && Array.isArray(data.predictions)) {
-                // Gestione multiple previsioni (se implementata)
-                console.log('Visualizzazione di multiple previsioni');
-            }
-            
-            // Configura il layout
-            const layout = {
-                title: 'Scatter Plot 3D dei dati',
-                scene: {
-                    xaxis: {title: xFeature},
-                    yaxis: {title: yFeature},
-                    zaxis: {title: zFeature}
-                },
-                margin: {l: 0, r: 0, b: 0, t: 30},
-                hovermode: 'closest',
-                legend: {
-                    x: 0,
-                    y: 1
-                },
-                autosize: true
-            };
-            
-            // Pulisci il container prima di creare un nuovo plot
-            document.getElementById('scatter3d-container').innerHTML = '';
-            
-            // Crea il plot principale
-            Plotly.newPlot('scatter3d-container', plotData, layout, {
-                responsive: true, 
-                displayModeBar: true,
-                modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
-                displaylogo: false
-            });
-            
-            console.log('Scatter plot 3D creato con successo');
-        } catch (error) {
-            console.error('Errore nella creazione dello scatter plot 3D:', error);
-            showToast('Errore nella creazione del grafico 3D: ' + error.message, 'error');
-        }
-    }).catch(error => {
-        console.error('Errore di caricamento Plotly:', error);
-        showToast('Impossibile creare il grafico: libreria di visualizzazione non disponibile', 'error');
-    });
-}
-
-// Funzione per mostrare lo scatter plot 3D a schermo intero nel modale
-function showChartModal() {
-    if (!lastChartData) {
-        showToast('Nessun dato disponibile per il grafico', 'warning');
-        return;
-    }
-    
-    // Mostra il modale
-    document.getElementById('chart-modal').classList.remove('hidden');
-    
-    // Utilizziamo la nostra funzione asincrona per assicurarci che Plotly sia caricato
-    loadPlotly().then(() => {
-        try {
-            // Prepara i dati per il plot esattamente come nella funzione principale
-            const features = lastChartData.features || [];
-            if (features.length < 3) {
-                showToast('Sono necessarie almeno 3 caratteristiche per una visualizzazione 3D completa. La visualizzazione sarà limitata.', 'warning');
-                
-                // Genera caratteristiche fittzie se necessario
-                while (features.length < 3) {
-                    features.push('Dimensione ' + (features.length + 1));
-                }
-            }
-            
-            const xFeature = features[0];
-            const yFeature = features[1];
-            const zFeature = features[2];
-            
-            // Crea un array di punti
-            let plotData = [];
-            
-            // Prima visualizza tutti i dati del CSV caricato
-            if (modelData && modelData.training_data && modelData.classes) {
-                console.log('Visualizzazione di tutti i dati del CSV caricato');
-                
-                // Raggruppa i punti per classe
-                const classes = {};
-                modelData.training_data.forEach(point => {
-                    const className = point.target || 'Sconosciuto';
-                    if (!classes[className]) {
-                        classes[className] = [];
-                    }
-                    classes[className].push(point);
-                });
-                
-                // Crea una traccia per ogni classe
-                Object.keys(classes).forEach((className, idx) => {
-                    const points = classes[className];
-                    
-                    const x = [];
-                    const y = [];
-                    const z = [];
-                    const text = [];
-                    
-                    points.forEach(point => {
-                        if (point.features && point.features.length >= 1) {
-                            // Assicurati che ci siano abbastanza dimensioni
-                            let featureValues = [...point.features];
-                            while (featureValues.length < 3) {
-                                featureValues.push(0);
-                            }
-                            
-                            x.push(parseFloat(featureValues[0]));
-                            y.push(parseFloat(featureValues[1]));
-                            z.push(parseFloat(featureValues[2]));
-                            
-                            let hoverText = `Classe: ${className}<br>`;
-                            features.slice(0, 3).forEach((feat, i) => {
-                                if (i < featureValues.length) {
-                                    hoverText += `${feat}: ${featureValues[i]}<br>`;
-                                }
-                            });
-                            text.push(hoverText);
-                        }
-                    });
-                    
-                    if (x.length > 0) {
-                        // Colori diversi per ogni classe (palette predefinita)
-                        const colorScale = [
-                            'rgba(31, 119, 180, 0.7)',  // blu
-                            'rgba(255, 127, 14, 0.7)',  // arancione
-                            'rgba(44, 160, 44, 0.7)',   // verde
-                            'rgba(214, 39, 40, 0.7)',   // rosso
-                            'rgba(148, 103, 189, 0.7)', // viola
-                            'rgba(140, 86, 75, 0.7)',   // marrone
-                            'rgba(227, 119, 194, 0.7)', // rosa
-                            'rgba(127, 127, 127, 0.7)', // grigio
-                            'rgba(188, 189, 34, 0.7)',  // verde-giallo
-                            'rgba(23, 190, 207, 0.7)'   // ciano
-                        ];
-                        
-                        const colorIndex = idx % colorScale.length;
-                        
-                        const trace = {
-                            type: 'scatter3d',
-                            mode: 'markers',
-                            x: x,
-                            y: y,
-                            z: z,
-                            text: text,
-                            hoverinfo: 'text',
-                            name: className,
-                            marker: {
-                                size: 5,
-                                color: colorScale[colorIndex],
-                                opacity: 0.7,
-                                line: {
-                                    color: colorScale[colorIndex].replace('0.7', '1.0'),
-                                    width: 0.5
-                                }
-                            }
-                        };
-                        
-                        plotData.push(trace);
-                    }
-                });
-            }
-            
-            // Poi aggiungi il punto di previsione se disponibile
-            if (lastChartData.input_values && lastChartData.prediction) {
-                console.log('Aggiunta del punto di previsione');
-                
-                // Assicurati che ci siano almeno 3 valori per le coordinate
-                let input_values = [...lastChartData.input_values];
-                while (input_values.length < 3) {
-                    input_values.push(0); // Usa 0 come valore di default per le dimensioni mancanti
-                }
-                
-                // Crea una traccia per il punto di previsione
-                const trace = {
-                    type: 'scatter3d',
-                    mode: 'markers',
-                    x: [parseFloat(input_values[0])],
-                    y: [parseFloat(input_values[1])],
-                    z: [parseFloat(input_values[2])],
-                    text: [`Previsione: ${lastChartData.prediction}<br>${xFeature}: ${input_values[0]}<br>${yFeature}: ${input_values[1]}<br>${zFeature}: ${input_values[2]}`],
-                    hoverinfo: 'text',
-                    name: 'Previsione: ' + lastChartData.prediction,
-                    marker: {
-                        size: 12,
-                        symbol: 'circle',
-                        color: 'rgba(255, 0, 0, 1.0)',
-                        line: {
-                            color: 'rgb(255, 255, 255)',
-                            width: 2
-                        }
-                    }
-                };
-                
-                plotData.push(trace);
-            } else if (lastChartData.predictions && Array.isArray(lastChartData.predictions)) {
-                // Gestione multiple previsioni (se implementata)
-                console.log('Visualizzazione di multiple previsioni');
-            }
-            
-            // Configura il layout
-            const layout = {
-                title: 'Scatter Plot 3D dei dati',
-                scene: {
-                    xaxis: {title: xFeature},
-                    yaxis: {title: yFeature},
-                    zaxis: {title: zFeature}
-                },
-                margin: {l: 0, r: 0, b: 0, t: 50},
-                hovermode: 'closest',
-                legend: {
-                    x: 0,
-                    y: 1
-                },
-                autosize: true
-            };
-            
-            // Pulisci il container prima di creare un nuovo plot
-            document.getElementById('modal-chart-container').innerHTML = '';
-            
-            // Crea il plot nel modale
-            Plotly.newPlot('modal-chart-container', plotData, layout, {
-                responsive: true, 
-                displayModeBar: true,
-                modeBarButtonsToRemove: ['sendDataToCloud'],
-                displaylogo: false
-            });
-            
-            console.log('Scatter plot 3D creato con successo nel modale');
-        } catch (error) {
-            console.error('Errore nella creazione dello scatter plot 3D nel modale:', error);
-            showToast('Errore nella creazione del grafico nel modale: ' + error.message, 'error');
-        }
-    }).catch(error => {
-        console.error('Errore di caricamento Plotly:', error);
-        showToast('Impossibile creare il grafico: libreria di visualizzazione non disponibile', 'error');
-    });
-}
-
-// Gestione del form di upload
-document.getElementById('upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    // Verifica se abbiamo un file o un dataset selezionato
-    const csvFile = document.getElementById('csv-file').files[0];
-    const exampleDataset = document.getElementById('example-dataset').value;
-    const datasetType = document.querySelector('input[name="dataset-type"]:checked').value;
-    
-    if ((datasetType === 'custom' && csvFile) || (datasetType === 'example' && exampleDataset)) {
-        // Procedi con l'addestramento
-        if (datasetType === 'custom') {
-            processDataset(csvFile);
-        } else {
-            // Per il dataset di esempio, il file è già stato creato nell'evento change
-            // Recuperiamo l'ultimo file creato
-            const response = await fetch(exampleDataset);
-            const csvText = await response.text();
-            const file = new File([csvText], 'dataset.csv', { type: 'text/csv' });
-            processDataset(file);
-        }
-    } else {
-        // Mostra un messaggio di errore
-        showToast('Errore: seleziona un dataset prima di addestrare il modello', 'error');
+// Chiudi il modale con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTreeModal();
     }
 });
 
-// Gestione del form di previsione
-document.getElementById('prediction-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!modelData) {
-        showToast('Errore: Carica e addestra prima un modello', 'error');
-        return;
-    }
-
-    const inputValues = {};
-    let isValid = true;
-
-    modelData.columns.forEach(column => {
-        const value = document.getElementById(column).value;
-        if (!value) {
-            showToast(`Inserisci un valore per ${column}`, 'warning');
-            isValid = false;
-            return;
+// Chiudi il modale quando si clicca fuori
+const treeModal = document.getElementById('tree-modal');
+if (treeModal) {
+    treeModal.addEventListener('click', function(e) {
+        if (e.target === treeModal) {
+            closeTreeModal();
         }
-        inputValues[column] = parseFloat(value);
     });
+}
 
-    if (!isValid) return;
+// Aggiungi gestore per la chiusura del modale del grafico
+const closeChartModalBtn = document.getElementById('close-chart-modal');
+if (closeChartModalBtn) {
+    closeChartModalBtn.addEventListener('click', function() {
+        document.getElementById('chart-modal').classList.add('hidden');
+    });
+}
 
-    try {
-        showToast('Calcolo della previsione...', 'info');
-        const response = await fetch('/predict-classification', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(inputValues)
-        });
-        const data = await response.json();
-
-        if (data.error) {
-            // Controlla se è un errore di campo mancante
-            if (data.error.startsWith('Errore: Inserisci un valore per')) {
-                showToast(data.error, 'warning');
-            } else {
-                showToast('Errore: ' + data.error, 'error');
-            }
-            throw new Error(data.error);
-        }
-
-        document.getElementById('result').classList.remove('hidden');
-        document.getElementById('prediction-result').textContent = data.prediction;
-        showToast(`Previsione calcolata: ${data.prediction}`, 'success');
-        
-        // Crea lo scatter plot 3D
-        createClassificationChart(data);
-    } catch (error) {
-        // Controlla se è un errore di campo mancante
-        if (error.message.startsWith('Errore: Inserisci un valore per')) {
-            showToast(error.message, 'warning');
-        } else {
-            showToast('Errore: ' + error.message, 'error');
-        }
+// Chiudi anche con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('chart-modal').classList.add('hidden');
     }
 });
 
-// Get the modal
-var modal = document.getElementById("treeModal");
-
-// Get the image and insert it inside the modal
-var modalImg = document.getElementById("modalTreeImage");
-
-// When the tree image is clicked, open the modal
-document.getElementById('treeImage').onclick = function(){
-  modal.style.display = "block";
-  modalImg.src = this.src;
-}
-
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() { 
-  modal.style.display = "none";
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-  if (event.target == modal) {
-    modal.style.display = "none";
-  }
-}
-
-// Funzione per mostrare l'albero decisionale
-function displayDecisionTree(imageData) {
-    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
-    const treeImgElements = [
-        document.getElementById('decision-tree-img'),
-        document.getElementById('treeImage')
-    ];
-    
-    const modalImgElements = [
-        document.getElementById('modal-tree-img'),
-        document.getElementById('modalTreeImage')
-    ];
-    
-    const placeholderElements = [
-        document.getElementById('tree-placeholder'),
-        document.getElementById('noTreeMessage')
-    ];
-    
-    // Crea la source dell'immagine
-    const imgSrc = 'data:image/png;base64,' + imageData;
-    
-    // Aggiorna tutte le possibili immagini dell'albero
-    treeImgElements.forEach(img => {
-        if (img) {
-            img.src = imgSrc;
-            img.style.display = 'block';
+// Chiudi quando si clicca fuori
+const chartModal = document.getElementById('chart-modal');
+if (chartModal) {
+    chartModal.addEventListener('click', function(e) {
+        if (e.target === chartModal) {
+            chartModal.classList.add('hidden');
         }
     });
-    
-    // Aggiorna tutte le possibili immagini del modale
-    modalImgElements.forEach(img => {
-        if (img) {
-            img.src = imgSrc;
-        }
-    });
-    
-    // Nascondi tutti i possibili placeholder
-    placeholderElements.forEach(placeholder => {
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
-    });
-    
-    // Rimuovi le notifiche di errore relative all'albero
-    removeTreeErrorNotifications();
-    
-    // Aggiungi funzione di click per aprire il modale
-    treeImgElements.forEach(img => {
-        if (img) {
-            img.onclick = showTreeModal;
-        }
-    });
-    
-    // Logging per debug
-    console.log('Albero decisionale visualizzato, placeholder nascosti');
-    
-    // Chiamata esplicita per nascondere il messaggio di errore
-    if (window.hideNoTreeMessage) {
-        window.hideNoTreeMessage();
-    }
-}
-
-// Funzione per rimuovere le notifiche di errore relative all'albero
-function removeTreeErrorNotifications() {
-    // Rimuovi eventuali notifiche di errore per l'albero
-    const notifications = document.querySelectorAll('.notification');
-    notifications.forEach(notification => {
-        const notificationText = notification.textContent || '';
-        if (notificationText.includes('albero') && notificationText.includes('disponibile')) {
-            notification.remove();
-        }
-    });
-}
-
-// Funzione per mostrare il modale dell'albero decisionale
-function showTreeModal() {
-    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
-    const modalElements = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    // Mostra tutti i possibili modali
-    modalElements.forEach(modal => {
-        if (modal) {
-            if (modal.classList) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.style.display = 'flex';
-            }
-        }
-    });
-    
-    console.log('Modale dell\'albero decisionale aperto');
-}
-
-// Funzione per chiudere il modale dell'albero decisionale
-function closeTreeModal() {
-    console.log('Tentativo di chiusura del modale dell\'albero decisionale');
-    
-    // Chiudi tutti i possibili modali dell'albero
-    const modals = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    modals.forEach(modal => {
-        if (modal) {
-            console.log('Chiusura modale:', modal.id);
-            
-            if (modal.classList) {
-                modal.classList.add('hidden');
-            }
-            
-            // Assicurati che il display sia impostato su 'none'
-            modal.style.display = 'none';
-        }
-    });
-    console.log('Chiusura del modale dell\'albero decisionale completata');
 }
 
 // IMPORTANTE: Inizializza i listener per il modale al caricamento della pagina
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM caricato, configurazione dei modali');
+    
+    // Setup del tutorial modal
+    const tutorialToggle = document.getElementById('tutorial-toggle');
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const tutorialClose = document.getElementById('tutorial-close');
+    const tutorialUnderstand = document.getElementById('tutorial-understand');
+    
+    if (tutorialToggle && tutorialModal) {
+        console.log('Configurazione degli eventi per il tutorial modal');
+        
+        // Apri il modal quando si clicca sul pulsante tutorial
+        tutorialToggle.addEventListener('click', function() {
+            tutorialModal.classList.remove('hidden');
+            tutorialModal.classList.add('flex');
+            
+            // Animazione di apertura
+            setTimeout(() => {
+                tutorialModal.style.opacity = '1';
+            }, 10);
+            
+            console.log('Tutorial modal aperto');
+        });
+        
+        // Chiudi il modal quando si clicca sul pulsante di chiusura
+        if (tutorialClose) {
+            tutorialClose.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+                
+                console.log('Tutorial modal chiuso dal pulsante X');
+            });
+        }
+        
+        // Chiudi il modal quando si clicca sul pulsante "Ho capito"
+        if (tutorialUnderstand) {
+            tutorialUnderstand.addEventListener('click', function() {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+                
+                console.log('Tutorial modal chiuso dal pulsante "Ho capito"');
+            });
+        }
+        
+        // Chiudi il modal quando si clicca all'esterno del contenuto
+        tutorialModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                tutorialModal.style.opacity = '0';
+                
+                setTimeout(() => {
+                    tutorialModal.classList.remove('flex');
+                    tutorialModal.classList.add('hidden');
+                }, 300);
+                
+                console.log('Tutorial modal chiuso cliccando fuori');
+            }
+        });
+    }
     
     // Setup del modale dello scatter plot 3D
     const chartModal = document.getElementById('chart-modal');
