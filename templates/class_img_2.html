@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Visione</h1>
+    
+    <!-- SVG per le connessioni Bezier -->
+    <svg id="connections-svg" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: -1; transition: all 0.3s ease;"></svg>
+    
+    <div class="mb-8">
+        <button onclick="addNewClass()" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Aggiungi Classe
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <!-- Colonna Sinistra - Classi -->
+        <div class="md:col-span-5">
+            <h2 class="text-xl font-semibold mb-4">Classi</h2>
+            <div id="classes-container" class="space-y-6 overflow-y-auto max-h-[calc(100vh-250px)]">
+                <!-- Le classi verranno aggiunte qui dinamicamente -->
+            </div>
+        </div>
+
+        <!-- Colonna Centrale - Train -->
+        <div class="md:col-span-2 flex flex-col items-center relative h-full">
+            <div id="train-button-container" class="absolute transition-all duration-300 -translate-x-1/2 left-1/2">
+                <button id="trainButton" onclick="startTraining()" disabled 
+                    class="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-all duration-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed whitespace-nowrap">
+                    TRAIN
+                </button>
+                <div id="training-status" class="mt-4 text-center text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <!-- Colonna Destra - Classificazione Realtime -->
+        <div class="md:col-span-5 bg-white rounded-lg shadow-lg p-4">
+            <h2 class="text-xl font-semibold mb-4">Classificazione Realtime</h2>
+            <div class="relative aspect-video mb-4">
+                <video id="realtime-video" class="w-full h-full object-cover rounded-lg" autoplay playsinline></video>
+            </div>
+            <div id="prediction-bars" class="space-y-2 overflow-y-auto" style="max-height: 300px;">
+                <!-- Le barre di predizione verranno aggiunte qui dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Console di log (collapsible) -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-900 shadow-lg transition-all duration-300" id="console-container">
+        <div class="flex justify-between items-center px-4 py-2 border-b border-gray-700 cursor-pointer" onclick="toggleConsole()">
+            <h2 class="text-white text-lg font-semibold">Console</h2>
+            <button class="text-white" id="console-toggle">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        <div id="console-content" class="px-4 py-2">
+            <div id="console-log" class="font-mono text-sm text-green-400 h-40 overflow-y-auto"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale di avviso -->
+<div id="alert-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+    <div class="fixed inset-0 bg-black opacity-50"></div>
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 z-10 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="alert-title" class="text-lg font-bold">Titolo Avviso</h3>
+            <button onclick="closeAlert()" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="alert-message" class="mb-6">Messaggio di avviso</div>
+        <div class="flex justify-end">
+            <button onclick="closeAlert()" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200">
+                Chiudi
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let classCounter = 0;
+const classes = new Map();
+
+// Funzioni per il modale di avviso
+function showAlert(title, message) {
+    const modal = document.getElementById('alert-modal');
+    const titleElement = document.getElementById('alert-title');
+    const messageElement = document.getElementById('alert-message');
+    
+    titleElement.textContent = title;
+    messageElement.innerHTML = message;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeAlert() {
+    const modal = document.getElementById('alert-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function addNewClass() {
+    // Controlla se abbiamo già raggiunto il limite massimo di 5 classi
+    if (classes.size >= 5) {
+        showAlert('Limite raggiunto', 'Non è possibile aggiungere più di 5 classi.');
+        return;
+    }
+    
+    const classId = `class-${classCounter++}`;
+    const classContainer = document.getElementById('classes-container');
+    
+    const classDiv = document.createElement('div');
+    classDiv.id = classId;
+    classDiv.className = 'bg-white rounded-lg shadow-lg p-4 mb-6';
+    classDiv.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+            <input type="text" placeholder="Nome Classe" 
+                class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200"
+                onchange="updateTrainButton()">
+            <button onclick="removeClass('${classId}')" class="text-red-600 hover:text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        <div class="flex items-center space-x-2 mb-3">
+            <button onclick="startCapture('${classId}')" class="bg-black text-white px-3 py-1 rounded hover:bg-gray-800 transition-all duration-200">
+                Start
+            </button>
+            <button onclick="stopCapture('${classId}')" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-all duration-200" disabled>
+                Stop
+            </button>
+            <span class="text-sm text-gray-600">Immagini: <span id="counter-${classId}">0</span>/100</span>
+        </div>
+        <div class="flex flex-row space-x-3">
+            <div class="w-1/2">
+                <video id="video-${classId}" class="w-full rounded-lg" autoplay playsinline></video>
+                <canvas id="canvas-${classId}" class="hidden"></canvas>
+            </div>
+            <div class="w-1/2">
+                <div id="preview-${classId}" class="grid grid-cols-3 gap-1 overflow-y-auto" style="max-height: 150px;"></div>
+            </div>
+        </div>
+    `;
+    
+    classContainer.appendChild(classDiv);
+    classes.set(classId, { images: [], isCapturing: false });
+    updateTrainButton();
+    
+    // Aggiorna le connessioni Bezier quando viene aggiunta una nuova classe
+    // Utilizziamo una serie di timeout per assicurarci che le connessioni rimangano sincronizzate
+    // durante e dopo le transizioni di layout
+    updateConnections();
+    for (let delay of [10, 50, 100, 200, 300, 500]) {
+        setTimeout(updateConnections, delay);
+    }
+}
+
+function removeClass(classId) {
+    const classDiv = document.querySelector(`#${classId}`);
+    if (classDiv) {
+        classDiv.remove();
+        classes.delete(classId);
+        updateTrainButton();
+        
+        // Aggiorna le connessioni quando viene rimossa una classe
+        // Utilizziamo una serie di timeout per catturare tutte le fasi del ricalcolo del layout
+        updateConnections();
+        for (let delay of [10, 50, 100, 200, 300, 500]) {
+            setTimeout(updateConnections, delay);
+        }
+    }
+}
+
+function updateTrainButton() {
+    const trainButton = document.getElementById('trainButton');
+    trainButton.disabled = classes.size < 2;
+    
+    // Aggiorna la posizione del bottone TRAIN e poi le connessioni
+    updateTrainButtonPosition();
+    
+    // Aggiorna le connessioni in più fasi per assicurarsi che rimangano sincronizzate
+    updateConnections();
+    for (let delay of [50, 150, 300]) {
+        setTimeout(updateConnections, delay);
+    }
+}
+
+async function startCapture(classId) {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.querySelector(`#video-${classId}`);
+        video.srcObject = stream;
+        
+        const startBtn = document.querySelector(`#${classId} button:first-of-type`);
+        const stopBtn = document.querySelector(`#${classId} button:nth-of-type(2)`);
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        
+        classes.get(classId).isCapturing = true;
+        classes.get(classId).stream = stream;
+        
+        captureFrames(classId);
+    } catch (err) {
+        console.error('Error accessing webcam:', err);
+        logToConsole('Errore: Impossibile accedere alla webcam');
+    }
+}
+
+function stopCapture(classId) {
+    const classData = classes.get(classId);
+    if (classData && classData.stream) {
+        classData.stream.getTracks().forEach(track => track.stop());
+        classData.isCapturing = false;
+        
+        const startBtn = document.querySelector(`#${classId} button:first-of-type`);
+        const stopBtn = document.querySelector(`#${classId} button:nth-of-type(2)`);
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+    }
+}
+
+function captureFrames(classId) {
+    const video = document.querySelector(`#video-${classId}`);
+    const canvas = document.querySelector(`#canvas-${classId}`);
+    const preview = document.querySelector(`#preview-${classId}`);
+    const counter = document.querySelector(`#counter-${classId}`);
+    const ctx = canvas.getContext('2d');
+    
+    function capture() {
+        if (!classes.get(classId).isCapturing) return;
+        
+        // Verifica se abbiamo raggiunto il limite di 100 immagini
+        if (classes.get(classId).images.length >= 100) {
+            stopCapture(classId);
+            showAlert('Limite raggiunto', 'Hai raggiunto il limite massimo di 100 immagini per questa classe.');
+            return;
+        }
+        
+        if (video.videoWidth) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            classes.get(classId).images.push(imageData);
+            
+            // Aggiorna il contatore
+            counter.textContent = classes.get(classId).images.length;
+            
+            // Aggiorna l'anteprima
+            const img = document.createElement('img');
+            img.src = imageData;
+            img.className = 'w-full h-auto rounded';
+            if (preview.children.length >= 15) {
+                preview.removeChild(preview.firstChild);
+            }
+            preview.appendChild(img);
+        }
+        
+        setTimeout(capture, 200); // Cattura 5 frame al secondo (ogni 200ms)
+    }
+    
+    // Inizia la cattura quando il video è pronto
+    if (video.readyState >= 2) {
+        capture();
+    } else {
+        video.onloadeddata = capture;
+    }
+}
+
+async function startTraining() {
+    const trainButton = document.getElementById('trainButton');
+    const trainingStatus = document.getElementById('training-status');
+    
+    if (classes.size < 2) {
+        showAlert('Dati insufficienti', 'Servono almeno 2 classi per il training.');
+        logToConsole('Errore: Servono almeno 2 classi per il training');
+        return;
+    }
+    
+    // Verifica che ogni classe abbia abbastanza immagini
+    let allClassesValid = true;
+    const minImagesRequired = 10;
+    let invalidClasses = [];
+    
+    classes.forEach((classData, classId) => {
+        const className = document.querySelector(`#${classId} input`).value;
+        if (classData.images.length < minImagesRequired) {
+            logToConsole(`Errore: La classe ${className} ha solo ${classData.images.length} immagini. Servono almeno ${minImagesRequired} immagini.`);
+            invalidClasses.push({
+                name: className,
+                count: classData.images.length
+            });
+            allClassesValid = false;
+        }
+    });
+    
+    if (!allClassesValid) {
+        let message = 'Le seguenti classi non hanno abbastanza immagini:<br>';
+        invalidClasses.forEach(cls => {
+            message += `- <strong>${cls.name}</strong>: ${cls.count}/${minImagesRequired} immagini<br>`;
+        });
+        message += '<br>Ogni classe deve avere almeno 10 immagini.';
+        
+        showAlert('Dati insufficienti', message);
+        return;
+    }
+    
+    trainButton.disabled = true;
+    trainingStatus.textContent = 'Training in corso...';
+    logToConsole('Avvio training del modello...');
+    
+    try {
+        // Prepara i dati per il training
+        const trainingData = [];
+        const labels = [];
+        const classLabels = [];
+        
+        // Raccoglie le etichette delle classi
+        classes.forEach((classData, classId) => {
+            const className = document.querySelector(`#${classId} input`).value;
+            classLabels.push(className);
+        });
+        
+        // Raccoglie le immagini e le etichette
+        let classIndex = 0;
+        classes.forEach((classData, classId) => {
+            classData.images.forEach(imageData => {
+                trainingData.push(imageData);
+                labels.push(classIndex);
+            });
+            classIndex++;
+        });
+        
+        // Invia i dati al server per il training
+        const response = await fetch('/api/train-image-classifier-v2', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                images: trainingData,
+                labels: labels,
+                classNames: classLabels
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            trainButton.disabled = false;
+            trainingStatus.textContent = 'Training completato!';
+            logToConsole('Training completato con successo!');
+            
+            // Salva l'ID del modello per la classificazione
+            window.modelId = result.modelId;
+            
+            // Avvia la classificazione realtime
+            startRealtimeClassification();
+        } else {
+            throw new Error(result.error || 'Errore durante il training');
+        }
+    } catch (error) {
+        trainButton.disabled = false;
+        trainingStatus.textContent = 'Errore durante il training';
+        logToConsole(`Errore: ${error.message}`);
+    }
+}
+
+async function startRealtimeClassification() {
+    const video = document.getElementById('realtime-video');
+    const predictionBars = document.getElementById('prediction-bars');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!window.modelId) {
+        logToConsole('Errore: Nessun modello disponibile per la classificazione');
+        return;
+    }
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        
+        // Aggiorna le barre di predizione
+        predictionBars.innerHTML = '';
+        const classLabels = [];
+        classes.forEach((_, classId) => {
+            const className = document.querySelector(`#${classId} input`).value;
+            classLabels.push(className);
+            predictionBars.innerHTML += `
+                <div class="flex items-center mb-2">
+                    <span class="w-24 text-sm font-medium">${className}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-6">
+                        <div id="pred-${className.replace(/\s+/g, '-')}" class="bg-black rounded-full h-6 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <span class="w-16 text-sm text-right font-bold" id="pred-value-${className.replace(/\s+/g, '-')}">0%</span>
+                </div>
+            `;
+        });
+        
+        // Funzione per la classificazione in tempo reale
+        async function classifyFrame() {
+            if (!video.videoWidth) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            try {
+                const response = await fetch('/api/predict-image-v2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        modelId: window.modelId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.predictions) {
+                    // Aggiorna le barre di predizione con i risultati reali
+                    result.predictions.forEach((prediction, index) => {
+                        const className = prediction.class;
+                        const confidence = prediction.confidence * 100;
+                        const barElement = document.querySelector(`#pred-${className.replace(/\s+/g, '-')}`);
+                        const valueElement = document.querySelector(`#pred-value-${className.replace(/\s+/g, '-')}`);
+                        
+                        if (barElement && valueElement) {
+                            barElement.style.width = `${confidence}%`;
+                            valueElement.textContent = `${confidence.toFixed(1)}%`;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error during classification:', error);
+            }
+            
+            // Continua la classificazione
+            requestAnimationFrame(classifyFrame);
+        }
+        
+        // Avvia la classificazione quando il video è pronto
+        video.onloadeddata = () => {
+            logToConsole('Avvio classificazione in tempo reale...');
+            classifyFrame();
+        };
+        
+    } catch (err) {
+        console.error('Error accessing webcam:', err);
+        logToConsole('Errore: Impossibile accedere alla webcam per la classificazione realtime');
+    }
+}
+
+function logToConsole(message) {
+    const consoleLog = document.getElementById('console-log');
+    const timestamp = new Date().toLocaleTimeString();
+    consoleLog.innerHTML += `[${timestamp}] ${message}<br>`;
+    consoleLog.scrollTop = consoleLog.scrollHeight;
+}
+
+function toggleConsole() {
+    const consoleContent = document.getElementById('console-content');
+    const consoleToggle = document.getElementById('console-toggle');
+    
+    if (consoleContent.style.display === 'none') {
+        consoleContent.style.display = 'block';
+        consoleToggle.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        `;
+    } else {
+        consoleContent.style.display = 'none';
+        consoleToggle.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+        `;
+    }
+}
+
+// Funzione per creare le connessioni Bezier
+function updateConnections() {
+    // Funzione per aggiornare le connessioni
+    function updateSVGConnections() {
+        const svg = document.getElementById('connections-svg');
+        if (!svg) return;
+        
+        // Pulisci il SVG
+        svg.innerHTML = '';
+        
+        // Ottieni gli elementi principali
+        const trainButton = document.getElementById('trainButton');
+        const classificationContainer = document.querySelector('.md\\:col-span-5.bg-white.rounded-lg.shadow-lg');
+        
+        if (!trainButton || !classificationContainer) return;
+        
+        // Recupera le posizioni relative al viewport
+        const svgRect = svg.getBoundingClientRect();
+        const trainRect = trainButton.getBoundingClientRect();
+        
+        // Calcolo preciso del centro del bottone TRAIN
+        const trainCenterX = trainRect.left + (trainRect.width / 2) - svgRect.left;
+        const trainCenterY = trainRect.top + (trainRect.height / 2) - svgRect.top;
+        
+        // Ottieni le coordinate del container di classificazione
+        const classRect = classificationContainer.getBoundingClientRect();
+        const classX = classRect.left - svgRect.left;
+        const classY = classRect.top + (classRect.height / 2) - svgRect.top;
+        
+        // Aggiungi un piccolo punto per verificare l'allineamento esatto al centro del bottone TRAIN
+        // Si può rimuovere una volta verificato che funziona
+        const trainCenter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        trainCenter.setAttribute('cx', trainCenterX);
+        trainCenter.setAttribute('cy', trainCenterY);
+        trainCenter.setAttribute('r', '2');
+        trainCenter.setAttribute('fill', 'rgba(255, 0, 0, 0.4)');
+        svg.appendChild(trainCenter);
+        
+        // Traccia la connessione dal bottone TRAIN alla classificazione
+        drawBezierConnection(
+            svg, 
+            trainCenterX, trainCenterY,
+            classX, classY,
+            'rgba(0, 0, 0, 0.3)', 
+            3, 
+            true, // con tratteggio
+            true // con freccia
+        );
+        
+        // Connetti ogni classe al bottone TRAIN
+        document.querySelectorAll('#classes-container > div').forEach(classDiv => {
+            const classDivRect = classDiv.getBoundingClientRect();
+            const classX = classDivRect.right - svgRect.left;
+            const classY = classDivRect.top + (classDivRect.height / 2) - svgRect.top;
+            
+            // Traccia la connessione dalla classe al bottone TRAIN
+            drawBezierConnection(
+                svg, 
+                classX, classY,
+                trainCenterX, trainCenterY, 
+                'rgba(0, 0, 0, 0.2)', 
+                2, 
+                false, // senza tratteggio
+                true  // con freccia
+            );
+        });
+    }
+    
+    // Funzione helper per disegnare una connessione Bezier
+    function drawBezierConnection(svg, x1, y1, x2, y2, color, strokeWidth, dashed, withArrow) {
+        // Calcola i punti di controllo della curva Bezier
+        const distance = Math.abs(x2 - x1) / 2;
+        
+        // Crea la connessione Bezier
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M${x1},${y1} C${x1 + distance},${y1} ${x2 - distance},${y2} ${x2},${y2}`);
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', strokeWidth);
+        path.setAttribute('fill', 'none');
+        
+        if (dashed) {
+            path.setAttribute('stroke-dasharray', '5,5');
+        }
+        
+        svg.appendChild(path);
+        
+        // Aggiungi la freccia se richiesta
+        if (withArrow) {
+            // Calcola la direzione della freccia
+            const isLeftToRight = x1 < x2;
+            const arrowSize = 10;
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            
+            if (isLeftToRight) {
+                // Freccia che punta a destra
+                arrow.setAttribute('points', `${x2},${y2} ${x2-arrowSize},${y2-arrowSize/2} ${x2-arrowSize},${y2+arrowSize/2}`);
+            } else {
+                // Freccia che punta a sinistra
+                arrow.setAttribute('points', `${x2},${y2} ${x2+arrowSize},${y2-arrowSize/2} ${x2+arrowSize},${y2+arrowSize/2}`);
+            }
+            
+            arrow.setAttribute('fill', color);
+            svg.appendChild(arrow);
+        }
+    }
+    
+    // Usa requestAnimationFrame per garantire che il DOM sia aggiornato
+    requestAnimationFrame(updateSVGConnections);
+}
+
+// Funzione per aggiornare la posizione verticale del bottone TRAIN
+function updateTrainButtonPosition() {
+    const classesContainer = document.getElementById('classes-container');
+    const trainButtonContainer = document.getElementById('train-button-container');
+    
+    if (classesContainer && trainButtonContainer) {
+        const containerHeight = classesContainer.offsetHeight;
+        const buttonHeight = trainButtonContainer.offsetHeight;
+        const newTop = Math.max(0, (containerHeight - buttonHeight) / 2);
+        
+        // Salviamo la posizione attuale per vedere se è cambiata
+        const currentTop = parseInt(trainButtonContainer.style.top) || 0;
+        
+        // Aggiorniamo la posizione solo se è effettivamente cambiata
+        if (Math.abs(currentTop - newTop) > 1) {
+            trainButtonContainer.style.top = `${newTop}px`;
+            
+            // Aggiornamento frequente delle connessioni per garantire la sincronizzazione
+            // durante le transizioni del CSS
+            updateConnections();
+            const delays = [10, 20, 30, 50, 100, 150, 200, 250, 300, 400, 500];
+            for (let delay of delays) {
+                setTimeout(updateConnections, delay);
+            }
+        }
+    }
+}
+
+// Osservatore per monitorare cambiamenti nel container delle classi
+const classesObserver = new MutationObserver(updateTrainButtonPosition);
+
+// Inizializza la pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostra la console all'inizio
+    logToConsole('Sistema inizializzato con due classi vuote.');
+    
+    // Inizializza la console
+    toggleConsole();
+    
+    // Inizializza con due classi vuote
+    addNewClass();
+    addNewClass();
+    
+    // Configura l'osservatore per il container delle classi
+    const classesContainer = document.getElementById('classes-container');
+    classesObserver.observe(classesContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+    });
+    
+    // Aggiunge un secondo observer specifico per monitorare le dimensioni
+    const resizeObserver = new ResizeObserver(entries => {
+        // Quando le dimensioni cambiano, aggiorniamo posizione e connessioni
+        updateTrainButtonPosition();
+        // Multipli updateConnections con delay per catturare tutte le fasi delle animazioni
+        updateConnections();
+        for (let delay of [50, 100, 200, 300, 500]) {
+            setTimeout(updateConnections, delay);
+        }
+    });
+    
+    // Osserva il container delle classi per cambiamenti di dimensione
+    resizeObserver.observe(classesContainer);
+    
+    // Posiziona inizialmente il bottone TRAIN e aggiorna le connessioni
+    setTimeout(() => {
+        updateTrainButtonPosition();
+        updateConnections();
+    }, 100);
+    
+    // Aggiorna nuovamente dopo che la pagina è completamente caricata
+    setTimeout(() => {
+        updateTrainButtonPosition();
+        updateConnections();
+    }, 500);
+    
+    // Funzione per ottimizzare gli eventi di resize (debounce)
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+    
+    // Aggiorna le connessioni e la posizione del bottone quando la finestra viene ridimensionata
+    window.addEventListener('resize', debounce(() => {
+        updateTrainButtonPosition();
+        // Aggiorna le connessioni più volte per catturare tutte le fasi del ricalcolo
+        updateConnections();
+        for (let delay of [50, 100, 200, 300]) {
+            setTimeout(updateConnections, delay);
+        }
+    }, 50));
+    
+    // Aggiornamento periodico delle connessioni
+    setInterval(updateConnections, 1000);
+});
+</script>
+{% endblock %}

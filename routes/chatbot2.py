@@ -128,6 +128,32 @@ def delete_chat(chat_id):
         if conn:
             conn.close()
 
+@chatbot2.route('/api/chats', methods=['DELETE'])
+def delete_all_chats():
+    conn = None
+    try:
+        conn = sqlite3.connect('database.sqlite')
+        c = conn.cursor()
+        
+        # Delete all chat messages
+        c.execute('DELETE FROM chatbot2_messages')
+        
+        # Delete all chat settings
+        c.execute('DELETE FROM chatbot2_settings')
+        
+        # Delete all chats
+        c.execute('DELETE FROM chatbot2_chats')
+        
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @chatbot2.route('/api/chat/<int:chat_id>')
 def get_chat(chat_id):
     conn = sqlite3.connect('database.sqlite')

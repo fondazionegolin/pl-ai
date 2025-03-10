@@ -7,6 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -26,6 +29,12 @@
             color: #4B5563;  /* Grigio più chiaro per i sottotitoli */
             font-weight: 400;
             line-height: 1.6;
+        }
+
+        /* Stili per il logo */
+        .logo-mobile {
+            height: 2.5rem;
+            width: auto;
         }
 
         /* Stili per i contenitori */
@@ -48,7 +57,7 @@
 
         /* Import font squadrato */
         @font-face {
-            font-family: 'ZeroSans';
+            font-family: 'Fira Sans';
             src: url('/static/fonts/ZeroSANS_DEMO.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
@@ -59,46 +68,14 @@
             background: transparent;
         }
 
-        /* Stili per il logo */
-        .logo-text {
-            font-family: 'ZeroSans', sans-serif;
-            font-weight: normal;
-            font-size: 2.5rem;
-            color: #000;
-            letter-spacing: 0;
-            line-height: 0.9;
-            margin-right: 0.25rem;
-        }
 
-        @media (max-width: 640px) {
-            .logo-text {
-                font-size: 1.75rem;
-            }
-        }
-
-        /* Stili per il payoff */
-        .payoff-text {
-            font-family: 'ZeroSans', sans-serif;
-            font-size: 1rem;
-            color: #000;
-            margin-left: 1rem;
-            font-weight: normal;
-            letter-spacing: 0.02em;
-        }
-
-        @media (max-width: 640px) {
-            .payoff-text {
-                font-size: 0.8rem;
-                margin-left: 0.5rem;
-            }
-        }
 
         /* Stili per i link della navbar */
         .nav-link {
-            font-family: 'ZeroSans', sans-serif;
-            font-size: 1rem !important;
-            font-weight: normal !important;
-            color: #000;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.9rem !important;
+            font-weight: bold !important;
+            color: #363636;
             padding: 0.55rem 1rem;
             position: relative;
             transition: all 0.3s ease;
@@ -154,9 +131,21 @@
 
         /* Input file personalizzato */
         input[type="file"] {
-            @apply file:mr-4 file:py-2 file:px-4 file:rounded-[20px] file:border-0 
-            file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer;
+            cursor: pointer;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: rgb(238, 242, 255);
+            color: rgb(67, 56, 202);
+            cursor: pointer;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: rgb(224, 231, 255);
         }
 
         /* Stili per i bottoni */
@@ -227,27 +216,29 @@
     <!-- Navbar -->
     <nav class="navbar-gradient py-8 mb-12">
         <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-            <div class="flex justify-between items-center gap-12">
-                <div class="flex items-center space-x-3 flex-shrink-0">
-                    <a href="/" class="flex items-center hover:opacity-80 transition-opacity duration-300">
-                        <span class="logo-text">PL-AI</span>
-                        <span class="payoff-text">AI Playground</span>
+            <div class="grid grid-cols-12 items-center w-full">
+                <!-- Logo container - occupa 3 colonne e ha spazio dedicato -->
+                <div class="col-span-3 pr-4 md:col-span-3 sm:col-span-6 xs:col-span-9">
+                    <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
+                        <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-12 w-auto" style="max-width: 100%;">
                     </a>
                 </div>
-                <div class="hidden sm:flex items-center flex-1 justify-end">
-                    <div class="flex items-center gap-2">
+                <!-- Menu di navigazione - occupa le restanti 9 colonne su desktop, nascosto su mobile -->
+                <div class="col-span-9 md:flex justify-end hidden md:visible">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
                         <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
                         <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">Dati</a>
-                        <a href="/classificazione-immagini" class="nav-link {% if request.path == '/classificazione-immagini' %}active{% endif %}">Immagini</a>
-                        <a href="/chatbot2" class="nav-link {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot 2.0</a>
+                        <a href="/chatbot2" class="nav-link {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot </a>
                         <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione</a>
+                        <a href="/class_img_2" class="nav-link {% if request.path == '/class_img_2' %}active{% endif %}">Visione</a>
                     </div>
                 </div>
-                <div class="-mr-2 flex items-center sm:hidden">
-                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2.5 rounded-md text-black hover:bg-black hover:text-white focus:outline-none transition-all duration-300">
+                <!-- Three dot menu button per dispositivi mobili -->
+                <div class="col-span-0 md:col-span-0 sm:col-span-6 xs:col-span-3 flex items-center justify-end">
+                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2.5 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 md:hidden">
                         <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                         </svg>
                     </button>
                 </div>
@@ -255,14 +246,17 @@
         </div>
 
         <!-- Mobile menu -->
-        <div class="mobile-menu sm:hidden hidden bg-white" id="mobile-menu">
+        <div class="mobile-menu md:hidden hidden bg-white shadow-lg rounded-lg absolute right-4 mt-2 w-48 z-50" id="mobile-menu">
+            <div class="p-4 border-b">
+                <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-8 mx-auto">
+            </div>
             <div class="p-3 space-y-1.5">
-                <a href="/" class="nav-link block w-full text-center {% if request.path == '/' %}active{% endif %}">Home</a>
-                <a href="/regressione" class="nav-link block w-full text-center {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
-                <a href="/classificazione" class="nav-link block w-full text-center {% if request.path == '/classificazione' %}active{% endif %}">Dati</a>
-                <a href="/classificazione-immagini" class="nav-link block w-full text-center {% if request.path == '/classificazione-immagini' %}active{% endif %}">Immagini</a>
-                <a href="/chatbot2" class="nav-link block w-full text-center {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot 2.0</a>
-                <a href="/generazione-immagini" class="nav-link block w-full text-center {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione</a>
+                <a href="/" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/' %}active{% endif %}">Home</a>
+                <a href="/regressione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
+                <a href="/classificazione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/classificazione' %}active{% endif %}">Dati</a>
+                <a href="/class_img_2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/class_img_2' %}active{% endif %}">Visione</a>
+                <a href="/chatbot2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot</a>
+                <a href="/generazione-immagini" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione</a>
             </div>
         </div>
     </nav>
@@ -283,11 +277,50 @@
             
             // Toggle button appearance
             if (!isOpen) {
-                button.classList.add('bg-black', 'text-white');
+                button.classList.add('bg-gray-100');
             } else {
-                button.classList.remove('bg-black', 'text-white');
+                button.classList.remove('bg-gray-100');
+            }
+            
+            // Chiudi il menu quando si fa clic all'esterno
+            if (!isOpen) {
+                document.addEventListener('click', closeMenuOutside);
+            } else {
+                document.removeEventListener('click', closeMenuOutside);
             }
         }
+        
+        function closeMenuOutside(event) {
+            const menu = document.getElementById('mobile-menu');
+            const button = document.querySelector('button[onclick="toggleMobileMenu()"]');
+            
+            if (!menu.contains(event.target) && !button.contains(event.target)) {
+                menu.classList.add('hidden');
+                button.classList.remove('bg-gray-100');
+                document.removeEventListener('click', closeMenuOutside);
+            }
+        }
+        
+        // Gestione responsive per orientamento portrait
+        function handleOrientationChange() {
+            const mediaQuery = window.matchMedia('(orientation: portrait) and (max-width: 768px)');
+            const desktopMenu = document.querySelector('.col-span-9.md\\:flex');
+            const mobileButton = document.querySelector('button[onclick="toggleMobileMenu()"]').parentElement;
+            
+            if (mediaQuery.matches) {
+                // Portrait mode on mobile/tablet
+                if (desktopMenu) desktopMenu.classList.add('hidden');
+                if (mobileButton) mobileButton.classList.remove('hidden');
+            } else {
+                // Landscape or desktop
+                if (desktopMenu) desktopMenu.classList.remove('hidden');
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+        }
+        
+        // Esegui al caricamento e ad ogni cambio di orientamento
+        window.addEventListener('load', handleOrientationChange);
+        window.addEventListener('resize', handleOrientationChange);
     </script>
 </body>
 </html>
