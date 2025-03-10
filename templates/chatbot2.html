@@ -1,0 +1,1010 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Add Marked.js for Markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<!-- Add Highlight.js for code syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<div class="container mx-auto p-4">
+    <div class="w-[1200px] h-[800px] mx-auto bg-white rounded-lg shadow-lg flex flex-col">
+        <!-- Header con menu a tendina -->
+        <div class="flex gap-4 p-4 bg-gray-50 rounded-t-lg border-b">
+            <div class="flex-1">
+                <select id="grade-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Grado scolastico</option>
+                    <option value="sec1">Scuola Sec. I grado</option>
+                    <option value="sec2-biennio">Scuola Sec. II grado - Biennio</option>
+                    <option value="sec2-triennio">Scuola Sec. II grado - Triennio</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="mode-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Modalità</option>
+                    <option value="interrogazione">Modalità Interrogazione</option>
+                    <option value="interazione">Modalità Interazione</option>
+                    <option value="intervista">Modalità Intervista Impossibile</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="subject-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Argomento</option>
+                    <option value="ai">AI</option>
+                    <option value="scienze">Scienze</option>
+                    <option value="storia">Storia</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="model-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Modello AI</option>
+                    <option value="gpt4o-mini">GPT-4 O Mini</option>
+                    <option value="o3-mini">O3 Mini</option>
+                    <option value="o3-mini-reasoning">O3 Mini con Ragionamento</option>
+                    <option value="gemini">Gemini Flash</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Context Area -->
+        <div class="p-4 bg-gray-50 border-b">
+            <div class="flex gap-2">
+                <textarea id="context-input" 
+                          class="flex-1 p-2 border rounded resize-none bg-white" 
+                          rows="3" 
+                          placeholder="Descrivi la personalità del bot e il modo in cui dovrà esserti utile...."></textarea>
+                <button onclick="submitContext()" 
+                        class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 self-end">
+                    Inizia
+                </button>
+            </div>
+            <div id="interview-questions" class="mt-3 hidden">
+                <div class="text-sm text-gray-600 mb-2">Per l'intervista impossibile, rispondi a queste domande:</div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Quale personaggio vuoi che interpreti?</label>
+                        <input type="text" id="character-input" class="mt-1 p-2 w-full border rounded bg-white">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="historical-accuracy" class="mr-2">
+                            <label class="text-sm text-gray-700">Comportamento storico accurato</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="period-language" class="mr-2">
+                            <label class="text-sm text-gray-700">Linguaggio d'epoca</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Chat History Sidebar -->
+            <div class="w-1/4 border-r bg-gray-50 flex flex-col">
+                <div class="p-3 border-b space-y-2">
+                    <button onclick="startNewChat()" 
+                            class="w-full px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
+                        Nuova Chat
+                    </button>
+                    <button onclick="clearAllChats()" 
+                            class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        Elimina Tutto
+                    </button>
+                </div>
+                <div id="chat-history" class="flex-1 overflow-y-auto">
+                    <!-- Chat history items will be populated here -->
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="flex-1 flex flex-col">
+                <!-- Messages Container -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will be populated here -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 border-t bg-white">
+                    <div class="flex gap-2">
+                        <textarea id="message-input" 
+                                  class="flex-1 p-2 border rounded resize-none"
+                                  placeholder="Finestra di input: >"
+                                  rows="1"></textarea>
+                        <button onclick="downloadChat()" 
+                                class="px-3 py-2 bg-black text-white rounded hover:bg-gray-800 flex items-center justify-center"
+                                title="Scarica chat">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <button onclick="sendMessage()" 
+                                class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
+                            Invia
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Message Styling */
+    .message {
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
+        max-width: 80%;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    /* Markdown Styling */
+    .bot-message h1,
+    .bot-message h2,
+    .bot-message h3,
+    .bot-message h4,
+    .bot-message h5,
+    .bot-message h6 {
+        margin-top: 16px;
+        margin-bottom: 8px;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+
+    .bot-message h1 { font-size: 1.5em; }
+    .bot-message h2 { font-size: 1.3em; }
+    .bot-message h3 { font-size: 1.1em; }
+
+    .bot-message p {
+        margin: 8px 0;
+    }
+
+    .bot-message ul,
+    .bot-message ol {
+        margin: 8px 0;
+        padding-left: 24px;
+    }
+
+    .bot-message li {
+        margin: 4px 0;
+    }
+
+    .bot-message code {
+        padding: 2px 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .bot-message pre {
+        margin: 8px 0;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    .bot-message pre code {
+        padding: 0;
+        background: transparent;
+    }
+
+    .bot-message a {
+        color: #58a6ff;
+        text-decoration: none;
+    }
+
+    .bot-message a:hover {
+        text-decoration: underline;
+    }
+
+    .bot-message blockquote {
+        margin: 8px 0;
+        padding-left: 12px;
+        border-left: 3px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .user-message {
+        background: #f3f4f6;
+        margin-left: auto;
+    }
+
+    .bot-message {
+        background: #000;
+        color: #fff;
+        margin-right: auto;
+    }
+
+    /* Loading Animation */
+    .loading-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 12px 16px;
+        background: #000;
+        border-radius: 8px;
+        margin: 8px 0;
+        margin-right: auto;
+        max-width: 80px;
+    }
+
+    .loading-dots span {
+        width: 6px;
+        height: 6px;
+        background: #fff;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+        opacity: 0.7;
+    }
+
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+
+    /* Scrollbar Styling */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Message Styling */
+    .message {
+        max-width: 80%;
+        padding: 1rem;
+        border-radius: 1rem;
+        margin: 0.5rem 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        line-height: 1.5;
+    }
+
+    .user-message {
+        background-color: #e2e8f0;
+        margin-left: auto;
+        color: #1a202c;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .bot-message {
+        background-color: #f8fafc;
+        margin-right: auto;
+        color: #2d3748;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Chat History Item Styling */
+    .chat-history-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .chat-history-item:hover {
+        background-color: #f8fafc;
+    }
+
+    .chat-history-item.active {
+        background-color: #e2e8f0;
+        font-weight: 500;
+    }
+
+    /* Loading and Error Messages */
+    .loading-message {
+        text-align: center;
+        padding: 2rem;
+        color: #4a5568;
+        font-style: italic;
+    }
+
+    .error-message {
+        text-align: center;
+        padding: 2rem;
+        color: #e53e3e;
+        background-color: #fff5f5;
+        border: 1px solid #fc8181;
+        border-radius: 0.5rem;
+        margin: 1rem;
+    }
+</style>
+
+<script>
+    let currentChatId = null;
+    let chatMessages = [];
+
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        loadChatHistory();
+        setupEventListeners();
+        // Disable message input initially
+        document.getElementById('message-input').disabled = true;
+        // Enable context input
+        document.getElementById('context-input').disabled = false;
+    });
+
+    function setupEventListeners() {
+        // Handle enter key in message input
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Handle enter key in context input
+        const contextInput = document.getElementById('context-input');
+        if (contextInput) {
+            contextInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitContext(e);
+                }
+            });
+
+            // Clean up pasted text
+            contextInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const cleaned = text.replace(/[\r\n]+/g, ' ').trim();
+                document.execCommand('insertText', false, cleaned);
+            });
+        }
+
+        // Handle mode selection change
+        const modeSelect = document.getElementById('mode-select');
+        if (modeSelect) {
+            modeSelect.addEventListener('change', function() {
+                const contextInput = document.getElementById('context-input');
+                const messageInput = document.getElementById('message-input');
+                const interviewQuestions = document.getElementById('interview-questions');
+                
+                if (this.value === 'interrogazione') {
+                    contextInput.placeholder = 'Descrivi l\'argomento specifico su cui vuoi essere interrogato...';
+                    messageInput.disabled = true;
+                    contextInput.disabled = false;
+                    interviewQuestions.classList.add('hidden');
+                } else if (this.value === 'intervista') {
+                    contextInput.placeholder = 'Informazioni aggiuntive sul personaggio e il contesto storico (opzionale)...';
+                    messageInput.disabled = true;
+                    contextInput.disabled = false;
+                    interviewQuestions.classList.remove('hidden');
+                } else {
+                    contextInput.placeholder = 'Descrivi la personalità del bot e il modo in cui dovrà esserti utile....';
+                    messageInput.disabled = true;
+                    contextInput.disabled = false;
+                    interviewQuestions.classList.add('hidden');
+                }
+            });
+        }
+
+        // Handle submit context button
+        const submitButton = document.querySelector('button[onclick="submitContext()"]');
+        if (submitButton) {
+            submitButton.removeAttribute('onclick');
+            submitButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitContext(e);
+            });
+        }
+
+        // Handle send message button
+        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+        if (sendButton) {
+            sendButton.removeAttribute('onclick');
+            sendButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                sendMessage();
+            });
+        }
+
+        // Handle model change
+        const modelSelect = document.getElementById('model-select');
+        if (modelSelect) {
+            modelSelect.addEventListener('change', function(e) {
+                updateModel(e.target.value);
+            });
+        }
+    }
+
+    async function loadChatHistory() {
+        try {
+            const response = await fetch('/api/chat-history');
+            const history = await response.json();
+            updateChatHistoryUI(history);
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+        }
+    }
+
+    function updateChatHistoryUI(history) {
+        const container = document.getElementById('chat-history');
+        container.innerHTML = '';
+
+        history.forEach(chat => {
+            const div = document.createElement('div');
+            div.className = `chat-history-item ${chat.id === currentChatId ? 'active' : ''} flex justify-between items-center p-2 hover:bg-gray-100`;
+            
+            // Chat title
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'flex-1 cursor-pointer';
+            titleSpan.textContent = chat.title || 'New Chat';
+            titleSpan.onclick = () => loadChat(chat.id);
+            
+            // Delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'ml-2 p-1 bg-black rounded hover:bg-gray-800';
+            deleteButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>`;
+            deleteButton.onclick = (e) => {
+                e.stopPropagation();
+                deleteChat(chat.id);
+            };
+            
+            div.appendChild(titleSpan);
+            div.appendChild(deleteButton);
+            container.appendChild(div);
+        });
+    }
+
+    async function submitContext(event) {
+        if (event) {
+            event.preventDefault();
+        }
+
+        let inputs = [];
+        let startButton = null;
+        
+        try {
+            const contextInput = document.getElementById('context-input');
+            const modeSelect = document.getElementById('mode-select');
+            const messageInput = document.getElementById('message-input');
+            
+            // Special handling for interview mode
+            if (modeSelect?.value === 'intervista') {
+                const character = document.getElementById('character-input')?.value?.trim();
+                if (!character) {
+                    alert('Per favore, specifica il personaggio da interpretare.');
+                    return;
+                }
+
+                const historicalAccuracy = document.getElementById('historical-accuracy').checked;
+                const periodLanguage = document.getElementById('period-language').checked;
+                
+                // Build context for interview mode
+                let interviewContext = `Interpreta il personaggio storico: ${character}.\n`;
+                if (historicalAccuracy) {
+                    interviewContext += 'Mantieni un comportamento accurato al periodo storico.\n';
+                }
+                if (periodLanguage) {
+                    interviewContext += 'Usa un linguaggio tipico dell\'epoca.\n';
+                }
+
+                // Add any additional context
+                const additionalContext = contextInput?.value?.trim();
+                if (additionalContext) {
+                    interviewContext += '\nInformazioni aggiuntive:\n' + additionalContext;
+                }
+
+                contextInput.value = interviewContext;
+            } else {
+                const context = contextInput?.value?.trim() || '';
+                if (!context) {
+                    if (modeSelect?.value === 'interrogazione') {
+                        alert('Per favore inserisci l\'argomento su cui vuoi essere interrogato.');
+                    } else {
+                        alert('Per favore descrivi la personalità del bot.');
+                    }
+                    return;
+                }
+            }
+
+            const gradeSelect = document.getElementById('grade-select');
+            const subjectSelect = document.getElementById('subject-select');
+            const modelSelect = document.getElementById('model-select');
+            startButton = document.querySelector('button[onclick="submitContext()"]');
+
+            // Validate all required fields
+            if (!gradeSelect?.value || !modeSelect?.value || !subjectSelect?.value || !modelSelect?.value) {
+                alert('Per favore seleziona tutte le opzioni prima di iniziare.');
+                return;
+            }
+
+            // Add loading animation to chat messages
+            const messagesContainer = document.getElementById('chat-messages');
+            if (messagesContainer) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'loading-dots';
+                loadingDiv.innerHTML = '<span></span><span></span><span></span>';
+                messagesContainer.appendChild(loadingDiv);
+                // Scroll to loading animation
+                loadingDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+
+            // Disable inputs while processing
+            inputs = [contextInput, gradeSelect, modeSelect, subjectSelect, modelSelect].filter(Boolean);
+            inputs.forEach(input => input.disabled = true);
+            if (startButton) startButton.disabled = true;
+
+            let data;
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: modeSelect.value === 'interrogazione' ? 'START_INTERROGATION' :
+                               modeSelect.value === 'intervista' ? 'START_INTERVIEW' : contextInput.value,
+                        context: {
+                            grade: gradeSelect.value,
+                            mode: modeSelect.value,
+                            subject: subjectSelect.value,
+                            model: modelSelect.value,
+                            systemPrompt: modeSelect.value === 'interrogazione' ?
+                                `Sei un insegnante di ${subjectSelect.value} che sta conducendo un\'interrogazione. L\'argomento è: ${contextInput.value}. Fai domande appropriate per il livello scolastico ${gradeSelect.value}. Dopo ogni risposta dell\'utente, fornisci un feedback costruttivo, correggendo eventuali errori e incoraggiando l\'apprendimento. Poi procedi con una nuova domanda.` :
+                                modeSelect.value === 'intervista' ?
+                                    `Sei un chatbot che interpreta un personaggio storico in un\'intervista impossibile. ${contextInput.value}. Mantieni sempre il carattere e la personalità del personaggio nelle tue risposte, tenendo conto del grado scolastico ${gradeSelect.value} e dell\'argomento ${subjectSelect.value}. Rispondi in modo coinvolgente e educativo, mantenendo la coerenza storica.` :
+                                    contextInput.value
+                        },
+                        chatId: currentChatId
+                    })
+                });
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La risposta del server non è in formato JSON');
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (errorData.error && errorData.error.includes('Claude API Error')) {
+                        throw new Error('Il modello Claude non è al momento disponibile. Prova a selezionare un altro modello.');
+                    } else {
+                        throw new Error(errorData.error || `Errore del server: ${response.status}`);
+                    }
+                }
+
+                data = await response.json();
+                if (!data || !data.response) {
+                    throw new Error('Risposta non valida dal server');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (error.message.includes('Claude API Error') || error.message.includes('Claude non è al momento disponibile')) {
+                    // Switch to GPT-4 automatically
+                    const modelSelect = document.getElementById('model-select');
+                    if (modelSelect) {
+                        modelSelect.value = 'gpt4';
+                        throw new Error('Il modello Claude non è disponibile. Passaggio automatico a GPT-4. Riprova.');
+                    }
+                }
+                throw error;
+            }
+
+            // Enable message input and disable context input
+            if (messageInput) messageInput.disabled = false;
+            if (contextInput) contextInput.disabled = true;
+            if (startButton) startButton.style.display = 'none';
+
+            // Remove loading animation
+            const loadingDots = document.querySelector('.loading-dots');
+            if (loadingDots) loadingDots.remove();
+
+            // Update UI with bot's response
+            if (data.response) {
+                addMessageToUI('bot', data.response);
+            }
+            
+            // Update chat ID if new chat
+            if (data.chatId) {
+                currentChatId = data.chatId;
+                await loadChatHistory();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            // Remove loading animation on error
+            const loadingDots = document.querySelector('.loading-dots');
+            if (loadingDots) loadingDots.remove();
+
+            addMessageToUI('error', 'Si è verificato un errore: ' + error.message);
+            
+            // Re-enable inputs on error
+            if (inputs.length) {
+                inputs.forEach(input => {
+                    if (input) input.disabled = false;
+                });
+            }
+            if (startButton) startButton.disabled = false;
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('message-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        try {
+            // Disable input and button while sending
+            input.disabled = true;
+            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            const downloadButton = document.querySelector('button[onclick="downloadChat()"]');
+            if (sendButton) sendButton.disabled = true;
+            if (downloadButton) downloadButton.disabled = true;
+
+            // Add user message to UI
+            addMessageToUI('user', message);
+            input.value = '';
+
+            // Add loading animation
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-dots';
+            loadingDiv.innerHTML = '<span></span><span></span><span></span>';
+            document.getElementById('chat-messages').appendChild(loadingDiv);
+
+            // Get current context and settings
+            const context = {
+                grade: document.getElementById('grade-select')?.value || '',
+                mode: document.getElementById('mode-select')?.value || '',
+                subject: document.getElementById('subject-select')?.value || '',
+                model: document.getElementById('model-select')?.value || 'gpt4',
+                systemPrompt: document.getElementById('context-input')?.value || ''
+            };
+
+            console.log('Sending request with:', { message, context, chatId: currentChatId });
+
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    context: context,
+                    chatId: currentChatId
+                })
+            });
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server response was not JSON');
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            addMessageToUI('bot', data.response);
+            
+            // Update chat history if this is a new chat
+            if (data.chatId !== currentChatId) {
+                currentChatId = data.chatId;
+                await loadChatHistory();
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            addMessageToUI('bot', `Si è verificato un errore: ${error.message}`);
+        } finally {
+            // Remove loading animation and re-enable inputs
+            const loadingDots = document.querySelector('.loading-dots');
+            if (loadingDots) loadingDots.remove();
+
+            input.disabled = false;
+            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            const downloadButton = document.querySelector('button[onclick="downloadChat()"]');
+            if (sendButton) sendButton.disabled = false;
+            if (downloadButton) downloadButton.disabled = false;
+            input.focus();
+        }
+    }
+
+    function addMessageToUI(role, content) {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+
+        // Remove any existing loading animation if adding a bot message
+        if (role === 'bot') {
+            const loadingDots = container.querySelector('.loading-dots');
+            if (loadingDots) loadingDots.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}-message`;
+        
+        if (role === 'bot') {
+            // Parse markdown for bot messages
+            marked.setOptions({
+                highlight: function(code, language) {
+                    if (language && hljs.getLanguage(language)) {
+                        try {
+                            return hljs.highlight(code, { language }).value;
+                        } catch (err) {}
+                    }
+                    return code;
+                },
+                breaks: true,
+                gfm: true
+            });
+            messageDiv.innerHTML = marked.parse(content);
+        } else {
+            // For user messages, just handle basic formatting
+            const formattedContent = content
+                .replace(/\n/g, '<br>')
+                .replace(/\s{2,}/g, ' &nbsp;');
+            messageDiv.innerHTML = formattedContent;
+        }
+        
+        container.appendChild(messageDiv);
+        
+        // Apply syntax highlighting to code blocks
+        if (role === 'bot') {
+            messageDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        }
+        
+        // Smooth scroll to the latest message
+        setTimeout(() => {
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
+    }
+
+    async function updateModel(model) {
+        // Handle model change logic here
+        console.log('Model changed to:', model);
+    }
+
+    function startNewChat() {
+        // Reset all select elements
+        const selects = ['grade-select', 'mode-select', 'subject-select', 'model-select'];
+        selects.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) select.selectedIndex = 0;
+        });
+
+        // Reset context and message inputs
+        const contextInput = document.getElementById('context-input');
+        const messageInput = document.getElementById('message-input');
+        if (contextInput) {
+            contextInput.value = '';
+            contextInput.disabled = false;
+            contextInput.placeholder = 'Descrivi la personalità del bot e il modo in cui dovrà esserti utile....';
+        }
+        if (messageInput) {
+            messageInput.value = '';
+            messageInput.disabled = true;
+        }
+
+        // Clear chat messages
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) chatMessages.innerHTML = '';
+
+        // Reset current chat ID
+        currentChatId = null;
+
+        // Show the submit button if it was hidden
+        const startButton = document.querySelector('button[onclick="submitContext()"]');
+        if (startButton) {
+            startButton.style.display = '';
+            startButton.disabled = false;
+        }
+    }
+
+    async function deleteChat(chatId) {
+        if (!confirm('Sei sicuro di voler eliminare questa chat?')) return;
+        
+        try {
+            const response = await fetch(`/api/chat/${chatId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Refresh chat history
+            await loadChatHistory();
+            
+            // If deleted chat was current chat, start new chat
+            if (chatId === currentChatId) {
+                startNewChat();
+            }
+        } catch (error) {
+            console.error('Error deleting chat:', error);
+            alert('Errore durante l\'eliminazione della chat: ' + error.message);
+        }
+    }
+
+    async function clearAllChats() {
+        if (!confirm('Sei sicuro di voler eliminare tutte le chat? Questa azione non può essere annullata.')) {
+            return;
+        }
+        
+        try {
+            // Delete all chats from the server
+            const response = await fetch('/api/chats', {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Reset UI
+            document.getElementById('chat-history').innerHTML = '';
+            document.getElementById('chat-messages').innerHTML = '';
+            
+            // Reset selectors
+            document.getElementById('grade-select').selectedIndex = 0;
+            document.getElementById('mode-select').selectedIndex = 0;
+            document.getElementById('subject-select').selectedIndex = 0;
+            document.getElementById('model-select').selectedIndex = 0;
+            
+            // Reset inputs
+            document.getElementById('context-input').value = '';
+            document.getElementById('message-input').value = '';
+            document.getElementById('message-input').disabled = true;
+            
+            // Hide interview questions if visible
+            const interviewQuestions = document.getElementById('interview-questions');
+            if (interviewQuestions) {
+                interviewQuestions.classList.add('hidden');
+                if (document.getElementById('character-input')) {
+                    document.getElementById('character-input').value = '';
+                }
+                if (document.getElementById('historical-accuracy')) {
+                    document.getElementById('historical-accuracy').checked = false;
+                }
+                if (document.getElementById('period-language')) {
+                    document.getElementById('period-language').checked = false;
+                }
+            }
+            
+            // Reset current chat ID
+            currentChatId = null;
+            
+            // Show and enable the submit button
+            const startButton = document.querySelector('button[onclick="submitContext()"]');
+            if (startButton) {
+                startButton.style.display = '';
+                startButton.disabled = false;
+            }
+            
+            // Refresh chat history
+            await loadChatHistory();
+        } catch (error) {
+            console.error('Error clearing all chats:', error);
+            alert('Errore durante l\'eliminazione di tutte le chat: ' + error.message);
+        }
+    }
+
+    async function downloadChat() {
+        if (!currentChatId) {
+            alert('Nessuna chat da scaricare');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/chat/${currentChatId}`);
+            const data = await response.json();
+            
+            // Format chat content
+            let content = 'Chat Export\n\n';
+            content += `Data: ${new Date().toLocaleString()}\n`;
+            content += `Titolo: ${data.settings?.subject || 'Chat'}\n`;
+            content += `Modalità: ${data.settings?.mode || 'Standard'}\n`;
+            content += `Grado: ${data.settings?.grade || 'Non specificato'}\n\n`;
+            
+            data.messages.forEach(msg => {
+                content += `${msg.role === 'user' ? 'Tu' : 'Bot'}: ${msg.content}\n\n`;
+            });
+            
+            // Create and trigger download
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_${currentChatId}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading chat:', error);
+            alert('Errore durante il download della chat: ' + error.message);
+        }
+    }
+
+    async function loadChat(chatId) {
+        try {
+            // Show loading state
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.innerHTML = '<div class="loading-message">Caricamento messaggi...</div>';
+
+            const response = await fetch(`/api/chat/${chatId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Clear loading message and update UI with chat data
+            messagesContainer.innerHTML = '';
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (msg.role && msg.content) {
+                        addMessageToUI(msg.role, msg.content);
+                    }
+                });
+            }
+            
+            // Update current chat ID and history UI
+            currentChatId = chatId;
+            await loadChatHistory();
+            
+            // Update settings if available
+            if (data.settings) {
+                const settings = {
+                    'grade-select': data.settings.grade,
+                    'mode-select': data.settings.mode,
+                    'subject-select': data.settings.subject,
+                    'model-select': data.settings.model || 'gpt4',
+                    'context-input': data.settings.systemPrompt
+                };
+
+                // Update each setting if the element exists
+                Object.entries(settings).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = value || '';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error loading chat:', error);
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.innerHTML = `<div class="error-message">Errore nel caricamento della chat: ${error.message}</div>`;
+        }
+    }
+</script>
+{% endblock %}

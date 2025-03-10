@@ -7,6 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -18,7 +21,7 @@
         /* Stili per i titoli e testi */
         .page-title {
             color: #1F2937;  /* Grigio molto scuro per i titoli */
-            font-weight: 700;
+            font-weight: normal;
             margin-bottom: 1.5rem;
         }
 
@@ -26,6 +29,12 @@
             color: #4B5563;  /* Grigio più chiaro per i sottotitoli */
             font-weight: 400;
             line-height: 1.6;
+        }
+
+        /* Stili per il logo */
+        .logo-mobile {
+            height: 2.5rem;
+            width: auto;
         }
 
         /* Stili per i contenitori */
@@ -46,101 +55,97 @@
             overflow: hidden;
         }
 
-        /* Stili per la navbar */
-        .navbar-gradient {
-            background: linear-gradient(90deg, 
-                #F7FAFC 0%,    /* gray-50 */
-                #EDF2F7 50%,   /* gray-100 */
-                #E2E8F0 100%   /* gray-200 */
-            );
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        /* Import font squadrato */
+        @font-face {
+            font-family: 'Fira Sans';
+            src: url('/static/fonts/ZeroSANS_DEMO.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
         }
 
-        /* Stili per il logo */
-        .gradient-text {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            font-size: 2rem;
-            background: linear-gradient(
-                90deg,
-                #FF6B6B 0%,      /* Rosso corallo */
-                #4ECDC4 50%,     /* Turchese */
-                #45B7D1 100%     /* Azzurro */
-            );
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            padding-right: 1rem;
+        /* Stili per la navbar */
+        .navbar-gradient {
+            background: transparent;
         }
+
+
 
         /* Stili per i link della navbar */
         .nav-link {
-            @apply px-6 py-2 transition-all duration-300;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px !important;
-            font-weight: 900 !important;
-            line-height: 4rem;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.9rem !important;
+            font-weight: bold !important;
+            color: #363636;
+            padding: 0.55rem 1rem;
             position: relative;
-            padding-bottom: 1.5rem;
-            color: #4A5568;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            text-align: center;
+            display: inline-block;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .nav-link:hover {
-            color: #1A202C;
+            background-color: #000;
+            color: #fff;
             transform: translateY(-1px);
         }
 
         /* Active state */
         .nav-link.active {
-            color: #2D3748;
+            background-color: #000;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            opacity: 0.8;
+        /* Mobile menu styles */
+        .mobile-menu {
+            border-top: 1px solid #eee;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-        /* Colori specifici per i pallini */
-        .nav-link[href="/"].active::after {
-            background-color: #059669; /* emerald-600 */
+        .mobile-menu:not(.hidden) {
+            max-height: 600px;
         }
-        
-        .nav-link[href="/regressione"].active::after {
-            background-color: #2563EB; /* blue-600 */
+
+        .mobile-menu .nav-link {
+            margin: 0.25rem 0;
+            width: 100%;
+            font-size: 0.75rem !important;
+            transform: translateY(-5px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            padding: 0.55rem;
         }
-        
-        .nav-link[href="/classificazione"].active::after {
-            background-color: #7C3AED; /* violet-600 */
-        }
-        
-        .nav-link[href="/classificazione-immagini"].active::after {
-            background-color: #DB2777; /* pink-600 */
-        }
-        
-        .nav-link[href="/chatbot"].active::after {
-            background-color: #D97706; /* amber-600 */
-        }
-        
-        .nav-link[href="/generazione-immagini"].active::after {
-            background-color: #4F46E5; /* indigo-600 */
-        }
-        
-        .nav-link[href="/learning"].active::after {
-            background-color: #0D9488; /* teal-600 */
+
+        .mobile-menu:not(.hidden) .nav-link {
+            transform: translateY(0);
+            opacity: 1;
         }
 
         /* Input file personalizzato */
         input[type="file"] {
-            @apply file:mr-4 file:py-2 file:px-4 file:rounded-[20px] file:border-0 
-            file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer;
+            cursor: pointer;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: rgb(238, 242, 255);
+            color: rgb(67, 56, 202);
+            cursor: pointer;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: rgb(224, 231, 255);
         }
 
         /* Stili per i bottoni */
@@ -209,41 +214,31 @@
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Navbar -->
-    <nav class="navbar-gradient shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex-shrink-0 flex items-center">
-                    <span class="gradient-text">Play AI</span>
+    <nav class="navbar-gradient py-8 mb-12">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+            <div class="grid grid-cols-12 items-center w-full">
+                <!-- Logo container - occupa 3 colonne e ha spazio dedicato -->
+                <div class="col-span-3 pr-4 md:col-span-3 sm:col-span-6 xs:col-span-9">
+                    <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
+                        <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-12 w-auto" style="max-width: 100%;">
+                    </a>
                 </div>
-                <div class="hidden sm:flex items-center">
-                    <div class="space-x-6">
-                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
-                            Home
-                        </a>
-                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">
-                            Regressione
-                        </a>
-                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">
-                            Classificazione Dati
-                        </a>
-                        <a href="/classificazione-immagini" class="nav-link {% if request.path == '/classificazione-immagini' %}active{% endif %}">
-                            Classificazione Immagini
-                        </a>
-                        <a href="/chatbot" class="nav-link {% if request.path == '/chatbot' %}active{% endif %}">
-                            Chatbot
-                        </a>
-                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">
-                            Generazione Immagini
-                        </a>
-                        <a href="/learning" class="nav-link {% if request.path == '/learning' %}active{% endif %}">
-                            Learning
-                        </a>
+                <!-- Menu di navigazione - occupa le restanti 9 colonne su desktop, nascosto su mobile -->
+                <div class="col-span-9 md:flex justify-end hidden md:visible">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
+                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
+                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">Dati</a>
+                        <a href="/chatbot2" class="nav-link {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot </a>
+                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione</a>
+                        <a href="/class_img_2" class="nav-link {% if request.path == '/class_img_2' %}active{% endif %}">Visione</a>
                     </div>
                 </div>
-                <div class="-mr-2 flex items-center sm:hidden">
-                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                <!-- Three dot menu button per dispositivi mobili -->
+                <div class="col-span-0 md:col-span-0 sm:col-span-6 xs:col-span-3 flex items-center justify-end">
+                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2.5 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 md:hidden">
+                        <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                         </svg>
                     </button>
                 </div>
@@ -251,15 +246,17 @@
         </div>
 
         <!-- Mobile menu -->
-        <div class="mobile-menu sm:hidden hidden" id="mobile-menu">
-            <div class="pt-2 pb-3 space-y-1">
-                <a href="/" class="nav-link block px-3 py-2 {% if request.path == '/' %}active{% endif %}">Home</a>
-                <a href="/regressione" class="nav-link block px-3 py-2 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
-                <a href="/classificazione" class="nav-link block px-3 py-2 {% if request.path == '/classificazione' %}active{% endif %}">Classificazione Dati</a>
-                <a href="/classificazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/classificazione-immagini' %}active{% endif %}">Classificazione Immagini</a>
-                <a href="/chatbot" class="nav-link block px-3 py-2 {% if request.path == '/chatbot' %}active{% endif %}">Chatbot</a>
-                <a href="/generazione-immagini" class="nav-link block px-3 py-2 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione Immagini</a>
-                <a href="/learning" class="nav-link block px-3 py-2 {% if request.path == '/learning' %}active{% endif %}">Learning</a>
+        <div class="mobile-menu md:hidden hidden bg-white shadow-lg rounded-lg absolute right-4 mt-2 w-48 z-50" id="mobile-menu">
+            <div class="p-4 border-b">
+                <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-8 mx-auto">
+            </div>
+            <div class="p-3 space-y-1.5">
+                <a href="/" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/' %}active{% endif %}">Home</a>
+                <a href="/regressione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/regressione' %}active{% endif %}">Regressione</a>
+                <a href="/classificazione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/classificazione' %}active{% endif %}">Dati</a>
+                <a href="/class_img_2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/class_img_2' %}active{% endif %}">Visione</a>
+                <a href="/chatbot2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/chatbot2' %}active{% endif %}">Chatbot</a>
+                <a href="/generazione-immagini" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/generazione-immagini' %}active{% endif %}">Generazione</a>
             </div>
         </div>
     </nav>
@@ -272,8 +269,58 @@
     <script>
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');
+            const button = document.querySelector('button[onclick="toggleMobileMenu()"]');
+            const isOpen = !menu.classList.contains('hidden');
+            
+            // Toggle menu visibility
             menu.classList.toggle('hidden');
+            
+            // Toggle button appearance
+            if (!isOpen) {
+                button.classList.add('bg-gray-100');
+            } else {
+                button.classList.remove('bg-gray-100');
+            }
+            
+            // Chiudi il menu quando si fa clic all'esterno
+            if (!isOpen) {
+                document.addEventListener('click', closeMenuOutside);
+            } else {
+                document.removeEventListener('click', closeMenuOutside);
+            }
         }
+        
+        function closeMenuOutside(event) {
+            const menu = document.getElementById('mobile-menu');
+            const button = document.querySelector('button[onclick="toggleMobileMenu()"]');
+            
+            if (!menu.contains(event.target) && !button.contains(event.target)) {
+                menu.classList.add('hidden');
+                button.classList.remove('bg-gray-100');
+                document.removeEventListener('click', closeMenuOutside);
+            }
+        }
+        
+        // Gestione responsive per orientamento portrait
+        function handleOrientationChange() {
+            const mediaQuery = window.matchMedia('(orientation: portrait) and (max-width: 768px)');
+            const desktopMenu = document.querySelector('.col-span-9.md\\:flex');
+            const mobileButton = document.querySelector('button[onclick="toggleMobileMenu()"]').parentElement;
+            
+            if (mediaQuery.matches) {
+                // Portrait mode on mobile/tablet
+                if (desktopMenu) desktopMenu.classList.add('hidden');
+                if (mobileButton) mobileButton.classList.remove('hidden');
+            } else {
+                // Landscape or desktop
+                if (desktopMenu) desktopMenu.classList.remove('hidden');
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+        }
+        
+        // Esegui al caricamento e ad ogni cambio di orientamento
+        window.addEventListener('load', handleOrientationChange);
+        window.addEventListener('resize', handleOrientationChange);
     </script>
 </body>
 </html>

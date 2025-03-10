@@ -27,6 +27,7 @@ import time
 
 # Import dei blueprint
 from routes.chatbot import chatbot
+from routes.chatbot2 import chatbot2
 from routes.learning import learning
 
 load_dotenv()
@@ -38,6 +39,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 
 # Registrazione dei blueprint
 app.register_blueprint(chatbot, url_prefix='')  # No prefix per mantenere gli URL come prima
+app.register_blueprint(chatbot2, url_prefix='')
 app.register_blueprint(learning, url_prefix='')
 
 # Variabili globali per i modelli
@@ -90,6 +92,10 @@ def classificazione_immagini():
 @app.route('/generazione-immagini')
 def generazione_immagini():
     return render_template('generazione_immagini.html')
+
+@app.route('/class_img_2')
+def class_img_2():
+    return render_template('class_img_2.html')
 
 @app.route('/upload-regression', methods=['POST'])
 def upload_regression():
@@ -430,14 +436,25 @@ def generate_image():
         aspect_ratio = data.get('aspect_ratio', '1:1')
         high_quality = data.get('high_quality', False)
 
-        # Convert aspect ratio to dimensions (using SDXL allowed dimensions)
-        ratio_map = {
-            '1:1': (1024, 1024),  # Square
-            '3:2': (1216, 832),   # Landscape (closest to 3:2)
-            '2:3': (832, 1216),   # Portrait (closest to 2:3)
-            '16:9': (1536, 640)   # Widescreen (closest to 16:9)
-        }
-        width, height = ratio_map.get(aspect_ratio, (1024, 1024))
+        # Get the selected model
+        model = data.get('model', 'stable-diffusion-xl-1024-v1-0')
+        
+        # Convert aspect ratio to dimensions based on model
+        if model == 'stable-diffusion-xl-1024-v1-0':
+            ratio_map = {
+                '1:1': (1024, 1024),  # Square
+                '3:2': (1216, 832),   # Landscape
+                '2:3': (832, 1216),   # Portrait
+                '16:9': (1536, 640)   # Widescreen
+            }
+        else:
+            ratio_map = {
+                '1:1': (512, 512),    # Square
+                '3:2': (704, 512),    # Landscape
+                '2:3': (512, 704),    # Portrait
+                '16:9': (704, 384)    # Widescreen
+            }
+        width, height = ratio_map.get(aspect_ratio, (1024, 1024) if model == 'stable-diffusion-xl-1024-v1-0' else (512, 512))
 
         # Add style to prompt if specified
         if style != 'photographic':
@@ -451,20 +468,41 @@ def generate_image():
             prompt += f", {style_prompts.get(style, '')}"
 
         # Prepare the request to Stability AI API
-        url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+        url = f"https://api.stability.ai/v1/generation/{model}/text-to-image"
         
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {os.getenv('STABILITY_KEY')}"
+            "Authorization": f"Bearer {os.getenv('STABILITY_API_KEY')}"
         }
+        
+        # Model-specific parameters
+        model_params = {
+            'stable-diffusion-xl-1024-v1-0': {
+                'steps': 40 if high_quality else 30,
+                'cfg_scale': 7,
+                'style_preset': None
+            },
+            'stable-diffusion-512-v2-1': {
+                'steps': 50 if high_quality else 35,
+                'cfg_scale': 8,
+                'style_preset': 'enhance'
+            },
+            'stable-diffusion-v1-6': {
+                'steps': 60 if high_quality else 40,
+                'cfg_scale': 9,
+                'style_preset': 'photographic'
+            }
+        }
+        
+        params = model_params.get(model, model_params['stable-diffusion-xl-1024-v1-0'])
         
         body = {
             "width": width,
             "height": height,
-            "steps": 50 if high_quality else 30,
+            "steps": params['steps'],
             "seed": 0,
-            "cfg_scale": 7,
+            "cfg_scale": params['cfg_scale'],
             "samples": 1,
             "text_prompts": [
                 {
@@ -472,13 +510,26 @@ def generate_image():
                     "weight": 1
                 }
             ],
+            **({
+                "style_preset": params['style_preset']
+            } if params['style_preset'] else {}),
         }
 
         # Make the API request
         response = requests.post(url, headers=headers, json=body)
         
         if response.status_code != 200:
-            raise ValueError(f'Errore API: {response.text}')
+            error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'message': response.text}
+            error_message = error_data.get('message', 'Errore sconosciuto')
+            
+            if 'API key' in error_message:
+                error_message = 'Errore di autenticazione: chiave API non valida o mancante'
+            elif 'insufficient balance' in error_message.lower():
+                error_message = 'Credito insufficiente per generare l\'immagine'
+            elif 'invalid parameter' in error_message.lower():
+                error_message = 'Parametri di generazione non validi'
+            
+            raise ValueError(f'Errore durante la generazione: {error_message}')
 
         # Process the response
         data = response.json()
@@ -502,9 +553,12 @@ def generate_image():
             'prompt': prompt
         })
 
+    except ValueError as e:
+        print(f"Validation error in generate_image: {str(e)}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Error in generate_image: {str(e)}")  # For debugging
-        return jsonify({'error': str(e)}), 500
+        print(f"Unexpected error in generate_image: {str(e)}")
+        return jsonify({'error': 'Si è verificato un errore imprevisto durante la generazione dell\'immagine'}), 500
 
 @app.route('/api/translate-enhance-prompt', methods=['POST'])
 def translate_enhance_prompt():
@@ -541,6 +595,177 @@ def translate_enhance_prompt():
     except Exception as e:
         print(f"Error in translate_enhance_prompt: {str(e)}")  # For debugging
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/train-image-classifier-v2', methods=['POST'])
+def train_image_classifier_v2():
+    try:
+        data = request.json
+        if not data or 'images' not in data or 'labels' not in data or 'classNames' not in data:
+            return jsonify({'error': 'Dati mancanti'}), 400
+        
+        images = data['images']
+        labels = data['labels']
+        class_names = data['classNames']
+        
+        if len(images) == 0 or len(labels) == 0 or len(class_names) == 0:
+            return jsonify({'error': 'Dati insufficienti per il training'}), 400
+        
+        # Genera un ID univoco per il modello
+        model_id = f"model_{int(time.time())}"
+        model_dir = os.path.join(app.config['UPLOAD_FOLDER'], model_id)
+        os.makedirs(model_dir, exist_ok=True)
+        
+        # Salva i nomi delle classi
+        with open(os.path.join(model_dir, 'class_names.json'), 'w') as f:
+            json.dump(class_names, f)
+        
+        # Prepara i dati di training
+        X_train = []
+        y_train = []
+        
+        for i, img_data in enumerate(images):
+            try:
+                # Rimuovi il prefisso 'data:image/jpeg;base64,' se presente
+                if 'base64,' in img_data:
+                    img_data = img_data.split('base64,')[1]
+                
+                # Decodifica l'immagine base64
+                img_bytes = base64.b64decode(img_data)
+                img = Image.open(io.BytesIO(img_bytes))
+                img = img.convert('RGB')
+                img = img.resize((IMG_SIZE, IMG_SIZE))
+                
+                # Converti l'immagine in array e normalizza
+                img_array = img_to_array(img)
+                img_array = img_array / 255.0
+                
+                X_train.append(img_array)
+                y_train.append(labels[i])
+            except Exception as e:
+                print(f"Errore nel processare l'immagine {i}: {str(e)}")
+        
+        # Converti le liste in array numpy
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        
+        # Dividi i dati in training e validation set
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+        
+        # Crea il modello
+        model = Sequential([
+            Conv2D(32, (3, 3), activation='relu', input_shape=(IMG_SIZE, IMG_SIZE, 3)),
+            MaxPooling2D(2, 2),
+            Conv2D(64, (3, 3), activation='relu'),
+            MaxPooling2D(2, 2),
+            Conv2D(128, (3, 3), activation='relu'),
+            MaxPooling2D(2, 2),
+            Flatten(),
+            Dense(512, activation='relu'),
+            Dropout(0.5),
+            Dense(len(class_names), activation='softmax')
+        ])
+        
+        # Compila il modello
+        model.compile(
+            optimizer='adam',
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        # Callback personalizzato per il logging
+        callback = CustomCallback()
+        
+        # Addestra il modello
+        history = model.fit(
+            X_train, y_train,
+            epochs=15,
+            validation_data=(X_val, y_val),
+            callbacks=[callback]
+        )
+        
+        # Salva il modello
+        model.save(os.path.join(model_dir, 'model.h5'))
+        
+        return jsonify({
+            'success': True,
+            'modelId': model_id,
+            'training_accuracy': float(history.history['accuracy'][-1]),
+            'validation_accuracy': float(history.history['val_accuracy'][-1]),
+            'classes': class_names
+        })
+    
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())  # Debug
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/predict-image-v2', methods=['POST'])
+def predict_image_v2():
+    try:
+        data = request.json
+        if not data or 'image' not in data or 'modelId' not in data:
+            return jsonify({'error': 'Dati mancanti'}), 400
+        
+        model_id = data['modelId']
+        model_dir = os.path.join(app.config['UPLOAD_FOLDER'], model_id)
+        
+        # Verifica che il modello esista
+        if not os.path.exists(model_dir):
+            return jsonify({'error': 'Modello non trovato'}), 404
+        
+        # Carica il modello
+        model_path = os.path.join(model_dir, 'model.h5')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'File del modello non trovato'}), 404
+        
+        model = load_model(model_path)
+        
+        # Carica i nomi delle classi
+        class_names_path = os.path.join(model_dir, 'class_names.json')
+        if not os.path.exists(class_names_path):
+            return jsonify({'error': 'File dei nomi delle classi non trovato'}), 404
+        
+        with open(class_names_path, 'r') as f:
+            class_names = json.load(f)
+        
+        # Processa l'immagine
+        img_data = data['image']
+        if 'base64,' in img_data:
+            img_data = img_data.split('base64,')[1]
+        
+        img_bytes = base64.b64decode(img_data)
+        img = Image.open(io.BytesIO(img_bytes))
+        img = img.convert('RGB')
+        img = img.resize((IMG_SIZE, IMG_SIZE))
+        
+        # Converti l'immagine in array e normalizza
+        img_array = img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = img_array / 255.0
+        
+        # Fai la predizione
+        predictions = model.predict(img_array)
+        
+        # Crea una lista di tutte le classi con le loro confidenze
+        results = []
+        for idx, confidence in enumerate(predictions[0]):
+            results.append({
+                'class': class_names[idx],
+                'confidence': float(confidence)
+            })
+        
+        # Ordina i risultati per confidenza decrescente
+        results.sort(key=lambda x: x['confidence'], reverse=True)
+        
+        return jsonify({
+            'predictions': results,
+            'top_prediction': results[0]['class']
+        })
+    
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())  # Debug
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
