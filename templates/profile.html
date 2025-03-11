@@ -43,6 +43,19 @@
                     <h3 class="text-xl font-semibold">{{ username }}</h3>
                     <p class="text-gray-500 text-sm mt-1">Membro dal {{ created_at }}</p>
                     
+                    <!-- Contatore crediti API -->
+                    <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Crediti API utilizzati</h4>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-gray-600">Stability AI:</span>
+                            <span class="text-xs font-medium">{{ api_credits.stability }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-600">OpenAI:</span>
+                            <span class="text-xs font-medium">{{ api_credits.openai }}</span>
+                        </div>
+                    </div>
+                    
                     <!-- Pulsante per cambiare avatar -->
                     <button type="button" onclick="document.getElementById('avatar-upload-form').classList.toggle('hidden')" class="mt-4 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition-colors duration-300 text-sm">
                         Cambia Avatar

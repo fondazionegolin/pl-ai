@@ -26,13 +26,122 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, i
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import time
+import random
+import uuid
+import shutil
+import sqlite3
+from PIL import Image, ImageDraw, ImageFont
+from routes.db import login_required
 
 # Import dei blueprint e funzioni di autenticazione
 from routes.chatbot import chatbot
+from routes.resources import resources
+
+# Funzione per creare thumbnail delle immagini
+def create_thumbnail(file_path, thumbnail_path, size=(100, 100)):
+    """Crea una miniatura per le immagini"""
+    try:
+        img = Image.open(file_path)
+        img.thumbnail(size)
+        img.save(thumbnail_path)
+        return True
+    except Exception as e:
+        print(f"Errore nella creazione della miniatura: {e}")
+        return False
+
+# Fallback image generation function
+def generate_fallback_image(prompt, aspect_ratio='1:1'):
+    try:
+        # Convert aspect ratio to dimensions
+        ratio_map = {
+            '1:1': (1024, 1024),  # Square
+            '3:2': (1216, 832),   # Landscape
+            '2:3': (832, 1216),   # Portrait
+            '16:9': (1536, 640)   # Widescreen
+        }
+        width, height = ratio_map.get(aspect_ratio, (1024, 1024))
+        
+        # Create a blank image with a gradient background
+        img = Image.new('RGB', (width, height), color=(255, 255, 255))
+        draw = ImageDraw.Draw(img)
+        
+        # Create a gradient background
+        for y in range(height):
+            r = int(200 + (y * 55 / height))
+            g = int(200 + (y * 40 / height))
+            b = int(220 + (y * 35 / height))
+            draw.line([(0, y), (width, y)], fill=(r, g, b))
+        
+        # Add some random shapes for visual interest
+        for _ in range(10):
+            shape_type = random.choice(['circle', 'rectangle'])
+            x = random.randint(0, width)
+            y = random.randint(0, height)
+            size = random.randint(50, 200)
+            r = random.randint(100, 240)
+            g = random.randint(100, 240)
+            b = random.randint(100, 240)
+            alpha = random.randint(30, 100)
+            fill_color = (r, g, b, alpha)
+            
+            if shape_type == 'circle':
+                draw.ellipse((x, y, x + size, y + size), fill=fill_color, outline=None)
+            else:
+                draw.rectangle((x, y, x + size, y + size), fill=fill_color, outline=None)
+        
+        # Try to use a system font, fallback to default if not available
+        try:
+            font = ImageFont.truetype('Arial', 24)
+        except IOError:
+            font = ImageFont.load_default()
+        
+        # Add the prompt as text
+        prompt_text = f"Prompt: {prompt}"
+        # Wrap text
+        words = prompt_text.split()
+        lines = []
+        current_line = []
+        for word in words:
+            current_line.append(word)
+            test_line = ' '.join(current_line)
+            w, h = draw.textsize(test_line, font=font) if hasattr(draw, 'textsize') else (0, 0)
+            if w > width - 40:
+                current_line.pop()
+                lines.append(' '.join(current_line))
+                current_line = [word]
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Draw text
+        y_text = height // 2 - len(lines) * 30 // 2
+        for line in lines:
+            w, h = draw.textsize(line, font=font) if hasattr(draw, 'textsize') else (0, 0)
+            draw.text(((width - w) // 2, y_text), line, font=font, fill=(0, 0, 0))
+            y_text += 30
+        
+        # Add a watermark
+        watermark = "Immagine di fallback - Servizio AI temporaneamente non disponibile"
+        w, h = draw.textsize(watermark, font=font) if hasattr(draw, 'textsize') else (0, 0)
+        draw.text(((width - w) // 2, height - 50), watermark, font=font, fill=(80, 80, 80))
+        
+        # Save the image
+        img_path = os.path.join('static', 'generated', f'fallback_img_{int(time.time())}.png')
+        os.makedirs(os.path.dirname(img_path), exist_ok=True)
+        
+        img.save(img_path)
+        
+        return jsonify({
+            'image_url': '/' + img_path,
+            'prompt': prompt,
+            'fallback': True
+        })
+    except Exception as e:
+        print(f"Error in fallback image generation: {str(e)}")
+        return jsonify({'error': 'Impossibile generare l\'immagine di fallback'}), 500
 from routes.chatbot2 import chatbot2
 from routes.learning import learning
 from routes.resources import resources
-from routes.db import get_db, get_user_db, register_user, authenticate_user, login_required
+from routes.db import get_db, get_user_db, register_user, authenticate_user, login_required, update_api_credits, get_api_credits
 
 # Configurazione dell'applicazione
 app = Flask(__name__)
@@ -47,6 +156,52 @@ os.makedirs(app.config['USER_DB_DIR'], exist_ok=True)
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Funzione per aggiornare i crediti API nella sessione prima di ogni richiesta
+@app.before_request
+def update_session_api_credits():
+    """Aggiorna i crediti API nella sessione prima di ogni richiesta"""
+    if 'user_id' in session and 'username' in session:
+        # Aggiorna i crediti API solo ogni 5 secondi per evitare troppe query al database
+        last_update = session.get('api_credits_last_update', 0)
+        current_time = time.time()
+        
+        print(f"DEBUG - Checking if session needs API credits update. Time since last update: {current_time - last_update} seconds")
+        
+        if current_time - last_update > 5:  # Aggiorna ogni 5 secondi
+            username = session.get('username')
+            print(f"DEBUG - Updating API credits in session for user: {username}")
+            api_credits = get_api_credits(username)
+            print(f"DEBUG - Retrieved API credits: {api_credits}")
+            
+            # Salva i crediti nella sessione
+            session['api_credits'] = api_credits
+            session['api_credits_last_update'] = current_time
+            print(f"DEBUG - Session updated with API credits: {session.get('api_credits')}")
+
+# Endpoint per aggiornare manualmente i crediti API
+@app.route('/api/refresh-credits', methods=['POST'])
+@login_required
+def refresh_api_credits():
+    """Endpoint per aggiornare manualmente i crediti API"""
+    try:
+        username = session.get('username')
+        if not username:
+            return jsonify({'success': False, 'error': 'Utente non autenticato'}), 401
+            
+        # Forza l'aggiornamento dei crediti API nella sessione
+        api_credits = get_api_credits(username)
+        session['api_credits'] = api_credits
+        session['api_credits_last_update'] = time.time()
+        
+        return jsonify({
+            'success': True, 
+            'credits': api_credits,
+            'message': 'Crediti API aggiornati con successo'
+        })
+    except Exception as e:
+        print(f"Errore nell'aggiornamento manuale dei crediti API: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Registrazione dei blueprint
 app.register_blueprint(chatbot)
@@ -128,6 +283,10 @@ def login():
                 # Se l'utente ha un avatar, salvalo nella sessione
                 if 'avatar' in user.keys() and user['avatar']:
                     session['user_avatar'] = user['avatar']
+                    
+                # Carica i crediti API nella sessione
+                api_credits = get_api_credits(username)
+                session['api_credits'] = api_credits
                 
                 # Se è una richiesta AJAX, restituisci un JSON
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -240,6 +399,10 @@ def profile():
     # Ottieni le informazioni aggiornate dell'utente
     cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
+    
+    # Ottieni i crediti API utilizzati dall'utente
+    api_credits = get_api_credits(username)
+    
     conn.close()
     
     # Ottieni i dati dell'utente dal suo database personalizzato
@@ -267,7 +430,8 @@ def profile():
                            created_at=user['created_at'], 
                            user_data=user_data,
                            error=error,
-                           success=success)
+                           success=success,
+                           api_credits=api_credits)
 
 @app.route('/save_user_data', methods=['POST'])
 @login_required
@@ -684,26 +848,23 @@ def generate_image():
         style = data.get('style', 'photographic')
         aspect_ratio = data.get('aspect_ratio', '1:1')
         high_quality = data.get('high_quality', False)
-
-        # Get the selected model
-        model = data.get('model', 'stable-diffusion-xl-1024-v1-0')
+        model_choice = data.get('model', 'stability')
         
-        # Convert aspect ratio to dimensions based on model
-        if model == 'stable-diffusion-xl-1024-v1-0':
-            ratio_map = {
-                '1:1': (1024, 1024),  # Square
-                '3:2': (1216, 832),   # Landscape
-                '2:3': (832, 1216),   # Portrait
-                '16:9': (1536, 640)   # Widescreen
-            }
+        # Choose between Stability AI and DALL-E models
+        if model_choice == 'dalle':
+            return generate_dalle_image(prompt, style, aspect_ratio, high_quality)
         else:
-            ratio_map = {
-                '1:1': (512, 512),    # Square
-                '3:2': (704, 512),    # Landscape
-                '2:3': (512, 704),    # Portrait
-                '16:9': (704, 384)    # Widescreen
-            }
-        width, height = ratio_map.get(aspect_ratio, (1024, 1024) if model == 'stable-diffusion-xl-1024-v1-0' else (512, 512))
+            # Default to Stability AI
+            model = 'stable-diffusion-xl-1024-v1-0'
+        
+        # Convert aspect ratio to dimensions
+        ratio_map = {
+            '1:1': (1024, 1024),  # Square
+            '3:2': (1216, 832),   # Landscape
+            '2:3': (832, 1216),   # Portrait
+            '16:9': (1536, 640)   # Widescreen
+        }
+        width, height = ratio_map.get(aspect_ratio, (1024, 1024))
 
         # Add style to prompt if specified
         if style != 'photographic':
@@ -725,33 +886,16 @@ def generate_image():
             "Authorization": f"Bearer {os.getenv('STABILITY_API_KEY')}"
         }
         
-        # Model-specific parameters
-        model_params = {
-            'stable-diffusion-xl-1024-v1-0': {
-                'steps': 40 if high_quality else 30,
-                'cfg_scale': 7,
-                'style_preset': None
-            },
-            'stable-diffusion-512-v2-1': {
-                'steps': 50 if high_quality else 35,
-                'cfg_scale': 8,
-                'style_preset': 'enhance'
-            },
-            'stable-diffusion-v1-6': {
-                'steps': 60 if high_quality else 40,
-                'cfg_scale': 9,
-                'style_preset': 'photographic'
-            }
-        }
-        
-        params = model_params.get(model, model_params['stable-diffusion-xl-1024-v1-0'])
+        # Set parameters for the most performant model
+        steps = 40 if high_quality else 30
+        cfg_scale = 7
         
         body = {
             "width": width,
             "height": height,
-            "steps": params['steps'],
+            "steps": steps,
             "seed": 0,
-            "cfg_scale": params['cfg_scale'],
+            "cfg_scale": cfg_scale,
             "samples": 1,
             "text_prompts": [
                 {
@@ -759,32 +903,48 @@ def generate_image():
                     "weight": 1
                 }
             ],
-            **({
-                "style_preset": params['style_preset']
-            } if params['style_preset'] else {}),
         }
 
         # Make the API request
         response = requests.post(url, headers=headers, json=body)
         
+        # Aggiorna i crediti API se l'utente è loggato
+        if session.get('user_id') and session.get('username'):
+            update_api_credits(session.get('username'), 'stability')
+        
         if response.status_code != 200:
-            error_data = response.json() if response.headers.get('content-type') == 'application/json' else {'message': response.text}
-            error_message = error_data.get('message', 'Errore sconosciuto')
-            
-            if 'API key' in error_message:
-                error_message = 'Errore di autenticazione: chiave API non valida o mancante'
-            elif 'insufficient balance' in error_message.lower():
-                error_message = 'Credito insufficiente per generare l\'immagine'
-            elif 'invalid parameter' in error_message.lower():
-                error_message = 'Parametri di generazione non validi'
-            
-            raise ValueError(f'Errore durante la generazione: {error_message}')
+            try:
+                if response.headers.get('content-type') == 'application/json':
+                    error_data = response.json()
+                    error_message = error_data.get('message', 'Errore sconosciuto')
+                else:
+                    # Check if it's a Cloudflare error page
+                    if 'cloudflare' in response.text.lower() or 'error code 520' in response.text.lower():
+                        error_message = 'Errore di connessione al server Stability AI. Servizio temporaneamente non disponibile.'
+                    else:
+                        error_message = 'Errore sconosciuto'
+                
+                if 'API key' in error_message:
+                    error_message = 'Errore di autenticazione: chiave API non valida o mancante'
+                elif 'insufficient balance' in error_message.lower():
+                    error_message = 'Credito insufficiente per generare l\'immagine'
+                elif 'invalid parameter' in error_message.lower():
+                    error_message = 'Parametri di generazione non validi'
+            except Exception:
+                error_message = 'Errore di connessione al server Stability AI. Servizio temporaneamente non disponibile.'
+                
+                # Use fallback image generation
+                return generate_fallback_image(prompt, aspect_ratio)
 
         # Process the response
-        data = response.json()
-        
-        if "artifacts" not in data or len(data["artifacts"]) == 0:
-            raise ValueError('Nessuna immagine generata')
+        try:
+            data = response.json()
+            
+            if "artifacts" not in data or len(data["artifacts"]) == 0:
+                return generate_fallback_image(prompt, aspect_ratio)
+        except Exception:
+            # If we can't parse the response as JSON, use the fallback
+            return generate_fallback_image(prompt, aspect_ratio)
             
         # Save the first generated image
         image_data = data["artifacts"][0]
@@ -807,6 +967,395 @@ def generate_image():
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         print(f"Unexpected error in generate_image: {str(e)}")
+        return jsonify({'error': 'Si è verificato un errore imprevisto durante la generazione dell\'immagine'}), 500
+
+
+def generate_dalle_image(prompt, style, aspect_ratio, high_quality):
+    try:
+        # Convert aspect ratio to dimensions
+        ratio_map = {
+            '1:1': '1024x1024',  # Square
+            '3:2': '1792x1024',  # Landscape
+            '2:3': '1024x1792',  # Portrait
+            '16:9': '1792x1024'  # Widescreen (using closest available)
+        }
+        size = ratio_map.get(aspect_ratio, '1024x1024')
+        
+        # Add style to prompt if specified
+        if style != 'photographic':
+            style_prompts = {
+                'digital-art': 'digital art style',
+                'oil-painting': 'oil painting style',
+                'watercolor': 'watercolor painting style',
+                'anime': 'anime style',
+                '3d-render': '3D rendered style'
+            }
+            prompt += f", {style_prompts.get(style, '')}"
+        
+        # Choose model quality based on high_quality flag
+        model = "dall-e-3" if high_quality else "dall-e-2"
+        
+        # Prepare the request to OpenAI API
+        url = "https://api.openai.com/v1/images/generations"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"
+        }
+        
+        body = {
+            "model": model,
+            "prompt": prompt,
+            "n": 1,
+            "size": size,
+            "response_format": "b64_json"
+        }
+        
+        # Make the API request
+        response = requests.post(url, headers=headers, json=body)
+        
+        # Aggiorna i crediti API se l'utente è loggato
+        if session.get('user_id') and session.get('username'):
+            update_api_credits(session.get('username'), 'stability')
+        
+        if response.status_code != 200:
+            try:
+                if response.headers.get('content-type') == 'application/json':
+                    error_data = response.json()
+                    error_message = error_data.get('error', {}).get('message', 'Errore sconosciuto')
+                else:
+                    error_message = 'Errore sconosciuto'
+                
+                if 'API key' in error_message:
+                    error_message = 'Errore di autenticazione: chiave API OpenAI non valida o mancante'
+                elif 'insufficient balance' in error_message.lower() or 'quota' in error_message.lower():
+                    error_message = 'Credito insufficiente per generare l\'immagine con OpenAI'
+                elif 'content policy' in error_message.lower():
+                    error_message = 'Il prompt viola le politiche sui contenuti di OpenAI'
+            except Exception:
+                # Use fallback image generation on any exception
+                return generate_fallback_image(prompt, aspect_ratio)
+            
+            # Use fallback image generation for all API errors
+            return generate_fallback_image(prompt, aspect_ratio)
+        
+        # Process the response
+        try:
+            data = response.json()
+            
+            if "data" not in data or len(data["data"]) == 0:
+                return generate_fallback_image(prompt, aspect_ratio)
+                
+            # Get the image data
+            image_data = data["data"][0]
+            
+            if "b64_json" in image_data:
+                # Decode base64 image
+                image_bytes = base64.b64decode(image_data["b64_json"])
+                
+                # Save the image
+                img_path = os.path.join('static', 'generated', f'dalle_img_{int(time.time())}.png')
+                os.makedirs(os.path.dirname(img_path), exist_ok=True)
+                
+                with open(img_path, 'wb') as f:
+                    f.write(image_bytes)
+                
+                return jsonify({
+                    'image_url': '/' + img_path,
+                    'prompt': prompt,
+                    'model': 'dalle'
+                })
+            elif "url" in image_data:
+                # If we got a URL instead of base64 data, download the image
+                img_url = image_data["url"]
+                img_response = requests.get(img_url)
+                
+                if img_response.status_code == 200:
+                    # Save the image
+                    img_path = os.path.join('static', 'generated', f'dalle_img_{int(time.time())}.png')
+                    os.makedirs(os.path.dirname(img_path), exist_ok=True)
+                    
+                    with open(img_path, 'wb') as f:
+                        f.write(img_response.content)
+                    
+                    return jsonify({
+                        'image_url': '/' + img_path,
+                        'prompt': prompt,
+                        'model': 'dalle'
+                    })
+        except Exception:
+            # If we can't parse the response as JSON, use the fallback
+            return generate_fallback_image(prompt, aspect_ratio)
+        
+        # If we get here, something went wrong
+        return generate_fallback_image(prompt, aspect_ratio)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/save-image-to-resources', methods=['POST'])
+@login_required
+def save_image_to_resources():
+    try:
+        # Get data from request
+        data = request.json
+        image_url = data.get('image_url')
+        prompt = data.get('prompt')
+        model = data.get('model', 'stability')
+        style = data.get('style', 'photographic')
+        
+        if not image_url:
+            return jsonify({'error': 'URL dell\'immagine non fornito'}), 400
+        
+        # Extract the path from the URL
+        if image_url.startswith('/'):
+            image_path = image_url[1:]  # Remove leading slash
+        else:
+            image_path = image_url
+            
+        # For debugging
+        print(f"Image URL: {image_url}")
+        print(f"Image path: {image_path}")
+        
+        # If the image path doesn't exist, try to find it in the static/generated directory
+        if not os.path.exists(image_path) and '/static/generated/' in image_url:
+            # Extract the filename from the URL
+            filename = os.path.basename(image_url)
+            alternative_path = os.path.join('static', 'generated', filename)
+            print(f"Trying alternative path: {alternative_path}")
+            
+            if os.path.exists(alternative_path):
+                image_path = alternative_path
+                print(f"Found image at alternative path: {image_path}")
+        
+        # Check if the file exists
+        if not os.path.exists(image_path):
+            # Try to get the image from the URL directly if it's a data URL
+            if image_url.startswith('data:image/'):
+                try:
+                    # Parse the data URL
+                    header, encoded = image_url.split(',', 1)
+                    data = base64.b64decode(encoded)
+                    
+                    # Generate a unique filename for the resource
+                    file_id = str(uuid.uuid4())
+                    extension = '.png'  # Generated images are always PNG
+                    
+                    # Create the destination path in the resources folder
+                    dest_path = os.path.join('static', 'uploads', 'resources', f"{file_id}{extension}")
+                    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                    
+                    # Save the image data directly
+                    with open(dest_path, 'wb') as f:
+                        f.write(data)
+                    
+                    # Create a thumbnail
+                    thumbnail_path = os.path.join('static', 'uploads', 'resources', f"{file_id}_thumb{extension}")
+                    create_thumbnail(dest_path, thumbnail_path)
+                    
+                    # Get file size
+                    file_size = os.path.getsize(dest_path)
+                    
+                    # Generate a descriptive name
+                    model_name = "DALL-E" if model == "dalle" else "Stability AI"
+                    filename = f"Immagine generata con {model_name} - {style} - {datetime.now().strftime('%Y-%m-%d %H:%M')}.png"
+                    
+                    # Save to database
+                    conn = sqlite3.connect('database.sqlite')
+                    c = conn.cursor()
+                    c.execute('''INSERT INTO resources (id, user_id, name, original_name, path, type, size, date)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                             (file_id, session['user_id'], f"{file_id}{extension}", filename, dest_path, 'image/png', file_size, datetime.now()))
+                    conn.commit()
+                    conn.close()
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Immagine salvata con successo nelle risorse',
+                        'resource_id': file_id
+                    })
+                except Exception as e:
+                    print(f"Errore nel salvataggio dell'immagine data URL: {str(e)}")
+                    return jsonify({'error': f'Errore nel salvataggio dell\'immagine: {str(e)}'}), 500
+            else:
+                return jsonify({'error': 'Immagine non trovata'}), 404
+            
+        # We already handled the data URL case above
+        # This code will only execute if the image file exists on the server
+        
+        # Generate a unique filename for the resource
+        file_id = str(uuid.uuid4())
+        extension = '.png'  # Generated images are always PNG
+        
+        # Create the destination path in the resources folder
+        dest_path = os.path.join('static', 'uploads', 'resources', f"{file_id}{extension}")
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        
+        # Copy the file
+        shutil.copy2(image_path, dest_path)
+        
+        # Create a thumbnail
+        thumbnail_path = os.path.join('static', 'uploads', 'resources', f"{file_id}_thumb{extension}")
+        create_thumbnail(dest_path, thumbnail_path)
+        
+        # Get file size
+        file_size = os.path.getsize(dest_path)
+        
+        # Generate a descriptive name
+        model_name = "DALL-E" if model == "dalle" else "Stability AI"
+        filename = f"Immagine generata con {model_name} - {style} - {datetime.now().strftime('%Y-%m-%d %H:%M')}.png"
+        
+        # Save to database
+        conn = sqlite3.connect('database.sqlite')
+        c = conn.cursor()
+        c.execute('''INSERT INTO resources (id, user_id, name, original_name, path, type, size, date)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (file_id, session['user_id'], f"{file_id}{extension}", filename, dest_path, 'image/png', file_size, datetime.now()))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Immagine salvata con successo nelle risorse',
+            'resource_id': file_id
+        })
+        
+    except Exception as e:
+        print(f"Errore nel salvataggio dell'immagine nelle risorse: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-image-from-image', methods=['POST'])
+def generate_image_from_image():
+    try:
+        # Get form data
+        prompt = request.form.get('prompt')
+        style = request.form.get('style', 'photographic')
+        aspect_ratio = request.form.get('aspect_ratio', '1:1')
+        high_quality = request.form.get('high_quality') == 'true'
+        
+        # Check if an image was uploaded
+        if 'image' not in request.files:
+            raise ValueError('Nessuna immagine caricata')
+            
+        image_file = request.files['image']
+        if image_file.filename == '':
+            raise ValueError('Nessuna immagine selezionata')
+            
+        # Check file type
+        if not image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise ValueError('Formato file non supportato. Usa PNG o JPG')
+            
+        # Read and encode the image
+        image_bytes = image_file.read()
+        encoded_image = base64.b64encode(image_bytes).decode('utf-8')
+        
+        # Use only the most performant model
+        model = 'stable-diffusion-xl-1024-v1-0'
+        
+        # Convert aspect ratio to dimensions
+        ratio_map = {
+            '1:1': (1024, 1024),  # Square
+            '3:2': (1216, 832),   # Landscape
+            '2:3': (832, 1216),   # Portrait
+            '16:9': (1536, 640)   # Widescreen
+        }
+        width, height = ratio_map.get(aspect_ratio, (1024, 1024))
+        
+        # Add style to prompt if specified
+        if style != 'photographic':
+            style_prompts = {
+                'digital-art': 'digital art style',
+                'oil-painting': 'oil painting style',
+                'watercolor': 'watercolor painting style',
+                'anime': 'anime style',
+                '3d-render': '3D rendered style'
+            }
+            prompt += f", {style_prompts.get(style, '')}"
+        
+        # Prepare the request to Stability AI API for image-to-image
+        url = f"https://api.stability.ai/v1/generation/{model}/image-to-image"
+        
+        # Set parameters for the most performant model
+        steps = 40 if high_quality else 30
+        cfg_scale = 7
+        image_strength = 0.35  # How much influence the input image has (0.35 is a good balance)
+        
+        # Prepare multipart form data for the API request
+        form_data = {
+            'init_image': encoded_image,
+            'text_prompts[0][text]': prompt,
+            'text_prompts[0][weight]': '1',
+            'image_strength': str(image_strength),
+            'cfg_scale': str(cfg_scale),
+            'samples': '1',
+            'steps': str(steps),
+            'seed': '0',
+        }
+        
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {os.getenv('STABILITY_API_KEY')}"
+        }
+        
+        # Make the API request
+        response = requests.post(url, headers=headers, data=form_data)
+        
+        if response.status_code != 200:
+            try:
+                if response.headers.get('content-type') == 'application/json':
+                    error_data = response.json()
+                    error_message = error_data.get('message', 'Errore sconosciuto')
+                else:
+                    # Check if it's a Cloudflare error page
+                    if 'cloudflare' in response.text.lower() or 'error code 520' in response.text.lower():
+                        error_message = 'Errore di connessione al server Stability AI. Servizio temporaneamente non disponibile.'
+                    else:
+                        error_message = 'Errore sconosciuto'
+                
+                if 'API key' in error_message:
+                    error_message = 'Errore di autenticazione: chiave API non valida o mancante'
+                elif 'insufficient balance' in error_message.lower():
+                    error_message = 'Credito insufficiente per generare l\'immagine'
+                elif 'invalid parameter' in error_message.lower():
+                    error_message = 'Parametri di generazione non validi'
+            except Exception:
+                error_message = 'Errore di connessione al server Stability AI. Servizio temporaneamente non disponibile.'
+                
+                # Use fallback image generation
+                return generate_fallback_image(prompt, aspect_ratio)
+        
+        # Process the response
+        try:
+            data = response.json()
+            
+            if "artifacts" not in data or len(data["artifacts"]) == 0:
+                return generate_fallback_image(prompt, aspect_ratio)
+        except Exception:
+            # If we can't parse the response as JSON, use the fallback
+            return generate_fallback_image(prompt, aspect_ratio)
+            
+        # Save the first generated image
+        image_data = data["artifacts"][0]
+        result_image_bytes = base64.b64decode(image_data["base64"])
+        
+        # Save the image
+        img_path = os.path.join('static', 'generated', f'img_from_img_{int(time.time())}.png')
+        os.makedirs(os.path.dirname(img_path), exist_ok=True)
+        
+        with open(img_path, 'wb') as f:
+            f.write(result_image_bytes)
+        
+        return jsonify({
+            'image_url': '/' + img_path,
+            'prompt': prompt
+        })
+        
+    except ValueError as e:
+        print(f"Validation error in generate_image_from_image: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        print(f"Unexpected error in generate_image_from_image: {str(e)}")
         return jsonify({'error': 'Si è verificato un errore imprevisto durante la generazione dell\'immagine'}), 500
 
 @app.route('/api/translate-enhance-prompt', methods=['POST'])

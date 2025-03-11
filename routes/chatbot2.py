@@ -13,6 +13,7 @@ import fitz  # PyMuPDF per l'elaborazione di PDF
 import pandas as pd
 import pytesseract
 from PIL import Image
+import tiktoken  # Per il conteggio dei token
 
 load_dotenv()
 
@@ -196,6 +197,35 @@ def get_document_content(file_id):
             return f.read()
     else:
         return ""
+
+# Function to count tokens in messages
+def count_tokens(messages):
+    """Conta il numero di token in una lista di messaggi.
+    
+    Args:
+        messages: Lista di dizionari con 'role' e 'content'.
+        
+    Returns:
+        Numero di token.
+    """
+    try:
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        num_tokens = 0
+        for message in messages:
+            # Ogni messaggio ha un token base di 3 per modelli come GPT-3.5 e 4
+            num_tokens += 3
+            # Aggiungi token per il ruolo
+            num_tokens += len(encoding.encode(message.get('role', '')))
+            # Aggiungi token per il contenuto
+            num_tokens += len(encoding.encode(message.get('content', '')))
+        # Aggiungi un token base per la richiesta generale
+        num_tokens += 3
+        return num_tokens
+    except Exception as e:
+        print(f"Error counting tokens: {str(e)}")
+        # Fallback approssimativo se tiktoken fallisce
+        total_chars = sum(len(m.get('content', '')) for m in messages)
+        return total_chars // 4  # Approssimazione grossolana: ~4 caratteri per token
 
 # Initialize database tables
 init_db()
@@ -722,6 +752,38 @@ def chat():
                 result = model.generate_content(prompt)
                 response = result.text
             
+        # Conteggio token per l'input e l'output
+        # Ottieni i messaggi rilevanti per il conteggio
+        c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 20', (chat_id,))
+        chat_messages = [{'role': 'user' if msg[0] == 'user' else 'assistant', 'content': msg[1]} for msg in c.fetchall()]
+        
+        # Aggiungi l'ultimo messaggio dell'utente se non è già incluso
+        if not any(msg.get('role') == 'user' and msg.get('content') == message for msg in chat_messages):
+            chat_messages.append({'role': 'user', 'content': message})
+        
+        # Calcola token per input
+        input_messages = [msg for msg in chat_messages if msg['role'] == 'user']
+        input_tokens = count_tokens(input_messages)
+        
+        # Calcola token per output
+        output_messages = [msg for msg in chat_messages if msg['role'] == 'assistant']
+        output_messages.append({'role': 'assistant', 'content': response})  # Aggiungi la risposta attuale
+        output_tokens = count_tokens(output_messages)
+        
+        # Calcola il totale
+        total_tokens = input_tokens + output_tokens
+        
+        print(f"DEBUG - Input tokens: {input_tokens}")
+        print(f"DEBUG - Output tokens: {output_tokens}")
+        print(f"DEBUG - Total tokens: {total_tokens}")
+        
+        # Informa l'utente del conteggio dei token
+        token_info = {
+            'total': total_tokens,
+            'input': input_tokens,
+            'output': output_tokens
+        }
+        
         # Save AI response
         c.execute('''INSERT INTO chatbot2_messages (chat_id, role, content, model)
                      VALUES (?, ?, ?, ?)''',
@@ -731,7 +793,8 @@ def chat():
         
         return jsonify({
             'response': response,
-            'chatId': chat_id
+            'chatId': chat_id,
+            'token_info': token_info
         })
         
     except Exception as e:

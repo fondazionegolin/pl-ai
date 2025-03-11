@@ -47,7 +47,10 @@
 
     <!-- Features Title Block -->
     <div class="bg-black text-white p-6 rounded-lg mb-8 text-center">
-        <h2 class="text-5xl font-bold mb-2" style="font-family: 'ZeroSANS_DEMO ns', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">PL-AI</h2>
+        <div class="flex items-center justify-center gap-3 mb-2">
+            <img src="{{ url_for('static', filename='logo_notext.svg') }}" alt="PL-AI Logo" class="h-12">
+            <h2 class="text-5xl font-bold" style="font-family: 'ZeroSANS_DEMO ns', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">PL-AI</h2>
+        </div>
         <h3 class="text-1xl font-semibold mb-3">AI playground</h3>
         <p class="text-lg max-w-3xl mx-auto leading-relaxed" style="color: #bbbbbb;">
             Scopri l'intelligenza artificiale, dalle tecniche fondamentali alle più avanzate attraverso strumenti pratici e sempre disponibili.

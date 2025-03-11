@@ -218,9 +218,9 @@
         <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
             <div class="flex justify-between items-center w-full">
                 <!-- Logo container a sinistra -->
-                <div class="flex-shrink-0">
+                <div class="flex-shrink-0 flex items-center">
                     <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
-                        <img src="{{ url_for('static', filename='no_text_logo_plai.svg') }}" alt="PL-AI Logo" class="h-12 w-auto" style="max-width: 100%;">
+                        <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-16 w-auto" style="max-width: 100%;">
                     </a>
                 </div>
                 
@@ -283,30 +283,30 @@
                 
                 <!-- Icona utente a destra -->
                 <div class="flex-shrink-0">
-                    <div class="relative" id="user-menu-container">
+                    <div class="relative flex items-center" id="user-menu-container">
                         <button type="button" onclick="toggleUserMenu()" class="flex items-center justify-center p-2 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300">
                                 {% if session.get('user_id') %}
                                     {% if session.get('user_avatar') %}
-                                    <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-200">
+                                    <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-14 w-14 rounded-full object-cover border border-gray-200">
                                     {% else %}
-                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>
                                     {% endif %}
                                 {% else %}
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
                                 {% endif %}
                             </button>
                             
                             <!-- Menu flottante -->
-                            <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
+                            <div id="user-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
                                 <div class="p-4 border-b">
                                     {% if session.get('user_id') %}
                                     <div class="flex items-center space-x-3">
                                         {% if session.get('user_avatar') %}
-                                        <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-10 w-10 rounded-full object-cover border border-gray-200">
+                                        <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-11 w-11 rounded-full object-cover border border-gray-200">
                                         {% else %}
                                         <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                                             <svg class="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,6 +319,47 @@
                                             <p class="text-sm text-gray-500">{{ session.get('user_email', '') }}</p>
                                         </div>
                                     </div>
+                                    <!-- Visualizzazione dei crediti API -->
+                                    <div class="mt-4 p-3 bg-gray-50 rounded-md">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="text-sm font-medium text-gray-700">Crediti API utilizzati</h4>
+                                            <button id="refresh-api-credits" class="text-xs text-blue-600 hover:text-blue-800" title="Aggiorna crediti API">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-sm">
+                                            <div>
+                                                <span class="text-gray-600">Stability AI:</span>
+                                                <span id="stability-credits" class="font-medium">{{ session.get('api_credits', {}).get('stability', 0) }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-600">OpenAI:</span>
+                                                <span id="openai-credits" class="font-medium">{{ session.get('api_credits', {}).get('openai', 0) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <script>
+                                    document.getElementById('refresh-api-credits').addEventListener('click', function() {
+                                        fetch('/api/refresh-credits', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            credentials: 'same-origin'
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                document.getElementById('stability-credits').textContent = data.credits.stability;
+                                                document.getElementById('openai-credits').textContent = data.credits.openai;
+                                            }
+                                        })
+                                        .catch(error => console.error('Error refreshing API credits:', error));
+                                    });
+                                    </script>
                                     <div class="mt-4 flex space-x-2">
                                         <a href="/profile" class="flex-1 bg-black text-white text-center py-2 px-4 rounded-md hover:bg-gray-800 transition-colors duration-300">Profilo</a>
                                         <a href="/logout" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-4 rounded-md hover:bg-gray-300 transition-colors duration-300">Logout</a>

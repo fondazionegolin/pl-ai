@@ -7,185 +7,17 @@
 <!-- Add Highlight.js for code syntax highlighting -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<div class="container mx-auto p-4">
-    <div class="w-[1200px] h-[800px] mx-auto bg-white rounded-lg shadow-lg flex flex-col">
-        <!-- Header con menu a tendina -->
-        <div class="flex gap-4 p-4 bg-gray-50 rounded-t-lg border-b">
-            <div class="flex-1">
-                <select id="grade-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Grado scolastico</option>
-                    <option value="sec1">Scuola Sec. I grado</option>
-                    <option value="sec2-biennio">Scuola Sec. II grado - Biennio</option>
-                    <option value="sec2-triennio">Scuola Sec. II grado - Triennio</option>
-                </select>
-            </div>
-            <div class="flex-1">
-                <select id="mode-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Modalità</option>
-                    <option value="interrogazione">Modalità Interrogazione</option>
-                    <option value="interazione">Modalità Interazione</option>
-                    <option value="intervista">Modalità Intervista Impossibile</option>
-                    <option value="rag">Modalità RAG (Analisi Documenti)</option>
-                </select>
-            </div>
-            <div class="flex-1">
-                <select id="subject-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Argomento</option>
-                    <option value="ai">AI</option>
-                    <option value="scienze">Scienze</option>
-                    <option value="storia">Storia</option>
-                </select>
-            </div>
-            <div class="flex-1">
-                <select id="model-select" class="w-full p-2 border rounded bg-white">
-                    <option value="" disabled selected>Modello AI</option>
-                    <option value="gpt4o-mini">GPT-4 O Mini</option>
-                    <option value="o3-mini">O3 Mini</option>
-                    <option value="o3-mini-reasoning">O3 Mini con Ragionamento</option>
-                    <option value="gemini">Gemini Flash</option>
-                </select>
-            </div>
-        </div>
 
-        <!-- Context Area -->
-        <div class="p-4 bg-gray-50 border-b">
-            <div class="flex gap-2">
-                <textarea id="context-input" 
-                          class="flex-1 p-2 border rounded resize-none bg-white" 
-                          rows="3" 
-                          placeholder="Descrivi la personalità del bot e il modo in cui dovrà esserti utile...."></textarea>
-                <button onclick="submitContext()" 
-                        class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 self-end">
-                    Inizia
-                </button>
-            </div>
-            <div id="interview-questions" class="mt-3 hidden">
-                <div class="text-sm text-gray-600 mb-2">Per l'intervista impossibile, rispondi a queste domande:</div>
-                <div class="space-y-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Quale personaggio vuoi che interpreti?</label>
-                        <input type="text" id="character-input" class="mt-1 p-2 w-full border rounded bg-white">
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="historical-accuracy" class="mr-2">
-                            <label class="text-sm text-gray-700">Comportamento storico accurato</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="period-language" class="mr-2">
-                            <label class="text-sm text-gray-700">Linguaggio d'epoca</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- RAG Documents Area -->
-            <div id="rag-documents" class="mt-3 hidden">
-                <div class="text-sm text-gray-600 mb-2">Seleziona i documenti da analizzare:</div>
-                <div class="flex flex-wrap gap-2 mb-3" id="selected-files-container">
-                    <!-- I file selezionati verranno visualizzati qui -->
-                    <div class="text-sm text-gray-500 italic">Nessun file selezionato</div>
-                </div>
-                <button id="select-files-btn" class="px-3 py-1.5 bg-black text-white rounded hover:bg-gray-800 text-sm flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Seleziona Risorse
-                </button>
-            </div>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="flex flex-1 overflow-hidden">
-            <!-- Chat History Sidebar -->
-            <div class="w-1/4 border-r bg-gray-50 flex flex-col">
-                <div class="p-3 border-b space-y-2">
-                    <button onclick="startNewChat()" 
-                            class="w-full px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
-                        Nuova Chat
-                    </button>
-                    <button onclick="clearAllChats()" 
-                            class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                        Elimina Tutto
-                    </button>
-                </div>
-                <div id="chat-history" class="flex-1 overflow-y-auto">
-                    <!-- Chat history items will be populated here -->
-                </div>
-            </div>
-
-            <!-- Chat Area -->
-            <div class="flex-1 flex flex-col">
-                <!-- Messages Container -->
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
-                    <!-- Messages will be populated here -->
-                </div>
-
-                <!-- Input Area -->
-                <div class="p-4 border-t bg-white">
-                    <div class="flex gap-2">
-                        <textarea id="message-input" 
-                                  class="flex-1 p-2 border rounded resize-none"
-                                  placeholder="Finestra di input: >"
-                                  rows="1"></textarea>
-                        <button onclick="downloadChat()" 
-                                class="px-3 py-2 bg-black text-white rounded hover:bg-gray-800 flex items-center justify-center"
-                                title="Scarica chat">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <button onclick="sendMessage()" 
-                                class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
-                            Invia
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal per la selezione dei file -->
-<div id="file-select-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
-        <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="text-lg font-semibold">Seleziona Risorse</h3>
-            <button id="close-file-modal" class="text-gray-500 hover:text-gray-700">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="p-4 border-b">
-            <div class="relative">
-                <input type="text" id="modal-search-files" placeholder="Cerca file..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
-                <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-2">
-                <button data-filter="all" class="file-filter-btn px-3 py-1 text-sm bg-black text-white rounded-full">Tutti</button>
-                <button data-filter="image" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Immagini</button>
-                <button data-filter="document" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Documenti</button>
-                <button data-filter="csv" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">CSV</button>
-                <button data-filter="text" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Testo</button>
-            </div>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4" id="modal-files-container">
-            <!-- I file verranno caricati qui dinamicamente -->
-            <div class="text-center py-10 text-gray-500">Caricamento file in corso...</div>
-        </div>
-        <div class="px-6 py-4 border-t flex justify-end">
-            <button id="confirm-file-selection" class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">Conferma selezione</button>
-        </div>
-    </div>
-</div>
-
+<!-- Stili per i messaggi di token nella chat -->
 <style>
+    .token-message {
+        font-size: 12px;
+        color: #666;
+        text-align: right;
+        margin: 5px 0;
+        font-style: italic;
+    }
+    
     /* Message Styling */
     .message {
         padding: 12px;
@@ -384,6 +216,184 @@
         margin: 1rem;
     }
 </style>
+
+<div class="container mx-auto p-2 mt-1">
+    <div class="w-[1200px] h-[800px] mx-auto bg-white rounded-lg shadow-lg flex flex-col">
+        <!-- Header con menu a tendina -->
+        <div class="flex gap-4 p-4 bg-gray-50 rounded-t-lg border-b">
+            <div class="flex-1">
+                <select id="grade-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Grado scolastico</option>
+                    <option value="sec1">Scuola Sec. I grado</option>
+                    <option value="sec2-biennio">Scuola Sec. II grado - Biennio</option>
+                    <option value="sec2-triennio">Scuola Sec. II grado - Triennio</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="mode-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Modalità</option>
+                    <option value="interrogazione">Modalità Interrogazione</option>
+                    <option value="interazione">Modalità Interazione</option>
+                    <option value="intervista">Modalità Intervista Impossibile</option>
+                    <option value="rag">Modalità RAG (Analisi Documenti)</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="subject-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Argomento</option>
+                    <option value="ai">AI</option>
+                    <option value="scienze">Scienze</option>
+                    <option value="storia">Storia</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <select id="model-select" class="w-full p-2 border rounded bg-white">
+                    <option value="" disabled selected>Modello AI</option>
+                    <option value="gpt4o-mini">GPT-4 O Mini</option>
+                    <option value="o3-mini">O3 Mini</option>
+                    <option value="o3-mini-reasoning">O3 Mini con Ragionamento</option>
+                    <option value="gemini">Gemini Flash</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Context Area -->
+        <div class="p-4 bg-gray-50 border-b">
+            <div class="flex gap-2">
+                <textarea id="context-input" 
+                          class="flex-1 p-2 border rounded resize-none bg-white" 
+                          rows="3" 
+                          placeholder="Descrivi la personalità del bot e il modo in cui dovrà esserti utile...."></textarea>
+                <button onclick="submitContext()" 
+                        class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 self-end">
+                    Inizia
+                </button>
+            </div>
+            <div id="interview-questions" class="mt-3 hidden">
+                <div class="text-sm text-gray-600 mb-2">Per l'intervista impossibile, rispondi a queste domande:</div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Quale personaggio vuoi che interpreti?</label>
+                        <input type="text" id="character-input" class="mt-1 p-2 w-full border rounded bg-white">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="historical-accuracy" class="mr-2">
+                            <label class="text-sm text-gray-700">Comportamento storico accurato</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="period-language" class="mr-2">
+                            <label class="text-sm text-gray-700">Linguaggio d'epoca</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RAG Documents Area -->
+            <div id="rag-documents" class="mt-3 hidden">
+                <div class="text-sm text-gray-600 mb-2">Seleziona i documenti da analizzare:</div>
+                <div class="flex flex-wrap gap-2 mb-3" id="selected-files-container">
+                    <!-- I file selezionati verranno visualizzati qui -->
+                    <div class="text-sm text-gray-500 italic">Nessun file selezionato</div>
+                </div>
+                <button id="select-files-btn" class="px-3 py-1.5 bg-black text-white rounded hover:bg-gray-800 text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Seleziona Risorse
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Chat History Sidebar -->
+            <div class="w-1/4 border-r bg-gray-50 flex flex-col">
+                <div class="p-3 border-b space-y-2">
+                    <button onclick="startNewChat()" 
+                            class="w-full px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
+                        Nuova Chat
+                    </button>
+                    <button onclick="clearAllChats()" 
+                            class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        Elimina Tutto
+                    </button>
+                </div>
+                <div id="chat-history" class="flex-1 overflow-y-auto">
+                    <!-- Chat history items will be populated here -->
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="flex-1 flex flex-col">
+                <!-- Messages Container -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will be populated here -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 border-t bg-white">
+                    <div class="flex gap-2">
+                        <textarea id="message-input" 
+                                  class="flex-1 p-2 border rounded resize-none"
+                                  placeholder="Finestra di input: >"
+                                  rows="1"></textarea>
+                        <button onclick="downloadChat()" 
+                                class="px-3 py-2 bg-black text-white rounded hover:bg-gray-800 flex items-center justify-center"
+                                title="Scarica chat">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <button onclick="sendMessage()" 
+                                class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">
+                            Invia
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per la selezione dei file -->
+<div id="file-select-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+        <div class="px-6 py-4 border-b flex justify-between items-center">
+            <h3 class="text-lg font-semibold">Seleziona Risorse</h3>
+            <button id="close-file-modal" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-4 border-b">
+            <div class="relative">
+                <input type="text" id="modal-search-files" placeholder="Cerca file..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
+                <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <button data-filter="all" class="file-filter-btn px-3 py-1 text-sm bg-black text-white rounded-full">Tutti</button>
+                <button data-filter="image" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Immagini</button>
+                <button data-filter="document" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Documenti</button>
+                <button data-filter="csv" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">CSV</button>
+                <button data-filter="text" class="file-filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Testo</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4" id="modal-files-container">
+            <!-- I file verranno caricati qui dinamicamente -->
+            <div class="text-center py-10 text-gray-500">Caricamento file in corso...</div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end">
+            <button id="confirm-file-selection" class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">Conferma selezione</button>
+        </div>
+    </div>
+</div>
 
 <script>
     let currentChatId = null;
@@ -675,7 +685,7 @@
         } else if (fileType.startsWith('text/')) {
             return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
         } else {
-            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>';
+            return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>';
         }
     }
     
@@ -1012,6 +1022,63 @@
         }
     }
 
+    // Definire le soglie per i livelli di avviso del contatore di token
+    const TOKEN_THRESHOLDS = {
+        warning: 10000,  // 10k token - Giallo
+        danger: 50000    // 50k token - Rosso
+    };
+    
+    // Variabile per tenere traccia del totale dei token nell'intera sessione
+    let sessionTokenCount = {
+        total: 0,
+        input: 0,
+        output: 0
+    };
+    
+    // Carica i dati dei token salvati dal localStorage all'avvio
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const savedTokens = localStorage.getItem('sessionTokenCount');
+            if (savedTokens) {
+                sessionTokenCount = JSON.parse(savedTokens);
+                console.log('Token count loaded from localStorage:', sessionTokenCount);
+            }
+        } catch (error) {
+            console.error('Error loading token count from localStorage:', error);
+        }
+    });
+    
+    // Funzione per aggiornare il contatore dei token
+    function updateTokenCounter(tokenInfo) {
+        if (!tokenInfo) return;
+        
+        // Aggiorna il conteggio della sessione
+        sessionTokenCount.total += tokenInfo.total || 0;
+        sessionTokenCount.input += tokenInfo.input || 0;
+        sessionTokenCount.output += tokenInfo.output || 0;
+        
+        // Salva nel localStorage
+        localStorage.setItem('sessionTokenCount', JSON.stringify(sessionTokenCount));
+        
+        // Visualizza i dettagli dei token per questa risposta
+        console.log('Token usage for this response:', tokenInfo);
+    }
+    
+    // Funzione per aggiungere un messaggio di token alla chat
+    function addTokenInfoToChat(tokenInfo) {
+        if (!tokenInfo) return;
+        
+        const chatMessages = document.getElementById('chat-messages');
+        const tokenMsgElem = document.createElement('div');
+        tokenMsgElem.className = 'token-message';
+        tokenMsgElem.innerHTML = `
+            <strong>Utilizzo token:</strong> ${tokenInfo.total} totali 
+            (${tokenInfo.input} input, ${tokenInfo.output} output)
+        `;
+        chatMessages.appendChild(tokenMsgElem);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
     async function sendMessage() {
         const input = document.getElementById('message-input');
         const message = input.value.trim();
@@ -1075,6 +1142,17 @@
             }
 
             addMessageToUI('bot', data.response);
+            
+            // Gestione e visualizzazione delle informazioni sui token
+            if (data.token_info) {
+                console.log('Token info received:', data.token_info);
+                
+                // Aggiorna il contatore dei token
+                updateTokenCounter(data.token_info);
+                
+                // Aggiungi informazioni sui token alla chat
+                addTokenInfoToChat(data.token_info);
+            }
             
             // Update chat history if this is a new chat
             if (data.chatId !== currentChatId) {

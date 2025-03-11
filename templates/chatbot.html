@@ -1,6 +1,70 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    /* Stili per il messaggio di sistema (token info) */
+    .system-message {
+        background-color: #f0f0f0;
+        color: #333;
+        padding: 8px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    /* Stili per il contatore dei token permanente */
+    .token-counter {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .token-info {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+    }
+    
+    .token-label {
+        margin-right: 10px;
+        font-weight: 500;
+    }
+    
+    .token-value {
+        font-weight: 700;
+    }
+    
+    /* Stili per la barra di progresso dei token */
+    .token-progress {
+        width: 100%;
+        height: 4px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        margin-top: 8px;
+        overflow: hidden;
+    }
+    
+    .token-progress-bar {
+        height: 100%;
+        background-color: #10b981; /* Verde */
+        transition: width 0.3s ease;
+    }
+    
+    .token-progress-bar.warning {
+        background-color: #f59e0b; /* Giallo */
+    }
+    
+    .token-progress-bar.danger {
+        background-color: #ef4444; /* Rosso */
+    }
+</style>
 <div class="container mx-auto px-4 py-8">
     <div class="w-[1200px] h-[800px] mx-auto bg-gray-50 rounded-lg shadow-lg flex">
         <!-- Sidebar -->
@@ -25,8 +89,11 @@
                         <div class="flex gap-4">
                             <textarea id="system-prompt" rows="2"
                                 class="flex-1 rounded-[20px] bg-gray-100 border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 resize-none p-4"
-                                placeholder="Descrivi la personalità che vorresti per il bot..."></textarea>
-                            <button onclick="initializeChat()"
+                                placeholder="Descrivi la personalità che vorresti per il bot..."
+                                spellcheck="false"
+                                autocomplete="off"
+                                style="-webkit-user-select: text; user-select: text;"></textarea>
+                            <button id="prompt-button" onclick="handlePromptAction()"
                                 class="btn btn-training h-fit">
                                 Inizializza
                             </button>
@@ -41,11 +108,9 @@
                 </div>
             </div>
 
-            <!-- Contenitore dei Messaggi -->
-            <div class="flex-1 overflow-y-auto">
-                <div id="chat-messages" class="p-6 space-y-6">
-                    <!-- I messaggi saranno popolati qui -->
-                </div>
+            <!-- Area dei Messaggi -->
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto">
+                <!-- I messaggi della chat saranno popolati qui -->
             </div>
 
             <!-- Area di Input -->
@@ -53,7 +118,10 @@
                 <div class="flex gap-4">
                     <textarea id="user-input" rows="1"
                         class="flex-1 rounded-[20px] bg-gray-100 border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 resize-none"
-                        placeholder="Scrivi un messaggio..."></textarea>
+                        placeholder="Scrivi un messaggio..."
+                        spellcheck="false"
+                        autocomplete="off"
+                        style="-webkit-user-select: text; user-select: text;"></textarea>
                     <button onclick="sendMessage()"
                         class="btn btn-cta">
                         Invia
@@ -66,32 +134,28 @@
 
 <style>
     .message {
+        margin-bottom: 1rem;
         padding: 1rem;
-        border-radius: 20px;
-        margin: 1rem 0;
+        border-radius: 0.5rem;
         max-width: 80%;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
     }
 
     .user-message {
-        background-color: #10B981;
-        color: white;
+        background-color: #E5E7EB;
         margin-left: auto;
     }
 
     .bot-message {
-        background-color: #8B5CF6;
-        color: white;
+        background-color: #F3F4F6;
         margin-right: auto;
     }
 
     #chat-list > div {
-        padding: 1rem;
+        padding: 0.75rem;
         border-bottom: 1px solid #E5E7EB;
-        transition: all 0.3s ease;
         cursor: pointer;
-        color: #4B5563;
+        transition: all 0.2s;
+        color: #6B7280;
     }
 
     #chat-list > div:hover {
@@ -126,11 +190,38 @@
 </style>
 
 <script>
-    let currentChatId = null;
+    let currentChatId = localStorage.getItem('currentChatId') || null;
     let chatMessages = [];
-
+    
+    // Funzione per assicurarsi che i campi di input siano sempre modificabili
+    function ensureInputsAreEditable() {
+        const systemPrompt = document.getElementById('system-prompt');
+        const userInput = document.getElementById('user-input');
+        
+        // Rimuovi attributi che potrebbero rendere i campi non modificabili
+        [systemPrompt, userInput].forEach(field => {
+            if (field) {
+                field.removeAttribute('readonly');
+                field.removeAttribute('disabled');
+                field.style.pointerEvents = 'auto';
+            }
+        });
+    }
+    
+    // Esegui subito e poi ogni secondo per assicurarsi che i campi siano sempre modificabili
+    ensureInputsAreEditable();
+    setInterval(ensureInputsAreEditable, 1000);
+    
     // Carica le chat all'avvio
     loadChats();
+    
+    // Se c'è una chat attiva salvata, caricala
+    if (currentChatId) {
+        loadChat(currentChatId);
+    } else {
+        // Se non c'è una chat attiva, assicurati che il pulsante sia "Inizializza"
+        document.getElementById('prompt-button').textContent = 'Inizializza';
+    }
 
     async function loadChats() {
         try {
@@ -161,10 +252,34 @@
             const data = await response.json();
             
             currentChatId = chatId;
+            // Salva l'ID della chat corrente in localStorage
+            localStorage.setItem('currentChatId', chatId);
+            
             chatMessages = data.messages;
             
             // Aggiorna UI
             document.getElementById('chat-messages').innerHTML = '';
+            
+            // Trova e visualizza il prompt di sistema, se presente
+            const systemPromptField = document.getElementById('system-prompt');
+            
+            const systemMessage = chatMessages.find(msg => msg.role === 'system');
+            if (systemMessage) {
+                systemPromptField.value = systemMessage.content;
+            } else {
+                systemPromptField.value = '';
+            }
+            
+            // Assicurati che i campi di input siano modificabili
+            ensureInputsAreEditable();
+            
+            // Pulisci il campo di input dei messaggi
+            document.getElementById('user-input').value = '';
+            
+            // Cambia il testo del pulsante da "Inizializza" a "Aggiorna"
+            document.getElementById('prompt-button').textContent = 'Aggiorna';
+            
+            // Visualizza i messaggi della chat (escluso il prompt di sistema)
             chatMessages.forEach(msg => {
                 if (msg.role !== 'system') {
                     addMessageToChat(msg.role, msg.content);
@@ -180,9 +295,56 @@
 
     function newChat() {
         currentChatId = null;
+        // Rimuovi l'ID della chat corrente da localStorage
+        localStorage.removeItem('currentChatId');
+        
         chatMessages = [];
         document.getElementById('chat-messages').innerHTML = '';
         document.getElementById('system-prompt').value = '';
+        document.getElementById('user-input').value = '';
+        
+        // Assicurati che i campi di input siano modificabili
+        ensureInputsAreEditable();
+        
+        // Cambia il testo del pulsante da "Aggiorna" a "Inizializza"
+        document.getElementById('prompt-button').textContent = 'Inizializza';
+    }
+
+    // Funzione per gestire sia l'inizializzazione che l'aggiornamento del prompt di sistema
+    function handlePromptAction() {
+        if (currentChatId) {
+            updateSystemPrompt();
+        } else {
+            initializeChat();
+        }
+    }
+
+    async function updateSystemPrompt() {
+        const systemPrompt = document.getElementById('system-prompt').value.trim();
+        if (!systemPrompt) return;
+
+        try {
+            const response = await fetch('/update_system_prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: currentChatId,
+                    system_prompt: systemPrompt
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            chatMessages = data.messages;
+            
+            alert('Prompt di sistema aggiornato con successo!');
+        } catch (error) {
+            console.error('Errore nell\'aggiornamento del prompt:', error);
+            alert('Si è verificato un errore nell\'aggiornamento del prompt');
+        }
     }
 
     async function initializeChat() {
@@ -204,6 +366,9 @@
             if (data.error) throw new Error(data.error);
 
             currentChatId = data.chat_id;
+            // Salva l'ID della chat corrente in localStorage
+            localStorage.setItem('currentChatId', data.chat_id);
+            
             chatMessages = data.messages;
             
             // Aggiorna UI
@@ -231,6 +396,12 @@
             // Aggiungi il messaggio dell'utente all'array dei messaggi
             chatMessages.push({"role": "user", "content": message});
 
+            // Mostra un indicatore di caricamento (testo semplice per evitare problemi di caricamento)
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message';
+            loadingDiv.textContent = 'Sto elaborando la risposta...';
+            document.getElementById('chat-messages').appendChild(loadingDiv);
+
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
@@ -242,12 +413,33 @@
                 })
             });
 
+            // Rimuovi l'indicatore di caricamento
+            document.getElementById('chat-messages').removeChild(loadingDiv);
+
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
             // Aggiungi la risposta del bot all'array dei messaggi e alla chat
             chatMessages.push({"role": "assistant", "content": data.message});
             addMessageToChat('assistant', data.message);
+            
+            // Aggiorna il contatore dei token utilizzando le informazioni dalla risposta JSON
+            if (data.token_info) {
+                // Usa i dati di token direttamente dalla risposta
+                updateTokenCounter(data.message, data.token_info);
+                
+                // Salva i dati dei token nel localStorage per persistenza tra le sessioni
+                const savedTokens = JSON.parse(localStorage.getItem('sessionTokenCount') || '{"total": 0, "input": 0, "output": 0}');
+                
+                savedTokens.total += data.token_info.total;
+                savedTokens.input += data.token_info.input;
+                savedTokens.output += data.token_info.output;
+                
+                localStorage.setItem('sessionTokenCount', JSON.stringify(savedTokens));
+            } else {
+                // Fallback al vecchio metodo di estrazione dal testo del messaggio
+                updateTokenCounter(data.message);
+            }
             
             // Ricarica lista chat per aggiornare i titoli
             await loadChats();
@@ -269,6 +461,156 @@
     function formatResponse(text) {
         return text.replace(/\n/g, '<br>');
     }
+    
+    // Definisci le soglie per i livelli di avviso del contatore di token
+    const TOKEN_THRESHOLDS = {
+        warning: 10000,  // 10k token - Giallo
+        danger: 50000    // 50k token - Rosso
+    };
+    
+    // Tiene traccia del totale dei token nell'intera sessione
+    let sessionTokenCount = {
+        total: 0,
+        input: 0,
+        output: 0
+    };
+    
+    // Carica i dati dei token salvati dal localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const savedTokens = localStorage.getItem('sessionTokenCount');
+            if (savedTokens) {
+                sessionTokenCount = JSON.parse(savedTokens);
+                console.log('Token count loaded from localStorage:', sessionTokenCount);
+                
+                // Crea il contatore dei token se ci sono già dati salvati
+                if (sessionTokenCount.total > 0) {
+                    initializeTokenCounter();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading token count from localStorage:', error);
+        }
+    });
+    
+    // Inizializza il contatore dei token visibile
+    function initializeTokenCounter() {
+        let tokenCounter = document.getElementById('token-counter');
+        
+        if (!tokenCounter) {
+            tokenCounter = document.createElement('div');
+            tokenCounter.id = 'token-counter';
+            tokenCounter.className = 'token-counter';
+            document.body.appendChild(tokenCounter);
+            
+            // Determina il livello di avviso in base alla quantità di token utilizzati
+            let warningLevel = '';
+            if (sessionTokenCount.total >= TOKEN_THRESHOLDS.danger) {
+                warningLevel = 'danger';
+            } else if (sessionTokenCount.total >= TOKEN_THRESHOLDS.warning) {
+                warningLevel = 'warning';
+            }
+            
+            // Calcola la percentuale per la barra di progresso (assume un massimo di 100k token)
+            const progressPercentage = Math.min(100, (sessionTokenCount.total / 100000) * 100);
+            
+            // Aggiorna il contenuto del contatore
+            tokenCounter.innerHTML = `
+                <div class="token-info">
+                    <span class="token-label">Totale sessione:</span>
+                    <span class="token-value">${sessionTokenCount.total.toLocaleString()}</span>
+                </div>
+                <div class="token-info">
+                    <span class="token-label">Input:</span>
+                    <span class="token-value">${sessionTokenCount.input.toLocaleString()}</span>
+                </div>
+                <div class="token-info">
+                    <span class="token-label">Output:</span>
+                    <span class="token-value">${sessionTokenCount.output.toLocaleString()}</span>
+                </div>
+                <div class="token-progress">
+                    <div class="token-progress-bar ${warningLevel}" style="width: ${progressPercentage}%"></div>
+                </div>
+            `;
+        }
+    }
+    
+    function updateTokenCounter(message, tokenData = null) {
+        // Ottieni le informazioni sui token dalla risposta o dai dati passati direttamente
+        let totalTokens, inputTokens, outputTokens;
+        
+        if (tokenData) {
+            // Usa i dati passati direttamente (dall'oggetto token_info nella risposta)
+            totalTokens = tokenData.total;
+            inputTokens = tokenData.input;
+            outputTokens = tokenData.output;
+        } else {
+            // Cerca le informazioni sui token nel testo del messaggio
+            const tokenMatch = message.match(/---\nToken utilizzati: (\d+) \(Input: (\d+), Output: (\d+)\)/);
+            if (!tokenMatch) return;
+            
+            totalTokens = parseInt(tokenMatch[1]);
+            inputTokens = parseInt(tokenMatch[2]);
+            outputTokens = parseInt(tokenMatch[3]);
+        }
+        
+        // Aggiorna il conteggio della sessione
+        sessionTokenCount.total += totalTokens;
+        sessionTokenCount.input += inputTokens;
+        sessionTokenCount.output += outputTokens;
+        
+        // Crea un elemento di testo semplice per mostrare i token nella chat
+        const tokenInfoMessage = document.createElement('div');
+        tokenInfoMessage.className = 'message system-message';
+        tokenInfoMessage.textContent = `Token utilizzati: ${totalTokens} (Input: ${inputTokens}, Output: ${outputTokens})`;
+        
+        // Aggiungi l'elemento alla chat
+        document.getElementById('chat-messages').appendChild(tokenInfoMessage);
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        
+        // Aggiorna o crea il contatore permanente
+        let tokenCounter = document.getElementById('token-counter');
+        
+        if (!tokenCounter) {
+            // Se il contatore non esiste, utilizza la funzione initializeTokenCounter
+            initializeTokenCounter();
+            tokenCounter = document.getElementById('token-counter');
+        }
+        
+        // Determina il livello di avviso in base alla quantità di token utilizzati
+        let warningLevel = '';
+        if (sessionTokenCount.total >= TOKEN_THRESHOLDS.danger) {
+            warningLevel = 'danger';
+        } else if (sessionTokenCount.total >= TOKEN_THRESHOLDS.warning) {
+            warningLevel = 'warning';
+        }
+        
+        // Calcola la percentuale per la barra di progresso (assume un massimo di 100k token)
+        const progressPercentage = Math.min(100, (sessionTokenCount.total / 100000) * 100);
+        
+        // Aggiorna il contenuto del contatore
+        tokenCounter.innerHTML = `
+            <div class="token-info">
+                <span class="token-label">Totale sessione:</span>
+                <span class="token-value">${sessionTokenCount.total.toLocaleString()}</span>
+            </div>
+            <div class="token-info">
+                <span class="token-label">Input:</span>
+                <span class="token-value">${sessionTokenCount.input.toLocaleString()}</span>
+            </div>
+            <div class="token-info">
+                <span class="token-label">Output:</span>
+                <span class="token-value">${sessionTokenCount.output.toLocaleString()}</span>
+            </div>
+            <div class="token-info">
+                <span class="token-label">Ultima risposta:</span>
+                <span class="token-value">${totalTokens.toLocaleString()}</span>
+            </div>
+            <div class="token-progress">
+                <div class="token-progress-bar ${warningLevel}" style="width: ${progressPercentage}%"></div>
+            </div>
+        `;
+    }
 
     // Gestisci il tasto Invio nell'area di testo
     document.getElementById('user-input').addEventListener('keypress', function(e) {
@@ -277,5 +619,17 @@
             sendMessage();
         }
     });
+    
+    // Gestisci il focus sui campi di input
+    window.addEventListener('focus', ensureInputsAreEditable);
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            ensureInputsAreEditable();
+        }
+    });
+    
+    // Assicurati che i campi siano modificabili quando la pagina viene caricata o ricaricata
+    window.addEventListener('load', ensureInputsAreEditable);
+    window.addEventListener('pageshow', ensureInputsAreEditable);
 </script>
 {% endblock %}
