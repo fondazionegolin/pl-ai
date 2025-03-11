@@ -1,13 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-        <!-- Intestazione -->
-        <div class="bg-black px-6 py-4">
-            <h1 class="text-2xl font-bold text-white">Risorse</h1>
-            <p class="text-gray-300 mt-1">Carica e gestisci i tuoi file da utilizzare in tutto il sito</p>
+<div class="max-w-7xl mx-auto px-4">
+    <!-- Header con titolo e link al tutorial -->
+    <div class="bg-slate-700 text-white py-4 px-6 rounded-t-lg mb-0">
+        <div class="flex items-center gap-4">
+            <!-- Piccolo grafico di risorse -->
+            <div class="w-20 h-20 bg-white rounded-lg flex items-center justify-center p-2">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <!-- Icona risorse stilizzata -->
+                    <rect x="20" y="15" width="60" height="70" rx="5" fill="none" stroke="#000" stroke-width="2"/>
+                    <rect x="30" y="25" width="40" height="10" rx="2" fill="#333"/>
+                    <rect x="30" y="40" width="40" height="10" rx="2" fill="#333"/>
+                    <rect x="30" y="55" width="40" height="10" rx="2" fill="#333"/>
+                    <rect x="30" y="70" width="20" height="5" rx="2" fill="#333"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold mb-3">Risorse</h1>
+                <a href="#" id="open-tutorial-modal" class="text-[#BABABA] hover:text-white underline transition-colors">
+                    Come funziona? Apri il tutorial
+                </a>
+            </div>
         </div>
+    </div>
+    
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
 
         <!-- Area di caricamento file -->
         <div class="p-6">
@@ -132,6 +150,93 @@
     </div>
 </div>
 
+<!-- Modale Tutorial -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Tutorial: Gestione Risorse</h2>
+                <button id="close-tutorial-modal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6 space-y-6">
+            <!-- Immagine esplicativa -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex justify-center">
+                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-md h-40">
+                    <!-- Illustrazione gestione risorse -->
+                    <rect x="20" y="10" width="160" height="80" rx="10" fill="#f3f4f6" stroke="#333" stroke-width="2"/>
+                    <rect x="30" y="20" width="140" height="15" rx="3" fill="#e2e8f0"/>
+                    <rect x="30" y="40" width="140" height="35" rx="3" fill="#000"/>
+                    <path d="M45 55 L55 65 L65 55" stroke="#fff" stroke-width="2" fill="none"/>
+                    <text x="80" y="63" font-size="8" fill="#fff">Trascina qui i tuoi file</text>
+                </svg>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Cos'è la gestione risorse -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Cos'è la Gestione Risorse?
+                    </h3>
+                    <div class="text-sm text-gray-600 space-y-2">
+                        <p>La gestione risorse è un sistema centralizzato per caricare, organizzare e utilizzare i tuoi file all'interno della piattaforma.</p>
+                        <p>Puoi caricare vari tipi di file come immagini, documenti CSV, PDF e altri formati che potrai poi utilizzare nelle diverse funzionalità dell'applicazione.</p>
+                        <p>Questo strumento ti permette di avere tutti i tuoi file in un unico posto, facilitando l'accesso e il riutilizzo dei dati in diversi contesti.</p>
+                    </div>
+                </div>
+                
+                <!-- Come usare lo strumento -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        Come usare questo strumento
+                    </h3>
+                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
+                        <li><strong>Carica file</strong>: Trascina e rilascia i file nell'area designata o clicca su "Carica un file" per selezionarli dal tuo dispositivo.</li>
+                        <li><strong>Visualizza file</strong>: I file caricati appariranno nell'elenco sottostante con informazioni su nome, tipo, dimensione e data di caricamento.</li>
+                        <li><strong>Cerca e filtra</strong>: Utilizza la barra di ricerca e i filtri per trovare rapidamente i file che ti interessano.</li>
+                        <li><strong>Anteprima</strong>: Clicca su un file per visualizzarne l'anteprima (disponibile per immagini, PDF e alcuni tipi di documenti).</li>
+                        <li><strong>Gestisci file</strong>: Scarica o elimina i file utilizzando i pulsanti di azione nella colonna "Azioni".</li>
+                    </ol>
+                </div>
+                
+                <!-- Tipi di file supportati -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Tipi di file supportati
+                    </h3>
+                    <ul class="text-sm text-gray-600 space-y-2 ml-5 list-disc">
+                        <li><strong>Immagini</strong>: JPG, PNG, GIF, SVG - Utilizzabili per generazione e classificazione di immagini</li>
+                        <li><strong>Documenti CSV</strong>: Utilizzabili per regressione e classificazione</li>
+                        <li><strong>PDF</strong>: Documenti di riferimento e manuali</li>
+                        <li><strong>Documenti</strong>: DOC, DOCX, TXT - Testi e documenti vari</li>
+                        <li><strong>Altri formati</strong>: La piattaforma supporta anche altri formati di file fino a 10MB di dimensione</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6 border-t border-gray-200 flex justify-end">
+            <button id="close-tutorial-btn" class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors">
+                Chiudi tutorial
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const dropZone = document.getElementById('drop-zone');
@@ -146,6 +251,45 @@
         const closePreview = document.getElementById('close-preview');
         const previewTitle = document.getElementById('preview-title');
         const previewContent = document.getElementById('preview-content');
+        
+        // Event listeners per il tutorial
+        const openTutorialBtn = document.getElementById('open-tutorial-modal');
+        const closeTutorialBtn = document.getElementById('close-tutorial-modal');
+        const closeTutorialBtnBottom = document.getElementById('close-tutorial-btn');
+        const tutorialModal = document.getElementById('tutorial-modal');
+        
+        if (openTutorialBtn) {
+            openTutorialBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                tutorialModal.classList.remove('hidden');
+            });
+        }
+        
+        if (closeTutorialBtn) {
+            closeTutorialBtn.addEventListener('click', function() {
+                tutorialModal.classList.add('hidden');
+            });
+        }
+        
+        if (closeTutorialBtnBottom) {
+            closeTutorialBtnBottom.addEventListener('click', function() {
+                tutorialModal.classList.add('hidden');
+            });
+        }
+        
+        if (tutorialModal) {
+            tutorialModal.addEventListener('click', function(e) {
+                if (e.target.id === 'tutorial-modal') {
+                    tutorialModal.classList.add('hidden');
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !tutorialModal.classList.contains('hidden')) {
+                    tutorialModal.classList.add('hidden');
+                }
+            });
+        }
         
         // Gestione del drag and drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

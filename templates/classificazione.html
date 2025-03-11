@@ -36,110 +36,58 @@ loadPlotly().catch(error => {
     console.error("Errore durante il caricamento di Plotly:", error);
     showToast("Errore nel caricamento della libreria di visualizzazione. Ricarica la pagina.", "error");
 });
+// Fix per il modale dell'albero decisionale
+document.addEventListener('DOMContentLoaded', function() {
+    // Ottieni riferimenti agli elementi
+    const treeImage = document.getElementById('treeImage');
+    const treeModal = document.getElementById('tree-modal');
+    const closeTreeModalBtn = treeModal.querySelector('button');
+    
+    // Aggiungi event listener per aprire il modale quando si clicca sull'immagine
+    treeImage.addEventListener('click', function() {
+        treeModal.classList.remove('hidden');
+    });
+    
+    // Aggiungi event listener per chiudere il modale quando si clicca sul pulsante di chiusura
+    closeTreeModalBtn.addEventListener('click', function() {
+        treeModal.classList.add('hidden');
+    });
+});
+
 </script>
 
-<!-- Modale per il grafico ingrandito -->
-<div id="chart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-lg font-semibold text-gray-800">Visualizzazione dettagliata</h3>
-            <button id="close-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="p-6">
-            <div class="w-full" style="height: 500px">
-                <div id="modal-chart-container"></div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Contenitore delle notifiche -->
 <div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
-<div class="max-w-5xl mx-auto px-4 py-8">
-    <!-- Header con grafico stilizzato -->
-    <div class="bg-gray-50 rounded-xl shadow-lg p-8 mb-10 border border-gray-200">
-        <div class="flex flex-col md:flex-row items-center justify-between">
-            <div class="mb-6 md:mb-0">
-                <h1 class="text-4xl font-bold text-gray-800 mb-3">Classificazione di Dati</h1>
-                <p class="text-gray-600 max-w-lg">Analizza e categorizza i tuoi dati utilizzando algoritmi di machine learning avanzati.</p>
-            </div>
-            <!-- Grafico stilizzato per classificazione -->
-            <div class="w-60 h-36 bg-white rounded-lg shadow-inner flex items-center justify-center p-4 border border-gray-200">
-                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                    <!-- Griglia di sfondo -->
-                    <defs>
-                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" stroke-width="1"/>
-                        </pattern>
-                    </defs>
-                    <rect width="200" height="100" fill="url(#grid)" />
-                    
-                    <!-- Punti Classe A -->
-                    <circle cx="40" cy="30" r="3" fill="#4b5563"/>
-                    <circle cx="50" cy="35" r="3" fill="#4b5563"/>
-                    <circle cx="45" cy="40" r="3" fill="#4b5563"/>
-                    
-                    <!-- Punti Classe B -->
-                    <circle cx="150" cy="60" r="3" fill="#9ca3af"/>
-                    <circle cx="160" cy="65" r="3" fill="#9ca3af"/>
-                    <circle cx="155" cy="70" r="3" fill="#9ca3af"/>
-                    
-                    <!-- Linea di decisione -->
-                    <path d="M 20 80 Q 100 20 180 80" stroke="#6b7280" stroke-width="2" fill="none" stroke-dasharray="4"/>
+<div class="max-w-7xl mx-auto px-4">
+    <!-- Header con titolo e link al tutorial -->
+    <div class="bg-slate-700 text-white py-4 px-6 rounded-t-lg mb-0">
+        <div class="flex items-center gap-4">
+            <!-- Piccolo grafico di classificazione -->
+            <div class="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-1.5">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <!-- Icona classificazione stilizzata -->
+                    <circle cx="30" cy="30" r="8" fill="#FF5733"/>
+                    <circle cx="60" cy="40" r="8" fill="#33A1FF"/>
+                    <circle cx="40" cy="70" r="8" fill="#33FF57"/>
+                    <circle cx="70" cy="65" r="8" fill="#FF33A1"/>
+                    <!-- Linea di separazione -->
+                    <path d="M20 20 L80 80" stroke="#000" stroke-width="2" stroke-dasharray="4"/>
                 </svg>
             </div>
-        </div>
-        
-        <!-- Tutorial e spiegazione -->
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Cos'è la classificazione -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Cos'è la Classificazione?
-                    </h3>
-                    <div class="text-sm text-gray-600 space-y-2">
-                        <p>La classificazione è una tecnica di machine learning che permette di <strong>categorizzare dati</strong> in classi predefinite basandosi sulle loro caratteristiche.</p>
-                        <p>Il modello impara dai dati di esempio a riconoscere i pattern che distinguono le diverse classi.</p>
-                        <p>Applicazioni comuni includono:</p>
-                        <ul class="list-disc ml-4 space-y-1">
-                            <li>Riconoscimento di spam</li>
-                            <li>Diagnosi mediche</li>
-                            <li>Analisi del sentiment</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <!-- Come usare lo strumento -->
-                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
-                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-                        </svg>
-                        Come usare questo strumento
-                    </h3>
-                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
-                        <li><strong>Prepara i dati</strong>: Crea un file CSV con le colonne delle caratteristiche e l'ultima colonna per la classe target.</li>
-                        <li><strong>Carica il file</strong>: Seleziona il tuo file CSV e verifica l'anteprima dei dati.</li>
-                        <li><strong>Addestra il modello</strong>: Il sistema analizzerà i dati e creerà un modello di classificazione.</li>
-                        <li><strong>Fai previsioni</strong>: Inserisci i valori delle caratteristiche per ottenere la classe prevista.</li>
-                    </ol>
-                </div>
+            <div>
+                <h1 class="text-2xl font-bold">Classificazione</h1>
+                <a href="#" id="open-tutorial-modal" class="text-sm text-[#BABABA] hover:text-white underline transition-colors">
+                    Come funziona? Apri il tutorial
+                </a>
             </div>
         </div>
     </div>
-
     <!-- Grid Layout -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+    <div class="flex flex-col mb-24">
         <!-- Pannello Upload -->
-        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+        <div class="bg-white rounded-b-xl shadow-lg p-6 border border-gray-200 border-t-0">
             <div class="flex items-center mb-5">
                 <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
@@ -236,7 +184,7 @@ loadPlotly().catch(error => {
         </div>
 
         <!-- Pannello Previsione -->
-        <div id="prediction-section" class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hidden">
+        <div id="prediction-section" class="bg-white rounded-b-xl shadow-lg p-6 border border-gray-200 hidden">
             <div class="flex items-center mb-5">
                 <svg class="w-7 h-7 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -370,6 +318,172 @@ loadPlotly().catch(error => {
         </div>
     </div>
 </div>
+
+<!-- Modale Tutorial -->
+<div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Tutorial: Classificazione</h2>
+                <button id="close-tutorial-modal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6 space-y-6">
+            <!-- Immagine esplicativa -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-inner flex justify-center">
+                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-md h-40">
+                    <!-- Illustrazione classificazione -->
+                    <rect x="10" y="10" width="180" height="80" rx="5" fill="#f3f4f6" stroke="#333" stroke-width="1"/>
+                    
+                    <!-- Punti dati di diverse classi -->
+                    <circle cx="40" cy="30" r="4" fill="#FF5733"/>
+                    <circle cx="50" cy="35" r="4" fill="#FF5733"/>
+                    <circle cx="45" cy="25" r="4" fill="#FF5733"/>
+                    
+                    <circle cx="120" cy="40" r="4" fill="#33A1FF"/>
+                    <circle cx="130" cy="45" r="4" fill="#33A1FF"/>
+                    <circle cx="125" cy="35" r="4" fill="#33A1FF"/>
+                    
+                    <circle cx="70" cy="70" r="4" fill="#33FF57"/>
+                    <circle cx="80" cy="75" r="4" fill="#33FF57"/>
+                    <circle cx="75" cy="65" r="4" fill="#33FF57"/>
+                    
+                    <!-- Linee di separazione (confini di decisione) -->
+                    <path d="M60 20 L60 80" stroke="#000" stroke-width="1" stroke-dasharray="4"/>
+                    <path d="M100 20 L100 80" stroke="#000" stroke-width="1" stroke-dasharray="4"/>
+                    
+                    <!-- Etichette delle classi -->
+                    <text x="40" y="50" font-size="8" fill="#000">Classe A</text>
+                    <text x="75" y="50" font-size="8" fill="#000">Classe B</text>
+                    <text x="125" y="50" font-size="8" fill="#000">Classe C</text>
+                </svg>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Cos'è la classificazione -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Cos'è la Classificazione?
+                    </h3>
+                    <div class="text-sm text-gray-600 space-y-2">
+                        <p>La classificazione è una tecnica di apprendimento supervisionato che assegna categorie o classi a nuovi dati in base a un modello addestrato su dati etichettati.</p>
+                        <p>Questo strumento ti permette di addestrare modelli di classificazione sui tuoi dati, visualizzare i confini di decisione e fare previsioni su nuovi esempi.</p>
+                        <p>Puoi utilizzare la classificazione per problemi come la categorizzazione di email (spam/non spam), la diagnosi medica, il riconoscimento di immagini e molto altro.</p>
+                    </div>
+                </div>
+                
+                <!-- Come usare lo strumento -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        Come usare questo strumento
+                    </h3>
+                    <ol class="text-sm text-gray-600 space-y-2 ml-5 list-decimal">
+                        <li><strong>Carica i dati</strong>: Carica un file CSV contenente le caratteristiche dei dati e le relative classi target, o scegli uno dei dataset di esempio.</li>
+                        <li><strong>Visualizza l'anteprima</strong>: Esamina i primi righe del dataset per verificare che i dati siano stati caricati correttamente.</li>
+                        <li><strong>Addestra il modello</strong>: Clicca su "Addestra Modello" per creare un classificatore basato sui tuoi dati.</li>
+                        <li><strong>Esplora i risultati</strong>: Visualizza il grafico di classificazione, le metriche di performance e l'albero decisionale per comprendere come il modello classifica i dati.</li>
+                        <li><strong>Fai previsioni</strong>: Inserisci nuovi valori per fare previsioni su dati non visti in precedenza.</li>
+                    </ol>
+                </div>
+                
+                <!-- Consigli per risultati migliori -->
+                <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 mb-3">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Consigli per risultati migliori
+                    </h3>
+                    <ul class="text-sm text-gray-600 space-y-2 ml-5 list-disc">
+                        <li><strong>Dati bilanciati</strong>: Assicurati che le classi nel tuo dataset siano bilanciate per ottenere un modello più accurato.</li>
+                        <li><strong>Caratteristiche rilevanti</strong>: Includi caratteristiche che hanno una relazione con la classe target e rimuovi quelle irrilevanti.</li>
+                        <li><strong>Preelaborazione</strong>: Normalizza o standardizza i dati numerici per migliorare le prestazioni del modello.</li>
+                        <li><strong>Dimensione del dataset</strong>: Utilizza un numero sufficiente di esempi per addestrare il modello (almeno 50-100 per classe).</li>
+                        <li><strong>Interpretazione</strong>: Esamina l'albero decisionale per comprendere quali caratteristiche sono più importanti per la classificazione.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6 border-t border-gray-200 flex justify-end">
+            <button id="close-tutorial-btn" class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors">
+                Chiudi tutorial
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Aggiungiamo gli event listener per il tutorial
+document.addEventListener('DOMContentLoaded', function() {
+    const openTutorialBtn = document.getElementById('open-tutorial-modal');
+    const closeTutorialBtn = document.getElementById('close-tutorial-modal');
+    const closeTutorialBtnBottom = document.getElementById('close-tutorial-btn');
+    const tutorialModal = document.getElementById('tutorial-modal');
+    
+    if (openTutorialBtn) {
+        openTutorialBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            tutorialModal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeTutorialBtn) {
+        closeTutorialBtn.addEventListener('click', function() {
+            tutorialModal.classList.add('hidden');
+        });
+    }
+    
+    if (closeTutorialBtnBottom) {
+        closeTutorialBtnBottom.addEventListener('click', function() {
+            tutorialModal.classList.add('hidden');
+        });
+    }
+    
+    if (tutorialModal) {
+        tutorialModal.addEventListener('click', function(e) {
+            if (e.target.id === 'tutorial-modal') {
+                tutorialModal.classList.add('hidden');
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !tutorialModal.classList.contains('hidden')) {
+                tutorialModal.classList.add('hidden');
+            }
+        });
+    }
+});
+// Fix per il modale dell'albero decisionale
+document.addEventListener('DOMContentLoaded', function() {
+    // Ottieni riferimenti agli elementi
+    const treeImage = document.getElementById('treeImage');
+    const treeModal = document.getElementById('tree-modal');
+    const closeTreeModalBtn = treeModal.querySelector('button');
+    
+    // Aggiungi event listener per aprire il modale quando si clicca sull'immagine
+    treeImage.addEventListener('click', function() {
+        treeModal.classList.remove('hidden');
+    });
+    
+    // Aggiungi event listener per chiudere il modale quando si clicca sul pulsante di chiusura
+    closeTreeModalBtn.addEventListener('click', function() {
+        treeModal.classList.add('hidden');
+    });
+});
+
+</script>
 
 <style>
     /* Stili per le animazioni di notifica */
@@ -867,17 +981,18 @@ async function processDataset(file) {
     }
 }
 
-// Funzioni per abilitare/disabilitare il pulsante di addestramento
-function enableTrainButton() {
-    const trainModelBtn = document.getElementById('train-model-btn');
-    trainModelBtn.disabled = false;
-    trainModelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-}
-
-function disableTrainButton() {
-    const trainModelBtn = document.getElementById('train-model-btn');
-    trainModelBtn.disabled = true;
-    trainModelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+// Funzione per resettare i dati della previsione
+function resetPredictionData() {
+    document.getElementById('prediction-section').classList.add('hidden');
+    document.getElementById('data-preview').classList.add('hidden');
+    document.getElementById('preview-headers').innerHTML = '';
+    document.getElementById('preview-data').innerHTML = '';
+    document.getElementById('input-fields').innerHTML = '';
+    document.getElementById('result').classList.add('hidden');
+    disableTrainButton();
+    modelData = null;
+    treeImageData = null;
+    fullDataset = null;
 }
 
 // Funzione per creare lo scatter plot 3D
@@ -1258,10 +1373,10 @@ function showChartModal() {
             };
             
             // Pulisci il container prima di creare un nuovo plot
-            document.getElementById('modal-chart-container').innerHTML = '';
+            document.getElementById('modal-scatter3d-container').innerHTML = '';
             
             // Crea il plot nel modale
-            Plotly.newPlot('modal-chart-container', plotData, layout, {
+            Plotly.newPlot('modal-scatter3d-container', plotData, layout, {
                 responsive: true, 
                 displayModeBar: true,
                 modeBarButtonsToRemove: ['sendDataToCloud'],
@@ -1366,124 +1481,17 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
     }
 });
 
-// Get the modal
-var modal = document.getElementById("treeModal");
-
-// Get the image and insert it inside the modal
-var modalImg = document.getElementById("modalTreeImage");
-
-// When the tree image is clicked, open the modal
-document.getElementById('treeImage').onclick = function(){
-  modal.style.display = "block";
-  modalImg.src = this.src;
+// Funzioni per abilitare/disabilitare il pulsante di addestramento
+function enableTrainButton() {
+    const trainModelBtn = document.getElementById('train-model-btn');
+    trainModelBtn.disabled = false;
+    trainModelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 }
 
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() { 
-  modal.style.display = "none";
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-  if (event.target == modal) {
-    modal.style.display = "none";
-  }
-}
-
-// Funzione per mostrare l'albero decisionale
-function displayDecisionTree(imageData) {
-    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
-    const treeImgElements = [
-        document.getElementById('decision-tree-img'),
-        document.getElementById('treeImage')
-    ];
-    
-    const modalImgElements = [
-        document.getElementById('modal-tree-img'),
-        document.getElementById('modalTreeImage')
-    ];
-    
-    const placeholderElements = [
-        document.getElementById('tree-placeholder'),
-        document.getElementById('noTreeMessage')
-    ];
-    
-    // Crea la source dell'immagine
-    const imgSrc = 'data:image/png;base64,' + imageData;
-    
-    // Aggiorna tutte le possibili immagini dell'albero
-    treeImgElements.forEach(img => {
-        if (img) {
-            img.src = imgSrc;
-            img.style.display = 'block';
-        }
-    });
-    
-    // Aggiorna tutte le possibili immagini del modale
-    modalImgElements.forEach(img => {
-        if (img) {
-            img.src = imgSrc;
-        }
-    });
-    
-    // Nascondi tutti i possibili placeholder
-    placeholderElements.forEach(placeholder => {
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
-    });
-    
-    // Rimuovi le notifiche di errore relative all'albero
-    removeTreeErrorNotifications();
-    
-    // Aggiungi funzione di click per aprire il modale
-    treeImgElements.forEach(img => {
-        if (img) {
-            img.onclick = showTreeModal;
-        }
-    });
-    
-    // Logging per debug
-    console.log('Albero decisionale visualizzato, placeholder nascosti');
-    
-    // Chiamata esplicita per nascondere il messaggio di errore
-    if (window.hideNoTreeMessage) {
-        window.hideNoTreeMessage();
-    }
-}
-
-// Funzione per rimuovere le notifiche di errore relative all'albero
-function removeTreeErrorNotifications() {
-    // Rimuovi eventuali notifiche di errore per l'albero
-    const notifications = document.querySelectorAll('.notification');
-    notifications.forEach(notification => {
-        const notificationText = notification.textContent || '';
-        if (notificationText.includes('albero') && notificationText.includes('disponibile')) {
-            notification.remove();
-        }
-    });
-}
-
-// Funzione per mostrare il modale dell'albero decisionale
-function showTreeModal() {
-    // Supportiamo entrambi i vecchi e nuovi ID per compatibilità
-    const modalElements = [
-        document.getElementById('tree-modal'),
-        document.getElementById('treeModal')
-    ];
-    
-    // Mostra tutti i possibili modali
-    modalElements.forEach(modal => {
-        if (modal) {
-            if (modal.classList) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.style.display = 'flex';
-            }
-        }
-    });
-    
-    console.log('Modale dell\'albero decisionale aperto');
+function disableTrainButton() {
+    const trainModelBtn = document.getElementById('train-model-btn');
+    trainModelBtn.disabled = true;
+    trainModelBtn.classList.add('opacity-50', 'cursor-not-allowed');
 }
 
 // Funzione per chiudere il modale dell'albero decisionale
@@ -1554,6 +1562,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.getElementById('close-chart-modal').addEventListener('click', function() {
     document.getElementById('chart-modal').classList.add('hidden');
+});
+
+// Fix per il modale dell'albero decisionale
+document.addEventListener('DOMContentLoaded', function() {
+    // Ottieni riferimenti agli elementi
+    const treeImage = document.getElementById('treeImage');
+    const treeModal = document.getElementById('tree-modal');
+    const closeTreeModalBtn = treeModal.querySelector('button');
+    
+    // Aggiungi event listener per aprire il modale quando si clicca sull'immagine
+    treeImage.addEventListener('click', function() {
+        treeModal.classList.remove('hidden');
+    });
+    
+    // Aggiungi event listener per chiudere il modale quando si clicca sul pulsante di chiusura
+    closeTreeModalBtn.addEventListener('click', function() {
+        treeModal.classList.add('hidden');
+    });
 });
 
 </script>
