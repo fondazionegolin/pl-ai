@@ -308,6 +308,23 @@
                                     </svg>
                                 {% endif %}
                         </button>
+                        
+                        <!-- Menu dropdown utente (inizialmente nascosto) -->
+                        <div id="user-dropdown-menu" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 hidden">
+                            {% if session.get('user_id') %}
+                                <div class="px-4 py-2 border-b">
+                                    <p class="text-sm font-medium text-gray-900">{{ session.get('user_name', 'Utente') }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ session.get('user_email', '') }}</p>
+                                </div>
+                                <a href="/profilo" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profilo</a>
+                                <a href="/impostazioni" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Impostazioni</a>
+                                <div class="border-t"></div>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            {% else %}
+                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Accedi</a>
+                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrati</a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
