@@ -1,0 +1,18 @@
+[Unit]
+Description=PL-AI Gunicorn Service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/pl-ai
+ExecStart=/home/ubuntu/pl-ai/venv/bin/gunicorn -c gunicorn_config.py app:app
+Restart=always
+RestartSec=5
+Environment="PATH=/home/ubuntu/pl-ai/venv/bin"
+Environment="PYTHONPATH=/home/ubuntu/pl-ai"
+Environment="FLASK_APP=app.py"
+Environment="FLASK_ENV=production"
+
+[Install]
+WantedBy=multi-user.target
