@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pl-AI</title>
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon_white/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon_white/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon_white/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='favicon_white/site.webmanifest') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon_white/favicon.ico') }}">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -212,7 +220,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50">
+<body class="flex flex-col min-h-screen bg-gray-50">
     <!-- Navbar -->
     <nav class="navbar-gradient py-8 mb-12">
         <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
@@ -220,7 +228,7 @@
                 <!-- Logo container a sinistra -->
                 <div class="flex-shrink-0 flex items-center">
                     <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
-                        <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-16 w-auto" style="max-width: 100%;">
+                        <img src="{{ url_for('static', filename='plai.svg') }}" alt="PL-AI Logo" class="h-16 w-auto" style="max-width: 100%;">
                     </a>
                 </div>
                 
@@ -393,7 +401,7 @@
                 <div class="col-span-0 md:col-span-0 sm:col-span-6 xs:col-span-3 flex items-center justify-end">
                     <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2.5 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 md:hidden">
                         <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                         </svg>
                     </button>
                 </div>
@@ -496,9 +504,26 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="min-h-[calc(100vh-4rem)]">
+    <main class="flex-grow flex-shrink-0">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 text-gray-700 py-6 w-full flex-shrink-0 mt-auto border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="mb-4 md:mb-0">
+                    <img src="{{ url_for('static', filename='LogoFG.png') }}" alt="Fondazione Golinelli" class="h-10">
+                </div>
+                <div class="text-center text-sm md:text-base mx-4">
+                    <p>PL-AI è un prodotto di Fondazione Golinelli e G-lab srl Impresa Sociale -- tutti i diritti riservati.</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <img src="{{ url_for('static', filename='G-LAB_logo.svg') }}" alt="G-Lab" class="h-10">
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script>
         function toggleMobileMenu() {
