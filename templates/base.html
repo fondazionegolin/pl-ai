@@ -95,14 +95,14 @@
         }
 
         .nav-link:hover {
-            background-color: #000;
+            background-color: #0c0033;
             color: #fff;
             transform: translateY(-1px);
         }
 
         /* Active state */
         .nav-link.active {
-            background-color: #000;
+            background-color: #ff1649;
             color: #fff;
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -228,7 +228,7 @@
                 <!-- Logo container a sinistra -->
                 <div class="flex-shrink-0 flex items-center">
                     <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
-                        <img src="{{ url_for('static', filename='plai.svg') }}" alt="PL-AI Logo" class="h-16 w-auto" style="max-width: 100%;">
+                        <img src="{{ url_for('static', filename='plai.svg') }}" alt="PL-AI Logo" class="h-20 w-auto" style="max-width: 100%;">
                     </a>
                 </div>
                 
@@ -259,6 +259,7 @@
                             </svg>
                             Dati
                         </a>
+                        
                         <a href="/chatbot2" class="nav-link {% if request.path == '/chatbot2' %}active{% endif %}">
                             <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
@@ -290,7 +291,7 @@
                 </div>
                 
                 <!-- Icona utente a destra -->
-                <div class="flex-shrink-0">
+                <div class="flex-shrink-0 flex items-center">
                     <div class="relative flex items-center" id="user-menu-container">
                         <button type="button" onclick="toggleUserMenu()" class="flex items-center justify-center p-2 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300">
                                 {% if session.get('user_id') %}
@@ -302,223 +303,128 @@
                                     </svg>
                                     {% endif %}
                                 {% else %}
-                                <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                </svg>
+                                    <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
                                 {% endif %}
-                            </button>
-                            
-                            <!-- Menu flottante -->
-                            <div id="user-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg z-50 overflow-hidden">
-                                <div class="p-4 border-b">
-                                    {% if session.get('user_id') %}
-                                    <div class="flex items-center space-x-3">
-                                        {% if session.get('user_avatar') %}
-                                        <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-11 w-11 rounded-full object-cover border border-gray-200">
-                                        {% else %}
-                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                            <svg class="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                            </svg>
-                                        </div>
-                                        {% endif %}
-                                        <div>
-                                            <p class="font-medium">{{ session.get('username') }}</p>
-                                            <p class="text-sm text-gray-500">{{ session.get('user_email', '') }}</p>
-                                        </div>
-                                    </div>
-                                    <!-- Visualizzazione dei crediti API -->
-                                    <div class="mt-4 p-3 bg-gray-50 rounded-md">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <h4 class="text-sm font-medium text-gray-700">Crediti API utilizzati</h4>
-                                            <button id="refresh-api-credits" class="text-xs text-blue-600 hover:text-blue-800" title="Aggiorna crediti API">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <span class="text-gray-600">Stability AI:</span>
-                                                <span id="stability-credits" class="font-medium">{{ session.get('api_credits', {}).get('stability', 0) }}</span>
-                                            </div>
-                                            <div>
-                                                <span class="text-gray-600">OpenAI:</span>
-                                                <span id="openai-credits" class="font-medium">{{ session.get('api_credits', {}).get('openai', 0) }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <script>
-                                    document.getElementById('refresh-api-credits').addEventListener('click', function() {
-                                        fetch('/api/refresh-credits', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            credentials: 'same-origin'
-                                        })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            if (data.success) {
-                                                document.getElementById('stability-credits').textContent = data.credits.stability;
-                                                document.getElementById('openai-credits').textContent = data.credits.openai;
-                                            }
-                                        })
-                                        .catch(error => console.error('Error refreshing API credits:', error));
-                                    });
-                                    </script>
-                                    <div class="mt-4 flex space-x-2">
-                                        <a href="/profile" class="flex-1 bg-black text-white text-center py-2 px-4 rounded-md hover:bg-gray-800 transition-colors duration-300">Profilo</a>
-                                        <a href="/logout" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-4 rounded-md hover:bg-gray-300 transition-colors duration-300">Logout</a>
-                                    </div>
-                                    {% else %}
-                                    <h3 class="text-lg font-medium mb-3">Accedi al tuo account</h3>
-                                    <form action="/login" method="POST" id="quick-login-form">
-                                        <div class="space-y-3">
-                                            <div>
-                                                <label for="quick-username" class="block text-sm font-medium text-gray-700">Username</label>
-                                                <input type="text" id="quick-username" name="username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                                            </div>
-                                            <div>
-                                                <label for="quick-password" class="block text-sm font-medium text-gray-700">Password</label>
-                                                <input type="password" id="quick-password" name="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                                            </div>
-                                            <div id="login-error" class="text-red-500 text-sm hidden"></div>
-                                            <div class="flex space-x-2">
-                                                <button type="submit" class="flex-1 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition-colors duration-300">Login</button>
-                                                <a href="/register" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-4 rounded-md hover:bg-gray-300 transition-colors duration-300">Registrati</a>
-                                            </div>
-                                        </div>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
-                <!-- Three dot menu button per dispositivi mobili -->
-                <div class="col-span-0 md:col-span-0 sm:col-span-6 xs:col-span-3 flex items-center justify-end">
-                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2.5 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300 md:hidden">
-                        <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile menu -->
-        <div class="mobile-menu lg:hidden hidden bg-white shadow-lg rounded-lg absolute left-4 right-4 mt-2 z-50" id="mobile-menu">
-            <div class="p-4 border-b flex justify-between items-center">
-                <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-8">
-                <button type="button" onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="p-3 space-y-1.5 max-h-[70vh] overflow-y-auto">
-                <a href="/" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                    </svg>
-                    Home
-                </a>
-                <a href="/regressione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/regressione' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                    </svg>
-                    Regressione
-                </a>
-                <a href="/classificazione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/classificazione' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                    </svg>
-                    Dati
-                </a>
-                
-                <a href="/risorse" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/risorse' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Risorse
-                </a>
-                
-                <!-- Separatore per il menu mobile -->
-                <div class="border-t my-2 border-gray-200"></div>
-                
-                <!-- Link per l'autenticazione nel menu mobile -->
-                {% if session.get('user_id') %}
-                <a href="/profile" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/profile' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                    Profilo
-                </a>
-                <a href="/logout" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
-                    Logout
-                </a>
-                {% else %}
-                <div class="px-4 py-3">
-                    <form action="/login" method="POST" class="space-y-3">
-                        <div>
-                            <label for="mobile-username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <input type="text" id="mobile-username" name="username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                        </div>
-                        <div>
-                            <label for="mobile-password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="mobile-password" name="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-black text-white py-2 px-3 rounded-md hover:bg-gray-800 transition-colors duration-300 text-sm">Login</button>
-                            <a href="/register" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-3 rounded-md hover:bg-gray-300 transition-colors duration-300 text-sm">Registrati</a>
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
-                <a href="/class_img_2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/class_img_2' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    Visione
-                </a>
-                <a href="/chatbot2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/chatbot2' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                    </svg>
-                    Chatbot
-                </a>
-                <a href="/generazione-immagini" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/generazione-immagini' %}active{% endif %}">
-                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    Generazione
-                </a>
             </div>
         </div>
     </nav>
 
+    <!-- Mobile menu -->
+    <div class="mobile-menu lg:hidden hidden bg-white shadow-lg rounded-lg absolute left-4 right-4 mt-2 z-50" id="mobile-menu">
+        <div class="p-4 border-b flex justify-between items-center">
+            <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-8">
+            <button type="button" onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-3 space-y-1.5 max-h-[70vh] overflow-y-auto">
+            <a href="/" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+                Home
+            </a>
+            <a href="/regressione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/regressione' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+                Regressione
+            </a>
+            <a href="/classificazione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/classificazione' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                </svg>
+                Dati
+            </a>
+            
+            <a href="/risorse" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/risorse' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Risorse
+            </a>
+            
+            <!-- Separatore per il menu mobile -->
+            <div class="border-t my-2 border-gray-200"></div>
+            
+            <!-- Link per l'autenticazione nel menu mobile -->
+            {% if session.get('user_id') %}
+            <a href="/profile" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/profile' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Profilo
+            </a>
+            <a href="/logout" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Logout
+            </a>
+            {% else %}
+            <div class="px-4 py-3">
+                <form action="/login" method="POST" class="space-y-3">
+                    <div>
+                        <label for="mobile-username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="mobile-username" name="username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
+                    </div>
+                    <div>
+                        <label for="mobile-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="mobile-password" name="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" class="flex-1 bg-black text-white py-2 px-3 rounded-md hover:bg-gray-800 transition-colors duration-300 text-sm">Login</button>
+                        <a href="/register" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-3 rounded-md hover:bg-gray-300 transition-colors duration-300 text-sm">Registrati</a>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+            <a href="/class_img_2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/class_img_2' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Visione
+            </a>
+            <a href="/chatbot2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/chatbot2' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                Chatbot
+            </a>
+            <a href="/generazione-immagini" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/generazione-immagini' %}active{% endif %}">
+                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generazione
+            </a>
+        </div>
+    </div>
+    </nav>
+
     <!-- Main Content -->
-    <main class="flex-grow flex-shrink-0">
+    <main class="flex-grow pb-24">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-100 text-gray-700 py-6 w-full flex-shrink-0 mt-auto border-t border-gray-200">
+    <footer class="backdrop-blur-md bg-white/0 text-gray-700 py-3 w-full fixed bottom-0 border-t border-gray-200 z-10">
         <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
             <div class="flex flex-col md:flex-row items-center justify-between">
-                <div class="mb-4 md:mb-0">
-                    <img src="{{ url_for('static', filename='LogoFG.png') }}" alt="Fondazione Golinelli" class="h-10">
+                <div class="mb-2 md:mb-0">
+                    <img src="{{ url_for('static', filename='LogoFG.png') }}" alt="Fondazione Golinelli" class="h-8">
                 </div>
-                <div class="text-center text-sm md:text-base mx-4">
+                <div class="text-center text-xs md:text-sm mx-4">
                     <p>PL-AI è un prodotto di Fondazione Golinelli e G-lab srl Impresa Sociale -- tutti i diritti riservati.</p>
                 </div>
-                <div class="mt-4 md:mt-0">
+                <div class="mt-2 md:mt-0">
                     <img src="{{ url_for('static', filename='G-LAB_logo.svg') }}" alt="G-Lab" class="h-10">
                 </div>
             </div>
@@ -652,6 +558,62 @@
         // Esegui al caricamento e ad ogni cambio di orientamento
         window.addEventListener('load', handleOrientationChange);
         window.addEventListener('resize', handleOrientationChange);
+        
+        // Gestione del form di registrazione beta tester
+        document.addEventListener('DOMContentLoaded', function() {
+            const betaTesterForm = document.getElementById('beta-tester-form');
+            if (betaTesterForm) {
+                betaTesterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const nome = document.getElementById('nome').value;
+                    const cognome = document.getElementById('cognome').value;
+                    const email = document.getElementById('email').value;
+                    
+                    fetch('/beta-tester', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            nome: nome,
+                            cognome: cognome,
+                            email: email
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('success-message').classList.remove('hidden');
+                            betaTesterForm.classList.add('hidden');
+                        } else {
+                            console.error('Error:', data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            }
+        });
+        
+        // Gestione del pulsante di chiusura del form di registrazione beta tester
+        document.addEventListener('DOMContentLoaded', function() {
+            const cancelButton = document.getElementById('cancel-button');
+            if (cancelButton) {
+                cancelButton.addEventListener('click', function() {
+                    document.getElementById('beta-tester-modal').classList.add('hidden');
+                });
+            }
+        });
+        
+        // Gestione del pulsante di chiusura del messaggio di successo
+        document.addEventListener('DOMContentLoaded', function() {
+            const closeSuccessButton = document.getElementById('close-success');
+            if (closeSuccessButton) {
+                closeSuccessButton.addEventListener('click', function() {
+                    document.getElementById('beta-tester-modal').classList.add('hidden');
+                });
+            }
+        });
     </script>
 </body>
 </html>

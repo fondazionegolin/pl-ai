@@ -3,39 +3,27 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4">
     
-    <!-- Header con titolo e link al tutorial -->
-    <div class="bg-slate-700 text-white py-4 px-6 rounded-t-lg mb-0">
-        <div class="flex items-center gap-4">
-            <!-- Piccolo grafico di classificazione immagini -->
-            <div class="w-20 h-20 bg-white rounded-lg flex items-center justify-center p-2">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                    <!-- Icona classificazione immagini stilizzata -->
-                    <rect x="15" y="15" width="70" height="50" rx="5" fill="none" stroke="#000" stroke-width="2"/>
-                    <circle cx="35" cy="30" r="8" fill="#333"/>
-                    <rect x="55" y="25" width="20" height="10" rx="2" fill="#333"/>
-                    <rect x="20" y="50" width="60" height="5" rx="2" fill="#333"/>
-                    <rect x="20" y="60" width="40" height="5" rx="2" fill="#333"/>
-                    <rect x="20" y="70" width="50" height="5" rx="2" fill="#333"/>
-                </svg>
-            </div>
-            <div>
-                <h1 class="text-2xl font-bold mb-3">Classificazione Immagini</h1>
-                <a href="#" id="open-tutorial-modal" class="text-[#BABABA] hover:text-white underline transition-colors">
-                    Come funziona? Apri il tutorial
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- Titolo -->
+    <!-- <div class="py-4 px-6 mb-0">
+        <h1 class="text-2xl font-bold mb-3">Classificazione Immagini</h1>
+    </div> -->
     
     <!-- SVG per le connessioni Bezier -->
     <svg id="connections-svg" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: -1; transition: all 0.3s ease;"></svg>
     
-    <div class="mb-8">
+    <div class="mb-8 flex space-x-4">
         <button onclick="addNewClass()" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
             </svg>
             Aggiungi Classe
+        </button>
+        
+        <button id="open-tutorial-modal" class="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-all duration-200 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            Tutorial
         </button>
     </div>
 

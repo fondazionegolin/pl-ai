@@ -40,21 +40,98 @@
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
+    
+    .gradient-animation {
+        background: linear-gradient(135deg, #1E40AF, #7E22CE, #BE185D, #F59E0B, #1E40AF);
+        background-size: 400% 400%;
+        animation: gradient 25s ease infinite;
+    }
+    
+    /* Stile per il blocco del titolo delle funzionalità */
+    .color-slide {
+        position: relative;
+        overflow: hidden;
+        background-color: transparent;
+        z-index: 1;
+    }
+    
+    /* Contenitore per l'header con frattali */
+    .fractal-header {
+        position: relative;
+        padding: 3rem 2rem;
+        margin-bottom: 3rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        min-height: 300px;
+        background-color:  #85c570;
+    }
+    
+    /* Stile per il contenitore SVG */
+    .fractal-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+    
+    /* Stile per le piante frattali */
+    .fractal-plant {
+        stroke: #b1ffb165; /* Verde chiaro */
+        stroke-width: 1.5;
+        fill: none;
+        opacity: 0;
+        stroke-linecap: round;
+        transition: opacity 1s ease-in-out;
+    }
+    
+    /* Migliorare la leggibilità del testo sull'header */
+    .fractal-header .text-white {
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Migliorare lo sfondo del blocco informativo */
+    .fractal-header .bg-white\/20 {
+        background-color: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 </style>
 
 <div class="max-w-7xl mx-auto px-4">
-  
-
     <!-- Features Title Block -->
-    <div class="bg-slate-700 text-white p-6 rounded-lg mb-8 text-center">
-        <div class="flex items-center justify-center gap-3 mb-2">
-            <img src="{{ url_for('static', filename='logo_notext.svg') }}" alt="PL-AI Logo" class="h-12" >
-            <h2 class="text-5xl font-bold" style="font-family: 'ZeroSANS_DEMO ns', sans-serif; text-transform: uppercase; color: #e0ebff; letter-spacing: 0.05em;">PL-AI</h2>
+    <div class="fractal-header text-center mb-12">
+        <!-- Contenitore SVG per i frattali -->
+        <svg class="fractal-container" id="fractal-svg"></svg>
+        
+        <div class="max-w-5xl mx-auto relative z-10">
+            <p class="text-3xl leading-relaxed text-white drop-shadow-1g mb-5">
+                Un progetto di <a href="https://www.fondazionegolinelli.it" target="_blank" class="font-bold text-rose-600 no-underline  hover:text-blue-200 transition-colors">Fondazione Golinelli</a> e <a href="https://www.g-lab.eu/" target="_blank" class="font-bold  text-cyan-600 no-underline hover:text-blue-400 transition-colors">G-lab srl Impresa Sociale</a>
+            </p>
+            
+            <p class="text-xl leading-relaxed text-white mb-6">
+                Nato dall'<span class="font-semibold">esperienza acquisita nella didattica dell'intelligenza artificiale</span>.
+            </p>
+            
+            <div class="bg-white/20 backdrop-blur-sm p-6 rounded-lg max-w-4xl mx-auto">
+                <p class="text-lg leading-relaxed text-white">
+                    L'obiettivo della piattaforma è favorire l'<span class="font-bold">accesso semplice, facilitato e controllato</span> ai principali tool di 
+                    <span class="font-bold">machine learning</span> e <span class="font-bold">AI generativa</span> 
+                    in un'unica piattaforma <span class="font-semibold">semplice e personalizzabile</span>.
+                </p>
+            </div>
+            
+            <!-- Beta Tester Button - Centered below description -->
+            <div class="flex justify-center mt-6">
+                <button id="beta-tester-btn" class="px-5 py-2.5 bg-white text-black hover:bg-rose-600 hover:text-white font-semibold rounded-lg shadow-md transition-colors duration-300 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Diventa Beta Tester
+                </button>
+            </div>
         </div>
-      <p>   </p>
-        <p class="text-lg max-w-3xl mx-auto leading-relaxed" style="color: #9caabd;">
-            PL-AI è un progetto di <a href="https://www.fondazionegolinelli.it" target="_blank" class="underline hover:text-white transition-colors">Fondazione Golinelli</a> e G-lab srl Impresa Sociale nato dall'esperienza acquisita nella didattica dell'intelligenza artificiale. 
-            L'obiettivo della piattaforma è quello di favorire l'accesso semplice, facilitato e controllato ai principali tool di machine learning e AI generativa in un'unica piattaforma semplice e personalizzabile.
     </div>
 
     <!-- Features Grid -->
@@ -152,7 +229,7 @@
                 <div class="flex items-center mb-4">
                     <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mr-4">
                         <svg class="w-7 h-7 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H5a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
                     <h3 class="page-title text-xl font-semibold text-black">Risorse</h3>
@@ -163,4 +240,608 @@
             </div>
         </a>
     </div>
+</div>
+
+<!-- Beta Tester Modal -->
+<div id="beta-tester-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden transform transition-all">
+        <div class="bg-blue-900 px-6 py-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white">Diventa Beta Tester</h3>
+                <button id="close-modal" class="text-white hover:text-gray-200 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <form id="beta-tester-form" class="px-6 py-4">
+            <div class="mb-4">
+                <label for="nome" class="block text-gray-700 text-sm font-medium mb-2">Nome</label>
+                <input type="text" id="nome" name="nome" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="mb-4">
+                <label for="cognome" class="block text-gray-700 text-sm font-medium mb-2">Cognome</label>
+                <input type="text" id="cognome" name="cognome" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="mb-4">
+                <label for="email" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                <input type="email" id="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Invia
+                </button>
+                <button type="button" id="cancel-button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Annulla
+                </button>
+            </div>
+        </form>
+        <div id="success-message" class="hidden px-6 py-4 text-center">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <h3 class="mt-2 text-lg font-medium text-gray-900">Grazie per la tua registrazione!</h3>
+            <p class="mt-1 text-sm text-gray-500">Ti contatteremo presto con ulteriori informazioni sul programma beta.</p>
+            <div class="mt-4">
+                <button type="button" id="close-success" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM caricato - inizializzazione beta tester');
+    
+    // Pulsante per aprire il modal
+    var betaTesterBtn = document.getElementById('beta-tester-btn');
+    var betaTesterModal = document.getElementById('beta-tester-modal');
+    
+    // Pulsanti per chiudere il modal
+    var closeModalBtn = document.getElementById('close-modal');
+    var cancelBtn = document.getElementById('cancel-button');
+    var closeSuccessBtn = document.getElementById('close-success');
+    
+    // Form e messaggio di successo
+    var betaTesterForm = document.getElementById('beta-tester-form');
+    var successMessage = document.getElementById('success-message');
+    
+    // Apertura del modal
+    betaTesterBtn.onclick = function(e) {
+        console.log('Pulsante beta tester cliccato');
+        e.preventDefault();
+        betaTesterModal.classList.remove('hidden');
+    };
+    
+    // Chiusura del modal
+    closeModalBtn.onclick = function() {
+        betaTesterModal.classList.add('hidden');
+    };
+    
+    cancelBtn.onclick = function() {
+        betaTesterModal.classList.add('hidden');
+    };
+    
+    closeSuccessBtn.onclick = function() {
+        betaTesterModal.classList.add('hidden');
+        betaTesterForm.classList.remove('hidden');
+        successMessage.classList.add('hidden');
+    };
+    
+    // Gestione dell'invio del form
+    betaTesterForm.onsubmit = function(e) {
+        e.preventDefault();
+        console.log('Form beta tester inviato');
+        
+        var nome = document.getElementById('nome').value;
+        var cognome = document.getElementById('cognome').value;
+        var email = document.getElementById('email').value;
+        
+        fetch('/beta-tester', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                nome: nome,
+                cognome: cognome,
+                email: email
+            })
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            console.log('Risposta dal server:', data);
+            if (data.success) {
+                betaTesterForm.classList.add('hidden');
+                successMessage.classList.remove('hidden');
+                betaTesterForm.reset();
+            } else {
+                alert('Errore: ' + (data.error || 'Si è verificato un errore durante la registrazione.'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Errore:', error);
+            alert('Si è verificato un errore durante la registrazione. Riprova più tardi.');
+        });
+    };
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurazione
+    const svgContainer = document.getElementById('fractal-svg');
+    const header = document.querySelector('.fractal-header');
+    const maxPlants = 12; // Numero massimo di piante contemporaneamente
+    const plantLifespan = 8000; // Durata di vita di una pianta in millisecondi
+    const growthDuration = 2000; // Durata della crescita in millisecondi
+    
+    // Imposta le dimensioni del SVG
+    svgContainer.setAttribute('width', header.offsetWidth);
+    svgContainer.setAttribute('height', header.offsetHeight);
+    
+    // Array per tenere traccia delle piante attive
+    let activePlants = [];
+    
+    // Funzione per generare un punto di controllo casuale per curve Bezier
+    function randomControlPoint(x1, y1, x2, y2, intensity) {
+        // Punto medio tra i punti di inizio e fine
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        
+        // Deviazione casuale dal punto medio
+        const dx = (Math.random() - 0.5) * intensity;
+        const dy = (Math.random() - 0.5) * intensity;
+        
+        return {
+            x: mx + dx,
+            y: my + dy
+        };
+    }
+    
+    // Funzione per creare un percorso curvo tra due punti
+    function createCurvedPath(x1, y1, x2, y2, intensity) {
+        const cp = randomControlPoint(x1, y1, x2, y2, intensity);
+        return `M ${x1} ${y1} Q ${cp.x} ${cp.y}, ${x2} ${y2}`;
+    }
+    
+    // Funzione per creare una pianta frattale
+    function createFractalPlant() {
+        // Crea un gruppo SVG per la pianta
+        const plant = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        plant.classList.add('fractal-plant');
+        
+        // Posizione di partenza (dal basso dello schermo)
+        const startX = Math.random() * header.offsetWidth;
+        const startY = header.offsetHeight;
+        
+        // Altezza del tronco principale
+        const trunkHeight = 100 + Math.random() * 150;
+        
+        // Spessore del tronco principale (molto più spesso)
+        const trunkWidth = 2.5 + Math.random() * 2;
+        
+        // Crea il tronco principale
+        const trunk = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        trunk.setAttribute('d', createCurvedPath(
+            startX, startY,
+            startX + (Math.random() * 40 - 20), startY - trunkHeight,
+            80
+        ));
+        trunk.setAttribute('stroke-width', trunkWidth);
+        plant.appendChild(trunk);
+        
+        // Numero di rami
+        const branchCount = 3 + Math.floor(Math.random() * 3);
+        
+        // Calcola punti precisi sul tronco per le ramificazioni
+        const trunkPoints = [];
+        for (let i = 0; i < branchCount; i++) {
+            // Posizione lungo il tronco (dal 20% all'80%)
+            const position = 0.2 + (i / branchCount) * 0.6;
+            
+            // Punto sul tronco (approssimazione)
+            const trunkX = startX + (position * (Math.random() * 20 - 10));
+            const trunkY = startY - (trunkHeight * position);
+            
+            trunkPoints.push({
+                x: trunkX,
+                y: trunkY,
+                position: position
+            });
+        }
+        
+        // Crea i rami
+        for (let i = 0; i < branchCount; i++) {
+            const point = trunkPoints[i];
+            
+            // Lunghezza e direzione del ramo
+            const branchLength = 40 + Math.random() * 60;
+            const branchAngle = (Math.random() * 120 - 60) * (Math.PI / 180);
+            
+            // Spessore del ramo (proporzionale alla posizione sul tronco - più sottile verso l'alto)
+            const branchWidth = trunkWidth * (0.9 - (point.position * 0.4));
+            
+            // Punto finale del ramo
+            const branchEndX = point.x + Math.sin(branchAngle) * branchLength;
+            const branchEndY = point.y - Math.cos(branchAngle) * branchLength;
+            
+            // Crea il ramo
+            const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            branch.setAttribute('d', createCurvedPath(
+                point.x, point.y,
+                branchEndX, branchEndY,
+                40
+            ));
+            branch.setAttribute('stroke-width', branchWidth);
+            plant.appendChild(branch);
+            
+            // Aggiungi foglie o rami secondari (80% di probabilità)
+            if (Math.random() > 0.2) {
+                const leafCount = 2 + Math.floor(Math.random() * 2);
+                
+                // Calcola punti precisi sul ramo per le foglie
+                for (let j = 0; j < leafCount; j++) {
+                    // Posizione lungo il ramo
+                    const leafPosition = 0.3 + (j / leafCount) * 0.7;
+                    
+                    // Punto sul ramo
+                    const leafStartX = point.x + (branchEndX - point.x) * leafPosition;
+                    const leafStartY = point.y + (branchEndY - point.y) * leafPosition;
+                    
+                    // Lunghezza e direzione della foglia
+                    const leafLength = 15 + Math.random() * 25;
+                    const leafAngle = branchAngle + (Math.random() * 90 - 45) * (Math.PI / 180);
+                    
+                    // Spessore della foglia (più sottile dei rami)
+                    const leafWidth = branchWidth * (0.8 - (leafPosition * 0.3));
+                    
+                    // Punto finale della foglia
+                    const leafEndX = leafStartX + Math.sin(leafAngle) * leafLength;
+                    const leafEndY = leafStartY - Math.cos(leafAngle) * leafLength;
+                    
+                    // Crea la foglia
+                    const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    leaf.setAttribute('d', createCurvedPath(
+                        leafStartX, leafStartY,
+                        leafEndX, leafEndY,
+                        20
+                    ));
+                    leaf.setAttribute('stroke-width', leafWidth);
+                    plant.appendChild(leaf);
+                    
+                    // Aggiungi occasionalmente un terzo livello di ramificazione (40% di probabilità)
+                    if (Math.random() > 0.6) {
+                        const subLeafAngle = leafAngle + (Math.random() * 60 - 30) * (Math.PI / 180);
+                        const subLeafLength = leafLength * 0.7;
+                        const subLeafWidth = leafWidth * 0.7;
+                        
+                        const subLeafEndX = leafEndX + Math.sin(subLeafAngle) * subLeafLength;
+                        const subLeafEndY = leafEndY - Math.cos(subLeafAngle) * subLeafLength;
+                        
+                        const subLeaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        subLeaf.setAttribute('d', createCurvedPath(
+                            leafEndX, leafEndY,
+                            subLeafEndX, subLeafEndY,
+                            15
+                        ));
+                        subLeaf.setAttribute('stroke-width', subLeafWidth);
+                        plant.appendChild(subLeaf);
+                    }
+                }
+            }
+        }
+        
+        // Aggiungi la pianta al SVG
+        svgContainer.appendChild(plant);
+        
+        // Rendi la pianta visibile gradualmente
+        setTimeout(() => {
+            plant.style.opacity = '1';
+        }, 10);
+        
+        // Rimuovi la pianta dopo il suo ciclo di vita
+        const plantLife = setTimeout(() => {
+            // Dissolvenza
+            plant.style.opacity = '0';
+            
+            // Rimuovi dall'array delle piante attive
+            const index = activePlants.indexOf(plantData);
+            if (index > -1) {
+                activePlants.splice(index, 1);
+            }
+            
+            // Rimuovi l'elemento dopo la dissolvenza
+            setTimeout(() => {
+                svgContainer.removeChild(plant);
+            }, 1000);
+            
+            // Crea una nuova pianta se necessario
+            if (activePlants.length < maxPlants / 2) {
+                setTimeout(addNewPlant, Math.random() * 1000);
+            }
+        }, plantLifespan);
+        
+        // Dati della pianta per il tracciamento
+        const plantData = {
+            element: plant,
+            timeout: plantLife
+        };
+        
+        // Aggiungi ai frattali attivi
+        activePlants.push(plantData);
+    }
+    
+    // Funzione per aggiungere una nuova pianta
+    function addNewPlant() {
+        if (activePlants.length < maxPlants) {
+            createFractalPlant();
+            
+            // Programma la prossima pianta con un ritardo casuale
+            const nextPlantDelay = 1000 + Math.random() * 3000;
+            setTimeout(addNewPlant, nextPlantDelay);
+        }
+    }
+    
+    // Inizia con alcune piante
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            createFractalPlant();
+        }, i * 500);
+    }
+    
+    // Programma la prima pianta aggiuntiva
+    setTimeout(addNewPlant, 3000);
+    
+    // Gestisci il ridimensionamento della finestra
+    window.addEventListener('resize', function() {
+        // Aggiorna le dimensioni del SVG
+        svgContainer.setAttribute('width', header.offsetWidth);
+        svgContainer.setAttribute('height', header.offsetHeight);
+    });
+});
+</script>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurazione
+    const svgContainer = document.getElementById('fractal-svg');
+    const header = document.querySelector('.fractal-header');
+    const maxPlants = 12; // Numero massimo di piante contemporaneamente
+    const plantLifespan = 8000; // Durata di vita di una pianta in millisecondi
+    const growthDuration = 2000; // Durata della crescita in millisecondi
+    
+    // Imposta le dimensioni del SVG
+    svgContainer.setAttribute('width', header.offsetWidth);
+    svgContainer.setAttribute('height', header.offsetHeight);
+    
+    // Array per tenere traccia delle piante attive
+    let activePlants = [];
+    
+    // Funzione per generare un punto di controllo casuale per curve Bezier
+    function randomControlPoint(x1, y1, x2, y2, intensity) {
+        // Punto medio tra i punti di inizio e fine
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        
+        // Deviazione casuale dal punto medio
+        const dx = (Math.random() - 0.5) * intensity;
+        const dy = (Math.random() - 0.5) * intensity;
+        
+        return {
+            x: mx + dx,
+            y: my + dy
+        };
+    }
+    
+    // Funzione per creare un percorso curvo tra due punti
+    function createCurvedPath(x1, y1, x2, y2, intensity) {
+        const cp = randomControlPoint(x1, y1, x2, y2, intensity);
+        return `M ${x1} ${y1} Q ${cp.x} ${cp.y}, ${x2} ${y2}`;
+    }
+    
+    // Funzione per creare una pianta frattale
+    function createFractalPlant() {
+        // Crea un gruppo SVG per la pianta
+        const plant = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        plant.classList.add('fractal-plant');
+        
+        // Posizione di partenza (dal basso dello schermo)
+        const startX = Math.random() * header.offsetWidth;
+        const startY = header.offsetHeight;
+        
+        // Altezza del tronco principale
+        const trunkHeight = 100 + Math.random() * 150;
+        
+        // Spessore del tronco principale (molto più spesso)
+        const trunkWidth = 2.5 + Math.random() * 2;
+        
+        // Crea il tronco principale
+        const trunk = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        trunk.setAttribute('d', createCurvedPath(
+            startX, startY,
+            startX + (Math.random() * 40 - 20), startY - trunkHeight,
+            80
+        ));
+        trunk.setAttribute('stroke-width', trunkWidth);
+        plant.appendChild(trunk);
+        
+        // Numero di rami
+        const branchCount = 3 + Math.floor(Math.random() * 3);
+        
+        // Calcola punti precisi sul tronco per le ramificazioni
+        const trunkPoints = [];
+        for (let i = 0; i < branchCount; i++) {
+            // Posizione lungo il tronco (dal 20% all'80%)
+            const position = 0.2 + (i / branchCount) * 0.6;
+            
+            // Punto sul tronco (approssimazione)
+            const trunkX = startX + (position * (Math.random() * 20 - 10));
+            const trunkY = startY - (trunkHeight * position);
+            
+            trunkPoints.push({
+                x: trunkX,
+                y: trunkY,
+                position: position
+            });
+        }
+        
+        // Crea i rami
+        for (let i = 0; i < branchCount; i++) {
+            const point = trunkPoints[i];
+            
+            // Lunghezza e direzione del ramo
+            const branchLength = 40 + Math.random() * 60;
+            const branchAngle = (Math.random() * 120 - 60) * (Math.PI / 180);
+            
+            // Spessore del ramo (proporzionale alla posizione sul tronco - più sottile verso l'alto)
+            const branchWidth = trunkWidth * (0.9 - (point.position * 0.4));
+            
+            // Punto finale del ramo
+            const branchEndX = point.x + Math.sin(branchAngle) * branchLength;
+            const branchEndY = point.y - Math.cos(branchAngle) * branchLength;
+            
+            // Crea il ramo
+            const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            branch.setAttribute('d', createCurvedPath(
+                point.x, point.y,
+                branchEndX, branchEndY,
+                40
+            ));
+            branch.setAttribute('stroke-width', branchWidth);
+            plant.appendChild(branch);
+            
+            // Aggiungi foglie o rami secondari (80% di probabilità)
+            if (Math.random() > 0.2) {
+                const leafCount = 2 + Math.floor(Math.random() * 2);
+                
+                // Calcola punti precisi sul ramo per le foglie
+                for (let j = 0; j < leafCount; j++) {
+                    // Posizione lungo il ramo
+                    const leafPosition = 0.3 + (j / leafCount) * 0.7;
+                    
+                    // Punto sul ramo
+                    const leafStartX = point.x + (branchEndX - point.x) * leafPosition;
+                    const leafStartY = point.y + (branchEndY - point.y) * leafPosition;
+                    
+                    // Lunghezza e direzione della foglia
+                    const leafLength = 15 + Math.random() * 25;
+                    const leafAngle = branchAngle + (Math.random() * 90 - 45) * (Math.PI / 180);
+                    
+                    // Spessore della foglia (più sottile dei rami)
+                    const leafWidth = branchWidth * (0.8 - (leafPosition * 0.3));
+                    
+                    // Punto finale della foglia
+                    const leafEndX = leafStartX + Math.sin(leafAngle) * leafLength;
+                    const leafEndY = leafStartY - Math.cos(leafAngle) * leafLength;
+                    
+                    // Crea la foglia
+                    const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    leaf.setAttribute('d', createCurvedPath(
+                        leafStartX, leafStartY,
+                        leafEndX, leafEndY,
+                        20
+                    ));
+                    leaf.setAttribute('stroke-width', leafWidth);
+                    plant.appendChild(leaf);
+                    
+                    // Aggiungi occasionalmente un terzo livello di ramificazione (40% di probabilità)
+                    if (Math.random() > 0.6) {
+                        const subLeafAngle = leafAngle + (Math.random() * 60 - 30) * (Math.PI / 180);
+                        const subLeafLength = leafLength * 0.7;
+                        const subLeafWidth = leafWidth * 0.7;
+                        
+                        const subLeafEndX = leafEndX + Math.sin(subLeafAngle) * subLeafLength;
+                        const subLeafEndY = leafEndY - Math.cos(subLeafAngle) * subLeafLength;
+                        
+                        const subLeaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        subLeaf.setAttribute('d', createCurvedPath(
+                            leafEndX, leafEndY,
+                            subLeafEndX, subLeafEndY,
+                            15
+                        ));
+                        subLeaf.setAttribute('stroke-width', subLeafWidth);
+                        plant.appendChild(subLeaf);
+                    }
+                }
+            }
+        }
+        
+        // Aggiungi la pianta al SVG
+        svgContainer.appendChild(plant);
+        
+        // Rendi la pianta visibile gradualmente
+        setTimeout(() => {
+            plant.style.opacity = '1';
+        }, 10);
+        
+        // Rimuovi la pianta dopo il suo ciclo di vita
+        const plantLife = setTimeout(() => {
+            // Dissolvenza
+            plant.style.opacity = '0';
+            
+            // Rimuovi dall'array delle piante attive
+            const index = activePlants.indexOf(plantData);
+            if (index > -1) {
+                activePlants.splice(index, 1);
+            }
+            
+            // Rimuovi l'elemento dopo la dissolvenza
+            setTimeout(() => {
+                svgContainer.removeChild(plant);
+            }, 1000);
+            
+            // Crea una nuova pianta se necessario
+            if (activePlants.length < maxPlants / 2) {
+                setTimeout(addNewPlant, Math.random() * 1000);
+            }
+        }, plantLifespan);
+        
+        // Dati della pianta per il tracciamento
+        const plantData = {
+            element: plant,
+            timeout: plantLife
+        };
+        
+        // Aggiungi ai frattali attivi
+        activePlants.push(plantData);
+    }
+    
+    // Funzione per aggiungere una nuova pianta
+    function addNewPlant() {
+        if (activePlants.length < maxPlants) {
+            createFractalPlant();
+            
+            // Programma la prossima pianta con un ritardo casuale
+            const nextPlantDelay = 1000 + Math.random() * 3000;
+            setTimeout(addNewPlant, nextPlantDelay);
+        }
+    }
+    
+    // Inizia con alcune piante
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            createFractalPlant();
+        }, i * 500);
+    }
+    
+    // Programma la prima pianta aggiuntiva
+    setTimeout(addNewPlant, 3000);
+    
+    // Gestisci il ridimensionamento della finestra
+    window.addEventListener('resize', function() {
+        // Aggiorna le dimensioni del SVG
+        svgContainer.setAttribute('width', header.offsetWidth);
+        svgContainer.setAttribute('height', header.offsetHeight);
+    });
+});
+</script>
+{% endblock %}
+
 {% endblock %}

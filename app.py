@@ -32,6 +32,10 @@ import shutil
 import sqlite3
 from PIL import Image, ImageDraw, ImageFont
 from routes.db import login_required
+import csv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Import dei blueprint e funzioni di autenticazione
 from routes.chatbot import chatbot
@@ -138,6 +142,7 @@ def generate_fallback_image(prompt, aspect_ratio='1:1'):
     except Exception as e:
         print(f"Error in fallback image generation: {str(e)}")
         return jsonify({'error': 'Impossibile generare l\'immagine di fallback'}), 500
+
 from routes.chatbot2 import chatbot2
 from routes.learning import learning
 from routes.resources import resources
@@ -150,6 +155,10 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chiave_segreta_predefinita')
 app.config['USER_DB_DIR'] = os.path.join(os.path.dirname(__file__), 'user_databases')
+app.config['SMTP_SERVER'] = 'smtp.gmail.com'
+app.config['SMTP_PORT'] = 587
+app.config['SMTP_USERNAME'] = 'your-email@gmail.com'  # Sostituire con l'email reale
+app.config['SMTP_PASSWORD'] = 'your-app-password'  # Sostituire con la password dell'app
 
 # Assicurati che la directory per i database degli utenti esista
 os.makedirs(app.config['USER_DB_DIR'], exist_ok=True)
@@ -1093,7 +1102,6 @@ def generate_dalle_image(prompt, style, aspect_ratio, high_quality):
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-
 @app.route('/api/save-image-to-resources', methods=['POST'])
 @login_required
 def save_image_to_resources():
@@ -1564,6 +1572,147 @@ def predict_image_v2():
         import traceback
         print(traceback.format_exc())  # Debug
         return jsonify({'error': str(e)}), 400
+
+# Route per gestire le registrazioni dei beta tester
+@app.route('/beta-tester', methods=['POST'])
+def register_beta_tester():
+    try:
+        # Ottieni i dati dal form
+        data = request.json
+        nome = data.get('nome')
+        cognome = data.get('cognome')
+        email = data.get('email')
+        
+        # Verifica che tutti i campi siano presenti
+        if not all([nome, cognome, email]):
+            return jsonify({'success': False, 'error': 'Tutti i campi sono obbligatori'}), 400
+        
+        # Crea la directory se non esiste
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+        
+        # Percorso del file CSV
+        csv_path = os.path.join(data_dir, 'beta_tester.csv')
+        
+        # Verifica se il file esiste già
+        file_exists = os.path.isfile(csv_path)
+        
+        # Timestamp corrente
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Apri il file in modalità append
+        with open(csv_path, 'a', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['nome', 'cognome', 'email', 'data_registrazione']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            
+            # Scrivi l'intestazione solo se il file è nuovo
+            if not file_exists:
+                writer.writeheader()
+            
+            # Scrivi i dati
+            writer.writerow({
+                'nome': nome,
+                'cognome': cognome,
+                'email': email,
+                'data_registrazione': timestamp
+            })
+        
+        # Invia email di conferma
+        try:
+            send_confirmation_email(nome, cognome, email)
+        except Exception as e:
+            print(f"Errore nell'invio dell'email: {str(e)}")
+            # Non interrompiamo il flusso se l'email fallisce
+        
+        return jsonify({'success': True}), 200
+    
+    except Exception as e:
+        print(f"Errore durante la registrazione del beta tester: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def send_confirmation_email(nome, cognome, email):
+    """
+    Invia un'email di conferma al beta tester registrato
+    """
+    try:
+        # Configurazione del server SMTP
+        smtp_server = app.config.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = app.config.get('SMTP_PORT', 587)
+        sender_email = app.config.get('SMTP_USERNAME', 'your-email@gmail.com')  # Sostituire con l'email reale
+        sender_password = app.config.get('SMTP_PASSWORD', 'your-app-password')  # Sostituire con la password dell'app
+        
+        # Creazione del messaggio
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Conferma registrazione Beta Tester PL-AI"
+        message["From"] = sender_email
+        message["To"] = email
+        
+        # Versione HTML dell'email
+        html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background-color: #1e3a8a; color: white; padding: 20px; text-align: center; }}
+                .content {{ padding: 20px; }}
+                .footer {{ font-size: 12px; color: #666; text-align: center; margin-top: 30px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Grazie per esserti registrato come Beta Tester!</h1>
+                </div>
+                <div class="content">
+                    <p>Gentile {nome} {cognome},</p>
+                    <p>grazie per esserti registrato come Beta Tester per la piattaforma PL-AI.</p>
+                    <p>Ti contatteremo presto con ulteriori informazioni sul programma beta e su come accedere alle funzionalità esclusive.</p>
+                    <p>Nel frattempo, se hai domande o suggerimenti, non esitare a contattarci.</p>
+                    <p>Cordiali saluti,<br>Il team PL-AI</p>
+                </div>
+                <div class="footer">
+                    <p>Questa è un'email automatica, si prega di non rispondere direttamente a questo messaggio.</p>
+                    <p> 2023 PL-AI. Tutti i diritti riservati.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Testo dell'email (versione plain text)
+        text = f"""
+        Gentile {nome} {cognome},
+        
+        Grazie per esserti registrato come Beta Tester per la piattaforma PL-AI.
+        
+        Ti contatteremo presto con ulteriori informazioni sul programma beta e su come accedere alle funzionalità esclusive.
+        
+        Nel frattempo, se hai domande o suggerimenti, non esitare a contattarci.
+        
+        Cordiali saluti,
+        Il team PL-AI
+        """
+        
+        # Allegare entrambe le versioni
+        part1 = MIMEText(text, "plain")
+        part2 = MIMEText(html, "html")
+        message.attach(part1)
+        message.attach(part2)
+        
+        # Connessione al server e invio
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, email, message.as_string())
+            
+        print(f"Email di conferma inviata a {email}")
+        return True
+        
+    except Exception as e:
+        print(f"Errore nell'invio dell'email: {str(e)}")
+        raise
 
 # Configurazione per il deployment
 if __name__ == '__main__':
