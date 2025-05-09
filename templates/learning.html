@@ -1,288 +1,428 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="flex pt-8"> 
-    <!-- Sidebar fissa -->
-    <div class="w-64 bg-white border-r border-gray-200 fixed h-full overflow-y-auto">
-        <div class="p-4">
-            <h2 class="text-lg font-semibold mb-4">Le tue lezioni</h2>
-            
-            <!-- Form per nuova lezione -->
-            <div class="mb-6">
-                <select id="topic-select" class="w-full p-2 border rounded mb-3 text-gray-700">
-                    <option value="">Seleziona un argomento...</option>
-                    <optgroup label="Fondamenti di ML">
-                        <option value="Introduzione al Machine Learning">Machine Learning di Base</option>
-                        <option value="Supervised vs Unsupervised Learning">Supervised vs Unsupervised</option>
-                        <option value="Feature Engineering">Feature Engineering</option>
-                        <option value="Overfitting e Underfitting">Overfitting e Underfitting</option>
-                    </optgroup>
-                    <optgroup label="Algoritmi">
-                        <option value="Regressione Lineare">Regressione Lineare</option>
-                        <option value="Regressione Logistica">Regressione Logistica</option>
-                        <option value="Support Vector Machines">Support Vector Machines</option>
-                        <option value="Decision Trees">Alberi Decisionali</option>
-                        <option value="Random Forest">Random Forest</option>
-                        <option value="K-Means Clustering">K-Means Clustering</option>
-                    </optgroup>
-                    <optgroup label="Deep Learning">
-                        <option value="Reti Neurali Artificiali">Reti Neurali</option>
-                        <option value="Convolutional Neural Networks">CNN</option>
-                        <option value="Recurrent Neural Networks">RNN</option>
-                        <option value="Transformer Architecture">Transformer</option>
-                    </optgroup>
-                </select>
-                
-                <input type="text" 
-                       id="custom-topic" 
-                       placeholder="O scrivi un argomento..." 
-                       class="w-full p-2 border rounded mb-3 text-gray-700">
-                
-                <button onclick="generateLesson()" 
-                        class="w-full btn btn-training">
-                    Genera Lezione
+<div class="learningpage-container flex h-[70vh] w-full max-w-5xl ml-4 mt-8 rounded-xl shadow-lg overflow-hidden bg-white">
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 bg-gray-50 border-r flex flex-col p-3 overflow-y-auto">
+        <h2 class="text-lg font-bold text-[#ff1649] mb-3 border-b pb-1">Lezioni salvate</h2>
+        <div id="lessons-list" class="flex-1 overflow-y-auto space-y-2">
+            <div class="text-gray-400 text-center">Nessuna lezione</div>
+        </div>
+        
+        <!-- Template for lesson items that will be cloned by JavaScript -->
+        <template id="lesson-item-template">
+            <div class="lesson-item flex items-center p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-all">
+                <svg class="w-5 h-5 text-[#ff1649] mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="lesson-title text-sm font-medium text-gray-700 truncate"></span>
+            </div>
+        </template>
+    </aside>
+    <!-- Main -->
+    <main class="flex-1 flex flex-col justify-start">
+        <div class="w-full max-w-xl mx-auto mt-4 mb-2">
+            <label for="topic-input" class="block text-lg font-medium text-gray-700 mb-2 text-center">Scrivi un argomento per generare una mini-lezione</label>
+            <div class="flex gap-1 items-center">
+                <input id="topic-input" type="text" placeholder="Es: La fotosintesi clorofilliana" class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#ff1649] text-lg shadow-sm">
+                <button id="generate-btn" class="bg-[#ff1649] hover:bg-[#e01440] text-white rounded-r-lg px-5 py-3 flex items-center gap-2 transition-all shadow-md">
+                    <span class="font-medium">Genera</span>
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    <svg id="generate-spinner" class="h-5 w-5 animate-spin hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </button>
             </div>
-            
-            <div id="topics-list" class="space-y-2">
-                <!-- Topics will be loaded here -->
+        </div>
+        <div id="lesson-section" class="w-full max-w-3xl mx-auto bg-white rounded-lg shadow p-0 hidden flex-col mt-4">
+            <div class="flex border-b bg-gray-100 rounded-t-lg">
+                <button id="tab-lesson" class="tab-btn flex-1 py-2 text-base font-semibold border-b-2 border-[#ff1649] text-[#ff1649] bg-red-50 rounded-tl-lg">Lezione</button>
+                <button id="tab-quiz" class="tab-btn flex-1 py-2 text-base font-semibold border-b-2 border-transparent text-gray-500 bg-white rounded-tr-lg">Quiz</button>
+            </div>
+            <div class="tab-content">
+                <div id="tab-content-lesson" class="p-6 bg-white overflow-y-auto" style="max-height: 60vh; display: block;">
+                    <div class="card-box bg-gray-50 rounded-lg shadow p-6">
+                        <h2 id="lesson-title" class="text-xl font-bold text-[#ff1649] mb-2"></h2>
+                        <div id="lesson-content" class="prose prose-base max-w-[700px] mx-auto mb-6"></div>
+                        <div id="approfondimenti-section" class="mt-6 pt-4 border-t border-gray-200">
+                            <h3 class="text-lg font-semibold text-[#ff1649] mb-3">Approfondimenti</h3>
+                            <div id="approfondimenti-buttons" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="mt-6 text-center">
+                            <button id="generate-quiz-btn" class="bg-[#ff1649] hover:bg-[#e01440] text-white px-6 py-2 shadow-md rounded-lg flex items-center gap-2 mx-auto transition-all">
+                                <span>Genera Quiz!</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-content-quiz" class="p-6 bg-white overflow-y-auto" style="max-height: 60vh; display: none;">
+                    <div class="card-box bg-gray-50 rounded-lg shadow p-6">
+                        <div id="quiz-section">
+                            <h3 class="text-lg font-bold text-[#ff1649] mb-3">Quiz sulla lezione</h3>
+                            <div id="quiz-content" class="space-y-5"></div>
+                            <div id="quiz-feedback" class="mt-4 text-base font-semibold text-green-600 hidden">Risposte corrette! Complimenti 🎉</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Main content con margine sinistro per la sidebar -->
-    <div class="flex-1 ml-64 p-8 overflow-y-auto">
-        <!-- Welcome message -->
-        <div id="welcome" class="max-w-2xl mx-auto text-center py-12">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">Benvenuto nel Learning Hub!</h1>
-            <p class="text-gray-600 mb-8">Seleziona un argomento dalla lista o genera una nuova lezione per iniziare.</p>
-        </div>
-        
-        <!-- Loading spinner -->
-        <div id="loading" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-6 rounded-lg shadow-xl">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-                <p class="mt-4 text-gray-700">Generazione in corso...</p>
-            </div>
-        </div>
-        
-        <!-- Content area -->
-        <div id="content" class="max-w-4xl mx-auto hidden">
-            <!-- Content will be loaded here -->
-        </div>
-    </div>
+        <div id="loading-message" class="mt-8 text-center text-base text-[#ff1649] hidden">Generazione in corso, attendi...</div>
+        <div id="error-message" class="mt-8 text-center text-base text-red-600 hidden"></div>
+    </main>
 </div>
-
+<style>
+.tab-btn { transition: all .15s; border-bottom-width: 2px; }
+.tab-btn.active { border-bottom-color: #2563eb; color: #2563eb; background: #eff6ff; }
+.tab-btn:not(.active) { color: #6b7280; background: #fff; border-bottom-color: transparent; }
+.sidebar .lesson-item { display: flex; align-items: center; gap: 0.7em; padding: 0.4em 0.7em; border-radius: 0.4em; cursor: pointer; transition: background 0.15s; font-size: 0.95rem; }
+.sidebar .lesson-item.selected { background: #e0e7ff; font-weight: 600; }
+.sidebar .lesson-item:hover { background: #f3f4f6; }
+.lesson-status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 0.3em; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; }
+.lesson-status-dot.green { background: #22c55e; }
+.lesson-status-dot.orange { background: #f59e42; }
+.card-box { min-height: 120px; }
+</style>
 <script>
-function showLoading() {
-    document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('welcome').classList.add('hidden');
-    document.getElementById('content').classList.add('hidden');
-}
-
-function hideLoading() {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('content').classList.remove('hidden');
-}
-
-async function generateLesson() {
-    const selectedTopic = document.getElementById('topic-select').value;
-    const customTopic = document.getElementById('custom-topic').value;
-    const topic = selectedTopic || customTopic;
-    
-    if (!topic) {
-        alert('Per favore seleziona o inserisci un argomento');
-        return;
-    }
-    
-    try {
-        showLoading();
-        
-        const response = await fetch('/generate_content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ topic: topic })
-        });
-        
-        const data = await response.json();
-        if (data.error) {
-            throw new Error(data.error);
+// Carica lo storico lezioni con stato
+function loadLessonsList(selectedId=null) {
+    fetch('/lessons').then(r=>r.json()).then(data => {
+        const list = document.getElementById('lessons-list');
+        list.innerHTML = '';
+        if (!data.lessons || data.lessons.length === 0) {
+            list.innerHTML = '<div class="text-gray-400 text-center">Nessuna lezione</div>';
+            return;
         }
-        
-        // Aggiorna la lista dei topic e carica il nuovo contenuto
-        await loadTopics();
-        await loadTopic(data.id);
-        
-        // Pulisci i campi input
-        document.getElementById('topic-select').value = '';
-        document.getElementById('custom-topic').value = '';
-        
-    } catch (error) {
-        console.error('Error generating lesson:', error);
-        alert('Si è verificato un errore durante la generazione della lezione');
-    } finally {
-        hideLoading();
-    }
-}
-
-function updateTopicsList(data) {
-    if (!data || !data.topics || !Array.isArray(data.topics)) {
-        console.error('Invalid topics data:', data);
-        return;
-    }
-    
-    const topicsList = document.getElementById('topics-list');
-    topicsList.innerHTML = '';
-    
-    data.topics.forEach(topic => {
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer';
-        div.onclick = () => loadTopic(topic.id);
-        
-        const statusColors = {
-            'not_started': 'bg-red-500',
-            'in_progress': 'bg-orange-500',
-            'completed': 'bg-green-500'
-        };
-        
-        div.innerHTML = `
-            <span class="flex-1 text-gray-700">${topic.title}</span>
-            <span class="w-3 h-3 rounded-full ${statusColors[topic.status]}"></span>
-        `;
-        
-        topicsList.appendChild(div);
+        data.lessons.forEach(lesson => {
+            let dotClass = 'orange';
+            if (lesson.status === 'done') dotClass = 'green';
+            const btn = document.createElement('div');
+            btn.className = `lesson-item${selectedId == lesson.id ? ' selected' : ''}`;
+            btn.innerHTML = `<span class="lesson-status-dot ${dotClass}"></span><span>${lesson.title}</span>`;
+            btn.onclick = () => showLesson(lesson.id);
+            list.appendChild(btn);
+        });
     });
 }
 
-async function loadTopics() {
-    try {
-        const response = await fetch('/get_topics');
-        const data = await response.json();
+// Mostra una lezione e quiz
+function showLesson(id) {
+    document.getElementById('loading-message').classList.add('hidden');
+    document.getElementById('error-message').classList.add('hidden');
+    fetch(`/lesson/${id}`).then(r=>r.json()).then(data => {
         if (data.error) {
-            throw new Error(data.error);
+            showError(data.error);
+            return;
         }
-        updateTopicsList(data);
-    } catch (error) {
-        console.error('Error loading topics:', error);
-    }
+        renderLesson(data.lesson, data.quiz);
+        loadLessonsList(id);
+    });
 }
 
-async function submitAnswer(unitId, questionIndex, answer, isCorrect) {
-    try {
-        const response = await fetch('/submit_answer', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                unit_id: unitId,
-                question_index: questionIndex,
-                answer: answer,
-                is_correct: isCorrect
-            })
-        });
-        
-        const result = await response.json();
-        if (result.error) {
-            throw new Error(result.error);
-        }
-        
-        if (result.status === 'success') {
-            loadTopics();  // Aggiorna la lista per riflettere il nuovo stato
-        }
-        return result;
-    } catch (error) {
-        console.error('Error submitting answer:', error);
-        return null;
-    }
-}
-
-function checkAnswer(questionIndex) {
-    const currentTopic = document.querySelector('#content').dataset.topicId;
-    const selectedAnswer = document.querySelector(`input[name="q${questionIndex}"]:checked`);
-    
-    if (!selectedAnswer) {
-        alert('Per favore seleziona una risposta');
+// Gestione generazione nuova lezione
+function handleGenerate() {
+    const topicInput = document.getElementById('topic-input');
+    const topic = topicInput.value.trim();
+    const btn = document.getElementById('generate-btn');
+    const spinner = document.getElementById('generate-spinner');
+    document.getElementById('error-message').classList.add('hidden');
+    if (!topic) {
+        topicInput.classList.add('border-red-500');
+        topicInput.focus();
         return;
     }
-    
-    const isCorrect = selectedAnswer.value === 'true';
-    const resultDiv = document.getElementById(`result-${questionIndex}`);
-    
-    submitAnswer(currentTopic, questionIndex, selectedAnswer.value, isCorrect)
-        .then(result => {
-            if (result) {
-                resultDiv.textContent = isCorrect ? 'Corretto! ' : 'Non corretto. Riprova!';
-                resultDiv.className = `mt-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`;
-            }
-        });
+    topicInput.classList.remove('border-red-500');
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    document.getElementById('loading-message').classList.remove('hidden');
+    document.getElementById('lesson-section').classList.add('hidden');
+    fetch('/generate_lesson', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ topic })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        document.getElementById('loading-message').classList.add('hidden');
+        if (data.success) {
+            renderLesson(data.lesson, data.quiz);
+            loadLessonsList(data.lesson.id);
+            document.getElementById('topic-input').value = '';
+        } else {
+            showError(data.error || 'Errore generazione lezione');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        document.getElementById('loading-message').classList.add('hidden');
+        showError('Errore di rete');
+    });
 }
 
-async function loadTopic(topicId) {
-    try {
-        showLoading();
+// Tab switching
+function setupTabs() {
+    const tabLesson = document.getElementById('tab-lesson');
+    const tabQuiz = document.getElementById('tab-quiz');
+    const contentLesson = document.getElementById('tab-content-lesson');
+    const contentQuiz = document.getElementById('tab-content-quiz');
+    
+    // Funzione per attivare il tab Lezione
+    function activateTabLesson() {
+        console.log('Tab Lezione attivato');
+        tabLesson.classList.add('active');
+        tabQuiz.classList.remove('active');
+        contentLesson.style.display = 'block';
+        contentQuiz.style.display = 'none';
+    }
+    
+    // Funzione per attivare il tab Quiz
+    function activateTabQuiz() {
+        console.log('Tab Quiz attivato');
+        tabQuiz.classList.add('active');
+        tabLesson.classList.remove('active');
+        contentQuiz.style.display = 'block';
+        contentLesson.style.display = 'none';
+    }
+    
+    // Assegna gli event handler
+    tabLesson.onclick = activateTabLesson;
+    tabQuiz.onclick = activateTabQuiz;
+    
+    // Attiva il tab Lezione di default
+    activateTabLesson();
+    
+    // Esponi le funzioni per poterle chiamare da altre parti del codice
+    window.activateTabLesson = activateTabLesson;
+    window.activateTabQuiz = activateTabQuiz;
+}
+
+function renderLesson(lesson, quiz) {
+    // Imposta il titolo e il contenuto della lezione
+    document.getElementById('lesson-title').textContent = lesson.title;
+    document.getElementById('lesson-content').innerHTML = lesson.content.replace(/\n/g, '<br>');
+    
+    // Genera bottoni di approfondimento
+    generateApprofondimenti(lesson.title, lesson.content);
+    
+    // Gestione del quiz
+    const quizContent = document.getElementById('quiz-content');
+    const quizFeedback = document.getElementById('quiz-feedback');
+    quizContent.innerHTML = '<div class="p-4 text-gray-500 text-center">Clicca su "Genera Quiz!" per creare domande su questa lezione</div>';
+    quizFeedback.classList.add('hidden');
+    
+    // Array per tenere traccia degli approfondimenti visualizzati
+    window.currentApprofondimenti = [];
+    
+    // Configura il pulsante per generare il quiz
+    const generateQuizBtn = document.getElementById('generate-quiz-btn');
+    if (generateQuizBtn) {
+        generateQuizBtn.onclick = function() {
+            generateQuizBtn.disabled = true;
+            generateQuizBtn.innerHTML = '<span>Generazione...</span><svg class="ml-2 h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            // Chiamata per generare il quiz, includendo gli approfondimenti visualizzati
+            fetch('/generate_quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    lesson_id: lesson.id,
+                    approfondimenti: window.currentApprofondimenti 
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                generateQuizBtn.disabled = false;
+                generateQuizBtn.textContent = 'Genera Quiz!';
+                
+                if (data.success && data.quiz && data.quiz.length > 0) {
+                    renderQuiz(data.quiz);
+                    // Attiva automaticamente il tab Quiz
+                    if (window.activateTabQuiz) {
+                        window.activateTabQuiz();
+                    } else {
+                        // Fallback se la funzione non è disponibile
+                        const tabLesson = document.getElementById('tab-lesson');
+                        const tabQuiz = document.getElementById('tab-quiz');
+                        const contentLesson = document.getElementById('tab-content-lesson');
+                        const contentQuiz = document.getElementById('tab-content-quiz');
+                        
+                        tabQuiz.classList.add('active');
+                        tabLesson.classList.remove('active');
+                        contentQuiz.style.display = 'block';
+                        contentLesson.style.display = 'none';
+                        
+                        console.log('Tab Quiz attivato (fallback)');
+                    }
+                } else {
+                    quizContent.innerHTML = '<div class="p-4 text-red-500 text-center">Errore nella generazione del quiz. Riprova.</div>';
+                }
+            })
+            .catch(err => {
+                generateQuizBtn.disabled = false;
+                generateQuizBtn.textContent = 'Genera Quiz!';
+                quizContent.innerHTML = '<div class="p-4 text-red-500 text-center">Errore di rete. Riprova.</div>';
+            });
+        };
+    }
+    
+    // Se il quiz è già presente, renderizzalo
+    if (quiz && quiz.length > 0) {
+        renderQuiz(quiz);
+    }
+    
+    // Mostra la sezione lezione
+    document.getElementById('lesson-section').classList.remove('hidden');
+    document.getElementById('lesson-section').style.display = 'flex';
+    
+    // Assicurati che il tab Lezione sia attivo di default
+    if (window.activateTabLesson) {
+        window.activateTabLesson();
+    } else {
+        // Fallback se setupTabs non è stato ancora chiamato
+        const tabLesson = document.getElementById('tab-lesson');
+        const tabQuiz = document.getElementById('tab-quiz');
+        const contentLesson = document.getElementById('tab-content-lesson');
+        const contentQuiz = document.getElementById('tab-content-quiz');
         
-        const response = await fetch(`/get_topic/${topicId}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        
-        const contentDiv = document.getElementById('content');
-        contentDiv.dataset.topicId = topicId;
-        
-        let quizHtml = '';
-        if (data.quiz && Array.isArray(data.quiz)) {
-            quizHtml = data.quiz.map((q, index) => `
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <p class="font-semibold mb-4">${q.question}</p>
-                    <div class="space-y-2">
-                        ${q.options.map((option, optIndex) => `
-                            <div class="flex items-center">
-                                <input type="radio" 
-                                       id="q${index}-${optIndex}" 
-                                       name="q${index}" 
-                                       value="${option.correct}"
-                                       ${data.progress && data.progress.answers && 
-                                         data.progress.answers[index] !== null && 
-                                         option.correct === (data.progress.answers[index] ? 'true' : 'false') ? 
-                                         'checked' : ''}
-                                       class="mr-2">
-                                <label for="q${index}-${optIndex}">${option.text}</label>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button onclick="checkAnswer(${index})" 
-                            class="mt-4 bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
-                        Verifica
-                    </button>
-                    <div id="result-${index}" class="mt-2"></div>
-                </div>
-            `).join('');
-        }
-        
-        contentDiv.innerHTML = `
-            <h1 class="text-3xl font-bold mb-8">${data.title}</h1>
-            <div class="prose max-w-none mb-8">
-                ${data.content}
-            </div>
-            <div class="space-y-8">
-                ${quizHtml}
-            </div>
-        `;
-        
-        hideLoading();
-    } catch (error) {
-        console.error('Error loading topic:', error);
-        alert('Si è verificato un errore durante il caricamento della lezione');
-        hideLoading();
+        tabLesson.classList.add('active');
+        tabQuiz.classList.remove('active');
+        contentLesson.style.display = 'block';
+        contentQuiz.style.display = 'none';
     }
 }
 
-// Carica i topic all'avvio
-loadTopics();
+// Funzione per generare bottoni di approfondimento
+function generateApprofondimenti(title, content) {
+    const approfondimentiContainer = document.getElementById('approfondimenti-buttons');
+    approfondimentiContainer.innerHTML = '<div class="w-full text-center text-gray-500">Generazione approfondimenti...</div>';
+    
+    // Chiamata per generare gli approfondimenti
+    fetch('/generate_approfondimenti', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title: title, content: content })
+    })
+    .then(r => r.json())
+    .then(data => {
+        approfondimentiContainer.innerHTML = '';
+        
+        if (data.success && data.approfondimenti && data.approfondimenti.length > 0) {
+            data.approfondimenti.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'px-4 py-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-sm';
+                btn.textContent = item.title;
+                btn.onclick = function() {
+                    expandApprofondimento(item.title, item.content);
+                };
+                approfondimentiContainer.appendChild(btn);
+            });
+        } else {
+            approfondimentiContainer.innerHTML = '<div class="w-full text-center text-gray-500">Nessun approfondimento disponibile</div>';
+        }
+    })
+    .catch(err => {
+        approfondimentiContainer.innerHTML = '<div class="w-full text-center text-gray-500">Errore nel caricamento degli approfondimenti</div>';
+    });
+}
+
+// Funzione per espandere un approfondimento
+function expandApprofondimento(title, content) {
+    const lessonContent = document.getElementById('lesson-content');
+    
+    // Crea un elemento per l'approfondimento
+    const approfondimentoEl = document.createElement('div');
+    approfondimentoEl.className = 'mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200';
+    approfondimentoEl.innerHTML = `
+        <h4 class="text-lg font-semibold text-blue-800 mb-2">Approfondimento: ${title}</h4>
+        <div class="prose prose-sm">${content.replace(/\n/g, '<br>')}</div>
+    `;
+    
+    // Aggiungi l'approfondimento al contenuto della lezione
+    lessonContent.appendChild(approfondimentoEl);
+    
+    // Aggiungi l'approfondimento alla lista di quelli visualizzati
+    if (!window.currentApprofondimenti) {
+        window.currentApprofondimenti = [];
+    }
+    
+    // Evita duplicati
+    const isDuplicate = window.currentApprofondimenti.some(app => app.title === title);
+    if (!isDuplicate) {
+        window.currentApprofondimenti.push({ title: title, content: content });
+        console.log('Approfondimento aggiunto:', title);
+    }
+    
+    // Scorri fino all'approfondimento
+    approfondimentoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Funzione per renderizzare il quiz
+function renderQuiz(quiz) {
+    const quizContent = document.getElementById('quiz-content');
+    const quizFeedback = document.getElementById('quiz-feedback');
+    quizContent.innerHTML = '';
+    quizFeedback.classList.add('hidden');
+    
+    if (quiz && quiz.length > 0) {
+        quiz.forEach((q, i) => {
+            const qDiv = document.createElement('div');
+            qDiv.className = 'mb-4 p-2 bg-white rounded border border-gray-200';
+            qDiv.innerHTML = `<div class='font-medium mb-2 text-blue-700'>${i+1}. ${q.question}</div>`;
+            q.options.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-50 p-1 rounded';
+                label.innerHTML = `<input type='radio' name='quiz_${i}' value='${idx}' class='accent-blue-600'> <span>${opt}</span>`;
+                qDiv.appendChild(label);
+            });
+            quizContent.appendChild(qDiv);
+        });
+        
+        // Bottone verifica risposte
+        const btn = document.createElement('button');
+        btn.textContent = 'Verifica risposte';
+        btn.className = 'btn-primary mt-4 px-6';
+        btn.onclick = function() {
+            let allCorrect = true;
+            for (let i=0; i<quiz.length; ++i) {
+                const selected = document.querySelector(`input[name='quiz_${i}']:checked`);
+                if (!selected || parseInt(selected.value) !== quiz[i].correct_index) {
+                    allCorrect = false;
+                }
+            }
+            if (allCorrect) {
+                quizFeedback.classList.remove('hidden');
+            } else {
+                quizFeedback.classList.add('hidden');
+                alert('Alcune risposte sono errate. Riprova!');
+            }
+        };
+        quizContent.appendChild(btn);
+    } else {
+        quizContent.innerHTML = '<div class="p-4 text-gray-500 text-center">Nessuna domanda disponibile</div>';
+    }
+}
+
+function showError(msg) {
+    const err = document.getElementById('error-message');
+    err.textContent = msg;
+    err.classList.remove('hidden');
+}
+
+// Event listeners
+document.getElementById('generate-btn').onclick = handleGenerate;
+
+document.getElementById('topic-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleGenerate();
+});
+
+// Inizializzazione
+window.addEventListener('DOMContentLoaded', function() {
+    loadLessonsList();
+    setupTabs();
+});
 </script>
 {% endblock %}

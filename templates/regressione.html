@@ -1,33 +1,36 @@
 {% extends "base_with_console.html" %}
 
+{% block head_scripts %}
+<!-- Script esterni per la pagina di regressione -->
+<script src="{{ url_for('static', filename='js/synthetic_data.js') }}"></script>
+<script src="{{ url_for('static', filename='js/regression_utils.js') }}"></script>
+<script>
+    // Inizializza quando il DOM è completamente caricato
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM completamente caricato, inizializzazione funzioni...');
+        
+        // Rimuovi eventuali listener problematici
+        if (window.removeEventListener) {
+            try {
+                window.removeEventListener('orientationchange', null);
+                window.removeEventListener('resize', null);
+            } catch (e) {
+                console.log('Errore nella rimozione degli event listener:', e);
+            }
+        }
+    });
+</script>
+{% endblock %}
+
 {% block main_content %}
 <!-- Contenitore delle notifiche -->
 <div id="notifications-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 w-80"></div>
 
 <div class="max-w-7xl mx-auto px-4">
     <!-- Header con titolo e link al tutorial -->
-    <div class="bg-blue-900 text-white py-4 px-6 rounded-t-lg mb-0">
-        <div class="flex items-center gap-4">
-            <!-- Piccolo grafico di regressione -->
-            <div class="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-1.5">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                    <!-- Linea di regressione -->
-                    <line x1="10" y1="80" x2="90" y2="20" stroke="#000" stroke-width="2"/>
-                    
-                    <!-- Punti dati -->
-                    <circle cx="20" cy="70" r="3" fill="#333"/>
-                    <circle cx="40" cy="60" r="3" fill="#333"/>
-                    <circle cx="60" cy="40" r="3" fill="#333"/>
-                    <circle cx="80" cy="25" r="3" fill="#333"/>
-                </svg>
-            </div>
-            <div>
-                <h1 class="text-2xl font-bold">Regressione</h1>
-                <a href="#" id="open-tutorial-modal" class="text-sm text-[#BABABA] hover:text-white underline transition-colors">
-                    Come funziona? Apri il tutorial
-                </a>
-            </div>
-        </div>
+    <div class="page-header">
+      <h1>Regressione</h1>
+      <div class="subtitle">Analisi predittiva e modelli</div>
     </div>
 
     <!-- Grid Layout verticale -->
@@ -44,6 +47,167 @@
             <p class="text-gray-600 mb-6">Carica un file CSV contenente due colonne numeriche. La prima colonna sarà usata come variabile indipendente per prevedere la seconda.</p>
             
             <form id="upload-form" class="space-y-6">
+                <!-- Selezione tipo di algoritmo -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Algoritmo di Regressione</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="relative flex flex-col border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group overflow-hidden">
+                            <div class="flex items-center px-4 py-3 cursor-pointer">
+                                <input type="radio" id="model-linear" name="model-type" value="linear" checked
+                                       class="peer mr-3 accent-black">
+                                <label for="model-linear" class="cursor-pointer flex items-center">
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                        Regressione Lineare
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-2 text-xs text-gray-600 border-t border-gray-200">
+                                Modello semplice che trova la migliore linea retta attraverso i dati, ideale per relazioni lineari tra variabili.
+                            </div>
+                        </div>
+                        
+                        <div class="relative flex flex-col border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group overflow-hidden">
+                            <div class="flex items-center px-4 py-3 cursor-pointer">
+                                <input type="radio" id="model-polynomial" name="model-type" value="polynomial"
+                                       class="peer mr-3 accent-black">
+                                <label for="model-polynomial" class="cursor-pointer flex items-center">
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                        Regressione Polinomiale
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-2 text-xs text-gray-600 border-t border-gray-200">
+                                Estende la regressione lineare utilizzando termini polinomiali, utile per modellare curve e relazioni non lineari semplici.
+                            </div>
+                        </div>
+                        
+                        <div class="relative flex flex-col border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group overflow-hidden">
+                            <div class="flex items-center px-4 py-3 cursor-pointer">
+                                <input type="radio" id="model-svr" name="model-type" value="svr"
+                                       class="peer mr-3 accent-black">
+                                <label for="model-svr" class="cursor-pointer flex items-center">
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                        Support Vector Regression
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-2 text-xs text-gray-600 border-t border-gray-200">
+                                Algoritmo robusto che utilizza funzioni kernel per gestire relazioni complesse, efficace con dati rumorosi e outlier.
+                            </div>
+                        </div>
+                        
+                        <div class="relative flex flex-col border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group overflow-hidden">
+                            <div class="flex items-center px-4 py-3 cursor-pointer">
+                                <input type="radio" id="model-random-forest" name="model-type" value="random_forest"
+                                       class="peer mr-3 accent-black">
+                                <label for="model-random-forest" class="cursor-pointer flex items-center">
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                        Random Forest
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-2 text-xs text-gray-600 border-t border-gray-200">
+                                Combina multiple strutture ad albero per creare un modello potente, eccellente per relazioni complesse e non lineari con alta precisione.
+                            </div>
+                        </div>
+                        
+                        <div class="relative flex flex-col border border-gray-200 rounded-lg hover:border-gray-300 transition-colors group overflow-hidden">
+                            <div class="flex items-center px-4 py-3 cursor-pointer">
+                                <input type="radio" id="model-decision-tree" name="model-type" value="decision_tree"
+                                       class="peer mr-3 accent-black">
+                                <label for="model-decision-tree" class="cursor-pointer flex items-center">
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                        Decision Tree
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-2 text-xs text-gray-600 border-t border-gray-200">
+                                Modello che suddivide i dati in base a regole di decisione, adatto per catturare relazioni a gradini e pattern non continui nei dati.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Parametri degli algoritmi -->
+                <div id="model-params" class="mb-6 space-y-4 hidden">
+                    <!-- Parametri Regressione Polinomiale -->
+                    <div id="polynomial-params" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Grado del polinomio</label>
+                        <div class="flex items-center">
+                            <input type="range" id="polynomial-degree" min="2" max="10" value="2" 
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <span id="polynomial-degree-value" class="ml-3 text-sm font-medium text-gray-700">2</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Parametri SVR -->
+                    <div id="svr-params" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kernel</label>
+                            <select id="svr-kernel" class="w-full border border-gray-300 rounded-lg py-2 px-3">
+                                <option value="rbf">RBF (Radial Basis Function)</option>
+                                <option value="linear">Lineare</option>
+                                <option value="poly">Polinomiale</option>
+                                <option value="sigmoid">Sigmoide</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Parametro C (regolarizzazione)</label>
+                            <div class="flex items-center">
+                                <input type="range" id="svr-c" min="0.1" max="10" step="0.1" value="1.0" 
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <span id="svr-c-value" class="ml-3 text-sm font-medium text-gray-700">1.0</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Epsilon (margine di tolleranza)</label>
+                            <div class="flex items-center">
+                                <input type="range" id="svr-epsilon" min="0.01" max="1" step="0.01" value="0.1" 
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <span id="svr-epsilon-value" class="ml-3 text-sm font-medium text-gray-700">0.1</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parametri Random Forest -->
+                    <div id="random-forest-params" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Numero di alberi</label>
+                            <div class="flex items-center">
+                                <input type="range" id="rf-n-estimators" min="10" max="200" step="10" value="100" 
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <span id="rf-n-estimators-value" class="ml-3 text-sm font-medium text-gray-700">100</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Profondità massima</label>
+                            <select id="rf-max-depth" class="w-full border border-gray-300 rounded-lg py-2 px-3">
+                                <option value="None">Nessun limite</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Parametri Decision Tree -->
+                    <div id="decision-tree-params" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Profondità massima</label>
+                        <select id="dt-max-depth" class="w-full border border-gray-300 rounded-lg py-2 px-3">
+                            <option value="None">Nessun limite</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <!-- Selezione tipo di dataset -->
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
@@ -90,11 +254,28 @@
                         <div class="relative border border-gray-200 rounded-lg hover:border-gray-300 transition-colors focus-within:border-gray-700">
                             <select id="example-dataset" class="appearance-none block w-full pl-3 pr-10 py-2 text-base focus:outline-none sm:text-sm rounded-lg bg-transparent">
                                 <option value="" selected disabled>Seleziona un dataset di esempio</option>
-                                <option value="/static/csv/regressione/Esempio1.csv">Dataset 1: Relazione X-Y Base</option>
-                                <option value="/static/csv/regressione/Esempio2.csv">Dataset 2: Metri Quadri vs Prezzo Casa</option>
-                                <option value="/static/csv/regressione/Esempio3.csv">Dataset 3: Budget Marketing vs Vendite</option>
-                                <option value="/static/csv/regressione/Esempio4.csv">Dataset 4: Ore di Studio vs Voto Esame</option>
-                                <option value="/static/csv/regressione/Esempio5.csv">Dataset 5: Età vs Pressione Sanguigna</option>
+                                <!-- Dataset per regressione lineare -->
+                                <option value="linear-1" data-model="linear">Lineare: Metri Quadri vs Prezzo Casa</option>
+                                <option value="linear-2" data-model="linear">Lineare: Budget Marketing vs Vendite</option>
+                                <option value="linear-3" data-model="linear">Lineare: Ore di Studio vs Voto Esame</option>
+                                
+                                <!-- Dataset per regressione polinomiale -->
+                                <option value="polynomial-1" data-model="polynomial">Polinomiale: Temperatura vs Efficienza</option>
+                                <option value="polynomial-2" data-model="polynomial">Polinomiale: Velocità vs Consumo Carburante</option>
+                                <option value="polynomial-3" data-model="polynomial">Polinomiale: Dose vs Risposta Farmacologica</option>
+                                
+                                <!-- Dataset per SVR -->
+                                <option value="svr-1" data-model="svr">SVR: Dati con Outlier</option>
+                                <option value="svr-2" data-model="svr">SVR: Relazione Sinusoidale</option>
+                                <option value="svr-3" data-model="svr">SVR: Dati con Rumore</option>
+                                
+                                <!-- Dataset per Random Forest -->
+                                <option value="random_forest-1" data-model="random_forest">Random Forest: Relazione Complessa</option>
+                                <option value="random_forest-2" data-model="random_forest">Random Forest: Dati Multivariati</option>
+                                
+                                <!-- Dataset per Decision Tree -->
+                                <option value="decision_tree-1" data-model="decision_tree">Decision Tree: Dati a Gradini</option>
+                                <option value="decision_tree-2" data-model="decision_tree">Decision Tree: Pattern Discontinui</option>
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,6 +648,7 @@ function showToast(message, type = 'info') {
 
 let modelData = null;
 let lastPredictionPoint = null;
+let currentSyntheticData = null;
 
 // Funzione per resettare i dati della previsione
 function resetPredictionData() {
@@ -505,9 +687,15 @@ function updateTrainButtonState() {
 document.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const isCustom = this.value === 'custom';
-        updateTrainButtonState();
         document.getElementById('custom-upload').classList.toggle('hidden', !isCustom);
         document.getElementById('example-select').classList.toggle('hidden', isCustom);
+        updateTrainButtonState();
+        
+        // Filtra i dataset in base al modello selezionato
+        if (!isCustom) {
+            // Utilizziamo la funzione definita localmente
+            filterDatasetsByModelLocal();
+        }
         
         // Reset dell'altro input e dei dati della previsione
         if (isCustom) {
@@ -525,25 +713,28 @@ document.querySelectorAll('input[name="dataset-type"]').forEach(radio => {
 });
 
 // Gestione della selezione del dataset di esempio
-document.getElementById('example-dataset').addEventListener('change', async function() {
-    const selectedDataset = this.value;
-    updateTrainButtonState();
-    if (!selectedDataset) return;
-    
+document.getElementById('example-dataset').addEventListener('change', function() {
     // Reset dei dati della previsione quando viene selezionato un nuovo dataset
     resetPredictionData();
-
-    try {
-        logToConsole('Caricamento del dataset di esempio...');
-        const response = await fetch(selectedDataset);
-        if (!response.ok) throw new Error('Errore nel caricamento del file');
-        
-        const csvText = await response.text();
-        displayCsvPreview(csvText);
-    } catch (error) {
-        logToConsole('Errore: ' + error.message);
-        showToast('Si è verificato un errore durante l\'elaborazione', 'error');
+    
+    // Se è stato selezionato un dataset di esempio, genera i dati sintetici
+    if (this.value && this.value !== '') {
+        try {
+            const datasetType = this.value;
+            const csvContent = generateSyntheticData(datasetType);
+            
+            // Mostra l'anteprima dei dati generati
+            displayCsvPreview(csvContent);
+            
+            // Salva il contenuto CSV per l'invio
+            currentSyntheticData = csvContent;
+        } catch (error) {
+            logToConsole('Errore: ' + error.message);
+            showToast('Si è verificato un errore durante l\'elaborazione', 'error');
+        }
     }
+    
+    updateTrainButtonState();
 });
 
 let currentCsvContent = null;
@@ -687,6 +878,56 @@ document.getElementById('csv-file').addEventListener('change', function(e) {
     reader.readAsText(file);
 });
 
+// Gestione dei parametri del modello
+document.querySelectorAll('input[name="model-type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Nascondi tutti i pannelli di parametri
+        document.querySelectorAll('#model-params > div').forEach(div => div.classList.add('hidden'));
+        
+        // Mostra il pannello dei parametri appropriato
+        const modelType = this.value;
+        document.getElementById('model-params').classList.remove('hidden');
+        
+        if (modelType === 'polynomial') {
+            document.getElementById('polynomial-params').classList.remove('hidden');
+        } else if (modelType === 'svr') {
+            document.getElementById('svr-params').classList.remove('hidden');
+        } else if (modelType === 'random_forest') {
+            document.getElementById('random-forest-params').classList.remove('hidden');
+        } else if (modelType === 'decision_tree') {
+            document.getElementById('decision-tree-params').classList.remove('hidden');
+        } else {
+            // Per il modello lineare, nascondi il pannello dei parametri
+            document.getElementById('model-params').classList.add('hidden');
+        }
+        
+        // Filtra i dataset in base al modello selezionato
+        if (document.getElementById('dataset-example').checked) {
+            filterDatasetsByModelLocal();
+        }
+        
+        // Reset dei dati della previsione quando viene cambiato il modello
+        resetPredictionData();
+    });
+});
+
+// Aggiorna i valori visualizzati per i parametri
+document.getElementById('polynomial-degree').addEventListener('input', function() {
+    document.getElementById('polynomial-degree-value').textContent = this.value;
+});
+
+document.getElementById('svr-c').addEventListener('input', function() {
+    document.getElementById('svr-c-value').textContent = this.value;
+});
+
+document.getElementById('svr-epsilon').addEventListener('input', function() {
+    document.getElementById('svr-epsilon-value').textContent = this.value;
+});
+
+document.getElementById('rf-n-estimators').addEventListener('input', function() {
+    document.getElementById('rf-n-estimators-value').textContent = this.value;
+});
+
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -701,6 +942,24 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             return;
         }
         formData.append('file', file);
+        
+        // Aggiungi il tipo di modello e i parametri al formData
+        const modelType = document.querySelector('input[name="model-type"]:checked').value;
+        formData.append('model_type', modelType);
+        
+        // Aggiungi i parametri specifici del modello
+        if (modelType === 'polynomial') {
+            formData.append('degree', document.getElementById('polynomial-degree').value);
+        } else if (modelType === 'svr') {
+            formData.append('kernel', document.getElementById('svr-kernel').value);
+            formData.append('C', document.getElementById('svr-c').value);
+            formData.append('epsilon', document.getElementById('svr-epsilon').value);
+        } else if (modelType === 'random_forest') {
+            formData.append('n_estimators', document.getElementById('rf-n-estimators').value);
+            formData.append('max_depth', document.getElementById('rf-max-depth').value);
+        } else if (modelType === 'decision_tree') {
+            formData.append('max_depth', document.getElementById('dt-max-depth').value);
+        }
     } else {
         const selectedDataset = document.getElementById('example-dataset').value;
         if (!selectedDataset) {
@@ -709,12 +968,44 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
         }
         
         try {
-            const response = await fetch(selectedDataset);
-            if (!response.ok) throw new Error('Errore nel caricamento del file');
+            let csvText;
             
-            const csvText = await response.text();
+            // È un dataset sintetico, usa i dati generati
+            try {
+                if (!currentSyntheticData) {
+                    csvText = generateSyntheticData(selectedDataset);
+                } else {
+                    csvText = currentSyntheticData;
+                }
+                
+                // Log per debug
+                logToConsole('Dati CSV generati (primi 100 caratteri): ' + csvText.substring(0, 100));
+            } catch (error) {
+                logToConsole('Errore nella generazione dei dati sintetici: ' + error.message);
+                showToast('Errore nella generazione dei dati', 'error');
+                throw error;
+            }
+            
             const blob = new Blob([csvText], { type: 'text/csv' });
             formData.append('file', blob, 'dataset.csv');
+            
+            // Aggiungi il tipo di modello e i parametri al formData
+            const modelType = document.querySelector('input[name="model-type"]:checked').value;
+            formData.append('model_type', modelType);
+            
+            // Aggiungi i parametri specifici del modello
+            if (modelType === 'polynomial') {
+                formData.append('degree', document.getElementById('polynomial-degree').value);
+            } else if (modelType === 'svr') {
+                formData.append('kernel', document.getElementById('svr-kernel').value);
+                formData.append('C', document.getElementById('svr-c').value);
+                formData.append('epsilon', document.getElementById('svr-epsilon').value);
+            } else if (modelType === 'random_forest') {
+                formData.append('n_estimators', document.getElementById('rf-n-estimators').value);
+                formData.append('max_depth', document.getElementById('rf-max-depth').value);
+            } else if (modelType === 'decision_tree') {
+                formData.append('max_depth', document.getElementById('dt-max-depth').value);
+            }
         } catch (error) {
             logToConsole('Errore: ' + error.message);
             return;
@@ -739,13 +1030,28 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             throw new Error(data.error);
         }
 
-        modelData = data;
+        // Salva i dati del modello con le informazioni sul tipo di modello
+        modelData = {
+            ...data,
+            model_type: data.model_type || 'linear'
+        };
         document.getElementById('prediction-section').classList.remove('hidden');
         document.getElementById('input-label').textContent = data.columns[0];
         logToConsole('Modello addestrato con successo!');
         showToast('Modello addestrato con successo!', 'success');
-        logToConsole(`Coefficiente: ${data.coefficiente.toFixed(4)}`);
-        logToConsole(`Intercetta: ${data.intercetta.toFixed(4)}`);
+        // Log dei parametri del modello in base al tipo
+        if (data.model_type === 'linear' || !data.model_type) {
+            logToConsole(`Coefficiente: ${data.coefficiente.toFixed(4)}`);
+            logToConsole(`Intercetta: ${data.intercetta.toFixed(4)}`);
+        } else if (data.model_type === 'polynomial') {
+            logToConsole(`Regressione polinomiale di grado: ${data.model_params.degree}`);
+        } else if (data.model_type === 'svr') {
+            logToConsole(`SVR con kernel: ${data.model_params.kernel}, C: ${data.model_params.C}, epsilon: ${data.model_params.epsilon}`);
+        } else if (data.model_type === 'random_forest') {
+            logToConsole(`Random Forest con ${data.model_params.n_estimators} alberi`);
+        } else if (data.model_type === 'decision_tree') {
+            logToConsole(`Decision Tree con profondità massima: ${data.model_params.max_depth || 'illimitata'}`);
+        }
         logToConsole('Dati di training:', data.training_data);
 
         // Verifica che i dati di training siano presenti e validi
@@ -755,8 +1061,26 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             return;
         }
 
+        // Funzione per ottenere il titolo del grafico in base al tipo di modello
+        function getChartTitle(data, modelData) {
+            if (!data.model_type || data.model_type === 'linear') {
+                return 'Regressione Lineare';
+            } else if (data.model_type === 'polynomial') {
+                const degree = data.model_params?.degree || modelData?.model_params?.degree || 2;
+                return `Regressione Polinomiale (Grado ${degree})`;
+            } else if (data.model_type === 'svr') {
+                const kernel = data.model_params?.kernel || modelData?.model_params?.kernel || 'rbf';
+                return `Support Vector Regression (Kernel: ${kernel})`;
+            } else if (data.model_type === 'random_forest') {
+                return 'Random Forest Regression';
+            } else if (data.model_type === 'decision_tree') {
+                return 'Decision Tree Regression';
+            }
+            return 'Modello di Regressione';
+        }
+        
         // Funzione per creare il grafico di regressione
-        function createRegressionChart(canvasId, data) {
+        function createRegressionChart(canvasId, data, curvePoints = null) {
             // Debug del canvas
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
@@ -792,12 +1116,6 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
             const minX = Math.min(...xValues);
             const maxX = Math.max(...xValues);
 
-            // Crea due punti per la linea di regressione
-            const regressionLine = [
-                { x: minX, y: data.coefficiente * minX + data.intercetta },
-                { x: maxX, y: data.coefficiente * maxX + data.intercetta }
-            ];
-
             // Prepara i dataset
             const datasets = [
                 {
@@ -807,8 +1125,18 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                     borderColor: 'rgba(107, 114, 128, 1)',
                     borderWidth: 1,
                     pointRadius: 4
-                },
-                {
+                }
+            ];
+            
+            // Aggiungi la linea di regressione o la curva in base al tipo di modello
+            if (data.model_type === 'linear' || !data.model_type) {
+                // Crea due punti per la linea di regressione lineare
+                const regressionLine = [
+                    { x: minX, y: data.coefficiente * minX + data.intercetta },
+                    { x: maxX, y: data.coefficiente * maxX + data.intercetta }
+                ];
+                
+                datasets.push({
                     label: 'Linea di Regressione',
                     data: regressionLine,
                     type: 'line',
@@ -816,8 +1144,28 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false
-                }
-            ];
+                });
+            } else if (curvePoints || data.curve_points) {
+                // Per modelli non lineari, usa i punti della curva
+                const points = curvePoints || data.curve_points;
+                const curveData = points.map(point => {
+                    return {
+                        x: parseFloat(point[0]),
+                        y: parseFloat(point[1])
+                    };
+                });
+                
+                datasets.push({
+                    label: 'Curva di Regressione',
+                    data: curveData,
+                    type: 'line',
+                    borderColor: 'rgba(75, 85, 99, 1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.4
+                });
+            }
 
             // Aggiungi il punto di previsione se presente
             if (lastPredictionPoint) {
@@ -844,7 +1192,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                         },
                         title: {
                             display: true,
-                            text: 'Regressione Lineare'
+                            text: getChartTitle(data, modelData)
                         }
                     },
                     scales: {
@@ -880,7 +1228,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                 canvas.height = container.clientHeight;
                 
                 logToConsole(`Dimensioni canvas principale: ${canvas.width}x${canvas.height}`);
-                window.regressionChart = createRegressionChart('regression-chart', data);
+                window.regressionChart = createRegressionChart('regression-chart', data, data.curve_points);
                 logToConsole('Grafico creato con successo');
             } catch (error) {
                 logToConsole('Errore nella creazione del grafico: ' + error.message);
@@ -910,7 +1258,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
                 
                 // Piccolo ritardo per assicurare che il DOM sia aggiornato
                 setTimeout(() => {
-                    window.modalChart = createRegressionChart('modal-regression-chart', data);
+                    window.modalChart = createRegressionChart('modal-regression-chart', data, data.curve_points);
                     
                     // Se c'è un punto di previsione, aggiungilo esplicitamente
                     if (lastPredictionPoint) {
@@ -990,8 +1338,11 @@ document.getElementById('prediction-form').addEventListener('submit', async (e) 
             },
             body: JSON.stringify({
                 value: inputValue,
+                model_type: modelData.model_type || 'linear',
                 coefficiente: modelData.coefficiente,
-                intercetta: modelData.intercetta
+                intercetta: modelData.intercetta,
+                curve_points: modelData.curve_points,
+                model_params: modelData.model_params
             })
         });
         const data = await response.json();

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4">
+    <div class="page-header">
+        <h1>Mentor Matematico</h1>
+        <div class="subtitle">Scegli un argomento per iniziare</div>
+    </div>
+
+    <!-- Progress Summary -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8 hidden" id="progress-summary">
+        <h3 class="text-lg font-semibold mb-4">Il tuo progresso</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="progress-stats">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+
+    <!-- Selection Panel -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Grade Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Grado Scolastico</label>
+                <select id="grade-select" class="form-select">
+                    <option value="primaria">Scuola Primaria</option>
+                    <option value="media">Scuola Secondaria I°</option>
+                    <option value="superiori">Scuola Secondaria II°</option>
+                </select>
+            </div>
+            
+            <!-- Subject Area -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Macroarea</label>
+                <select id="subject-select" class="form-select">
+                    <option value="aritmetica">Aritmetica</option>
+                    <option value="algebra">Algebra</option>
+                    <option value="geometria">Geometria</option>
+                </select>
+            </div>
+            
+            <!-- Topic Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Argomento</label>
+                <select id="topic-select" class="form-select">
+                    <!-- Dynamically populated -->
+                </select>
+            </div>
+        </div>
+        
+        <button id="generate-exercise" class="btn mt-6">
+            Genera Esercizio
+        </button>
+        <div id="loading" class="hidden">
+            <!-- Loading animation or message -->
+        </div>
+    </div>
+
+    <!-- Exercise Display -->
+    <div id="exercise-container" class="bg-white rounded-lg shadow-md p-6 hidden">
+        <div class="prose max-w-none">
+            <h3 class="text-xl font-semibold mb-4">Esercizio</h3>
+            <div id="exercise-content" class="text-lg mb-6"></div>
+            
+            <div class="border-t pt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">La tua risposta</label>
+                <textarea id="answer-input" class="form-textarea" rows="3"></textarea>
+                <button id="check-answer" class="btn mt-4">
+                    Verifica Risposta
+                </button>
+            </div>
+            
+            <div id="feedback" class="mt-6 hidden"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Complete topic and exercise database
+const topicsDatabase = {
+    primaria: {
+        aritmetica: ["Addizioni", "Sottrazioni", "Moltiplicazioni", "Divisioni", "Frazioni"],
+        algebra: ["Espressioni semplici", "Proprietà delle operazioni"],
+        geometria: ["Forme geometriche", "Perimetro", "Area"]
+    },
+    media: {
+        aritmetica: ["Frazioni", "Percentuali", "Proporzioni"],
+        algebra: ["Equazioni I grado", "Polinomi", "Sistemi"],
+        geometria: ["Teorema di Pitagora", "Aree e volumi", "Trasformazioni"]
+    },
+    superiori: {
+        aritmetica: ["Logaritmi", "Radicali", "Progressioni"],
+        algebra: ["Equazioni II grado", "Disequazioni", "Funzioni"],
+        geometria: ["Geometria analitica", "Trigonometria", "Geometria solida"]
+    }
+};
+
+// Update topics based on selections
+function updateTopics() {
+    const grade = document.getElementById('grade-select').value;
+    const subject = document.getElementById('subject-select').value;
+    const topicSelect = document.getElementById('topic-select');
+    
+    topicSelect.innerHTML = '';
+    topicsDatabase[grade][subject].forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic.toLowerCase().replace(' ', '-');
+        option.textContent = topic;
+        topicSelect.appendChild(option);
+    });
+}
+
+// Generate exercise
+document.getElementById('generate-exercise').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    document.getElementById('loading').classList.remove('hidden');
+    
+    try {
+        const grade = document.getElementById('grade-select').value;
+        const subject = document.getElementById('subject-select').value;
+        const topic = document.getElementById('topic-select').value;
+
+        const response = await fetch('/api/generate-exercise', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ grade, subject, topic })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || data.status === 'error') {
+            throw new Error(data.message || 'Errore nella generazione dell\'esercizio');
+        }
+        
+        document.getElementById('exercise-content').innerHTML = data.exercise;
+        document.getElementById('exercise-container').classList.remove('hidden');
+        document.getElementById('exercise-content').dataset.correctAnswer = data.answer;
+        
+        if(window.MathJax) {
+            MathJax.typeset();
+        }
+    } catch(error) {
+        console.error('Error:', error);
+        document.getElementById('exercise-content').innerHTML = `
+            <div class="text-red-600 p-4">
+                ${error.message}
+            </div>
+        `;
+        document.getElementById('exercise-container').classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        document.getElementById('loading').classList.add('hidden');
+    }
+});
+
+// Check answer
+document.getElementById('check-answer').addEventListener('click', async function() {
+    const grade = document.getElementById('grade-select').value;
+    const subject = document.getElementById('subject-select').value;
+    const topic = document.getElementById('topic-select').value;
+    const userAnswer = document.getElementById('answer-input').value.trim();
+    const correctAnswer = document.getElementById('exercise-content').dataset.correctAnswer;
+    
+    const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+    
+    // Update progress via API
+    try {
+        await fetch('/api/math/update-progress', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                topic: `${grade}-${subject}-${topic}`,
+                is_correct: isCorrect
+            })
+        });
+        
+        // Refresh progress stats
+        updateProgressStats();
+    } catch (error) {
+        console.error('Error updating progress:', error);
+    }
+    
+    const feedback = document.getElementById('feedback');
+    
+    if (isCorrect) {
+        feedback.innerHTML = `<div class="p-4 bg-green-50 text-green-800 rounded">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Risposta corretta!
+        </div>`;
+    } else {
+        feedback.innerHTML = `<div class="p-4 bg-red-50 text-red-800 rounded">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Risposta errata. La soluzione corretta è: <strong>${correctAnswer}</strong>
+        </div>`;
+    }
+    
+    feedback.classList.remove('hidden');
+});
+
+// Add progress tracking functionality
+async function updateProgressStats() {
+    try {
+        const response = await fetch('/api/math/progress');
+        const progress = await response.json();
+        
+        const progressStats = document.getElementById('progress-stats');
+        progressStats.innerHTML = '';
+        
+        if (progress.length > 0) {
+            document.getElementById('progress-summary').classList.remove('hidden');
+            
+            progress.forEach(item => {
+                const completion = Math.round((item.correct / item.completed) * 100) || 0;
+                progressStats.innerHTML += `
+                    <div class="border rounded-lg p-4">
+                        <h4 class="font-medium">${item.topic}</h4>
+                        <div class="mt-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Completati: ${item.completed}</span>
+                                <span>${completion}% corretti</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                                <div class="bg-green-600 h-2.5 rounded-full" style="width: ${completion}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching progress:', error);
+    }
+}
+
+// Update initialize function
+document.addEventListener('DOMContentLoaded', function() {
+    updateTopics();
+    updateProgressStats(); // Load progress stats
+    document.getElementById('grade-select').addEventListener('change', updateTopics);
+    document.getElementById('subject-select').addEventListener('change', updateTopics);
+});
+</script>
+{% endblock %}

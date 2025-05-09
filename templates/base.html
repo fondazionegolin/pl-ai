@@ -19,8 +19,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#0a112c',
+                        'secondary': '#1a365d',
+                        'accent': '#3182ce',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/lesson.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -41,7 +58,7 @@
 
         /* Stili per il logo */
         .logo-mobile {
-            height: 2.5rem;
+            height: 1.5rem;
             width: auto;
         }
 
@@ -76,8 +93,6 @@
             background: transparent;
         }
 
-
-
         /* Stili per i link della navbar */
         .nav-link {
             font-family: 'Fira Sans', sans-serif;
@@ -95,9 +110,8 @@
         }
 
         .nav-link:hover {
-            background-color: #0c0033;
-            color: #fff;
-            transform: translateY(-1px);
+            background-color: #0c0033cc !important;
+            color: #fff !important;
         }
 
         /* Active state */
@@ -156,38 +170,61 @@
             background-color: rgb(224, 231, 255);
         }
 
-        /* Stili per i bottoni */
+        /* Enhanced Button System */
         .btn {
-            background-color: white;
-            padding: 1rem 2rem;  /* Aumentato padding */
-            border-radius: 1rem;  /* Bordi più curvi */
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin: 0.5rem;  /* Aggiunto margine intorno ai bottoni */
+          background-color: var(--primary-red);
+          color: white;
+          border: none;
+          padding: 10px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.95rem;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          background-color: #D1261C;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* Bottoni CTA essenziali */
-        .btn-cta:hover {
-            background-color: #8B5CF6;
-            color: white;
+        .btn:active {
+          transform: translateY(0);
         }
 
-        /* Bottoni per il training */
-        .btn-training:hover {
-            background-color: #10B981;
-            color: white;
+        /* Button Sizes */
+        .btn-sm {
+          padding: 8px 16px;
+          font-size: 0.85rem;
         }
 
-        /* Bottoni per il testing */
-        .btn-testing:hover {
-            background-color: #EF4444;
-            color: white;
+        .btn-lg {
+          padding: 12px 28px;
+          font-size: 1.1rem;
+        }
+
+        /* Button Variants */
+        .btn-outline {
+          background: transparent;
+          border: 2px solid var(--primary-red);
+          color: var(--primary-red);
+        }
+
+        .btn-outline:hover {
+          background: rgba(238, 46, 36, 0.1);
+        }
+
+        /* Icon Buttons */
+        .btn-icon {
+          padding: 10px;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
         }
 
         /* Stili per le formule matematiche */
@@ -218,222 +255,391 @@
             padding: 0.2em 0.4em;
             border-radius: 0.25rem;
         }
+        
+        /* Stili per il contenuto markdown */
+        .prose {
+            color: #374151; 
+            line-height: 1.625; 
+        }
+        
+        .prose h1 {
+            font-size: 1.875rem; 
+            font-weight: 700; 
+            margin-bottom: 1.5rem; 
+            color: #111827; 
+        }
+        
+        .prose h2 {
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            margin-bottom: 1rem; 
+            color: #111827; 
+            margin-top: 2rem; 
+        }
+        
+        .prose h3 {
+            font-size: 1.25rem; 
+            font-weight: 700; 
+            margin-bottom: 0.75rem; 
+            color: #111827; 
+            margin-top: 1.5rem; 
+        }
+        
+        .prose p {
+            margin-bottom: 1rem; 
+        }
+        
+        .prose ul {
+            list-style-type: disc; 
+            padding-left: 1.5rem; 
+            margin-bottom: 1rem; 
+        }
+        
+        .prose ul li {
+            margin-top: 0.5rem; 
+        }
+        
+        .prose ol {
+            list-style-type: decimal; 
+            padding-left: 1.5rem; 
+            margin-bottom: 1rem; 
+        }
+        
+        .prose ol li {
+            margin-top: 0.5rem; 
+        }
+        
+        .prose code {
+            background-color: #f3f4f6; 
+            padding: 0.125rem 0.25rem; 
+            border-radius: 0.25rem; 
+            font-size: 0.875rem; 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; 
+        }
+        
+        .prose pre {
+            background-color: #f3f4f6; 
+            padding: 1rem; 
+            border-radius: 0.5rem; 
+            margin-bottom: 1rem; 
+            overflow-x: auto; 
+        }
+        
+        .prose pre code {
+            background-color: transparent; 
+            padding: 0; 
+        }
+        
+        .prose blockquote {
+            border-left-width: 4px; 
+            border-left-color: #d1d5db; 
+            padding-left: 1rem; 
+            font-style: italic; 
+            color: #4b5563; 
+            margin-top: 1rem; 
+            margin-bottom: 1rem; 
+        }
+
+        /* Updated color palette with exact logo colors and transparency */
+        :root {
+          --text-color: #616161;       /* Black for text and icons */
+          --hover-color: rgba(143, 216, 248, 0.7);      /* Light blue with transparency */
+          --active-color: rgba(238, 46, 36, 0.85);     /* Exact logo red (#EE2E24) with transparency */
+          --bg-color: rgba(255, 255, 255, 0.98);       /* White with slight transparency */
+        }
+
+        /* Navbar links styling */
+        .nav-link {
+          color: var(--text-color) !important;
+          transition: all 0.2s ease;
+          border-radius: 12px;
+          background-color: transparent;
+        }
+
+        .nav-link svg {
+          stroke: var(--text-color);
+        }
+
+        .nav-link:hover {
+          background-color: var(--hover-color);
+        }
+
+        .nav-link.active {
+          background-color: var(--active-color);
+          color: white !important;
+        }
+
+        /* User menu styling */
+        .user-menu-button:hover {
+          background-color: var(--hover-color);
+        }
+
+        #userMenu a:hover {
+          background-color: var(--hover-color);
+        }
+
+        /* Sidebar background with transparency */
+        #sidebar {
+          background-color: rgba(255, 255, 255, 0.95);
+        }
+        :root {
+            /* Color Scheme */
+            --primary-blue: #8FD8F8;
+            --primary-red: #EE2E24;
+            --dark-blue: #0077CC;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            
+            /* Typography */
+            --heading-font: 'Inter', system-ui, sans-serif;
+            --body-font: 'Inter', system-ui, sans-serif;
+        }
+        
+        /* Unified Button Styles */
+        .btn {
+          background-color: var(--primary-red);
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 500;
+          transition: all 0.2s;
+        }
+        .btn:hover {
+          background-color: #D1261C;
+          transform: translateY(-1px);
+        }
+        
+        /* Page Header Bars */
+        .page-header {
+          background-color: rgba(108, 175, 242, 0.85); /* 85% opacity */
+          backdrop-filter: blur(5px); /* Frosted glass effect */
+          color: white;
+          padding: 1rem 2rem;
+          margin-bottom: 1.5rem;
+          border-radius: 0 0 8px 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border: 1px solid rgba(255,255,255,0.2); /* Light border */
+        }
+
+        .page-header h1 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .page-header .subtitle {
+          opacity: 0.9;
+          font-size: 1rem;
+          margin-top: 0.5rem;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Navigation Items */
+        .nav-item {
+          color: #333;
+          transition: all 0.2s;
+        }
+        .nav-item:hover {
+          color: var(--primary-red);
+        }
+        
+        /* Form Elements */
+        input, textarea, select {
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          padding: 10px;
+        }
+        input:focus {
+          border-color: var(--primary-blue);
+          outline: none;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen bg-gray-50">
-    <!-- Navbar -->
-    <nav class="navbar-gradient py-8 mb-12">
-        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-            <div class="flex justify-between items-center w-full">
-                <!-- Logo container a sinistra -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="block hover:opacity-80 transition-opacity duration-300">
-                        <img src="{{ url_for('static', filename='plai.svg') }}" alt="PL-AI Logo" class="h-20 w-auto" style="max-width: 100%;">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed z-40 top-0 left-0 h-full w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out">
+        <div class="h-full flex flex-col">
+            <!-- Logo e chiusura -->
+            <div class="flex items-center justify-between px-6 py-4 border-b">
+                <div class="sidebar-brand flex justify-center flex-1">
+                    <a href="/" class="brand-link block text-center">
+                        <img src="{{ url_for('static', filename='plai2.svg') }}" alt="Logo" 
+                             class="mx-auto" style="width: 90px; height: auto;">
                     </a>
                 </div>
-                
-                <!-- Pulsante hamburger per mobile -->
-                <button type="button" onclick="toggleMobileMenu()" class="lg:hidden flex items-center justify-center p-2 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
+                <button id="closeSidebar" class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
-                <!-- Menu di navigazione al centro -->
-                <div class="hidden lg:flex justify-center flex-grow mx-4">
-                    <div class="flex items-center gap-2 flex-wrap justify-center">
-                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                            </svg>
-                            Home
-                        </a>
-                        <a href="/regressione" class="nav-link {% if request.path == '/regressione' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                            </svg>
-                            Regressione
-                        </a>
-                        <a href="/classificazione" class="nav-link {% if request.path == '/classificazione' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                            </svg>
-                            Dati
-                        </a>
-                        
-                        <a href="/chatbot2" class="nav-link {% if request.path == '/chatbot2' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                            </svg>
-                            Chatbot
-                        </a>
-                        <a href="/generazione-immagini" class="nav-link {% if request.path == '/generazione-immagini' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Generazione
-                        </a>
-                        <a href="/class_img_2" class="nav-link {% if request.path == '/class_img_2' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            Visione
-                        </a>
-                        
-                        <a href="/risorse" class="nav-link {% if request.path == '/risorse' %}active{% endif %}">
-                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            Risorse
-                        </a>
-                        
-                    </div>
-                </div>
-                
-                <!-- Icona utente a destra -->
-                <div class="flex-shrink-0 flex items-center">
-                    <div class="relative flex items-center" id="user-menu-container">
-                        <button type="button" onclick="toggleUserMenu()" class="flex items-center justify-center p-2 rounded-full text-black hover:bg-gray-100 focus:outline-none transition-all duration-300">
-                                {% if session.get('user_id') %}
-                                    {% if session.get('user_avatar') %}
-                                    <img src="{{ session.get('user_avatar') }}" alt="Avatar" class="h-14 w-14 rounded-full object-cover border border-gray-200">
-                                    {% else %}
-                                    <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                    {% endif %}
-                                {% else %}
-                                    <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                {% endif %}
-                        </button>
-                        
-                        <!-- Menu dropdown utente (inizialmente nascosto) -->
-                        <div id="user-dropdown-menu" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50 hidden">
-                            {% if session.get('user_id') %}
-                                <div class="px-4 py-2 border-b">
-                                    <p class="text-sm font-medium text-gray-900">{{ session.get('user_name', 'Utente') }}</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ session.get('user_email', '') }}</p>
-                                </div>
-                                <a href="/profilo" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profilo</a>
-                                <a href="/impostazioni" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Impostazioni</a>
-                                <div class="border-t"></div>
-                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
-                            {% else %}
-                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Accedi</a>
-                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrati</a>
-                            {% endif %}
+            </div>
+            <!-- Link di navigazione -->
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+    <a href="/" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Home
+    </a>
+    <a href="/regressione" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/regressione' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        Regressione
+    </a>
+    <a href="/classificazione" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/classificazione' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        Dati
+    </a>
+    <a href="/learning" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/learning' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Learning
+    </a>
+    <a href="/chatbot2" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/chatbot2' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8a2 2 0 012-2h2m2 6h-4a1 1 0 01-1-1V2a1 1 0 011-1H16a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 00-1-1v-1a1 1 0 00-1-1H4a1 1 0 001-1V8a1 1 0 001 1h2a1 1 0 001 1"/></svg>
+        Chatbot
+    </a>
+    <a href="/generazione" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/generazione' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Generazione
+    </a>
+    <a href="/visione" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/visione' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        Visione
+    </a>
+    <a href="/risorse" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/risorse' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6h6v6m2 0a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8a2 2 0 012-2h2m2 6h-4a1 1 0 01-1-1V2a1 1 0 011-1H16a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 00-1-1v-1a1 1 0 00-1-1H4a1 1 0 001-1V8a1 1 0 001 1h2a1 1 0 001 1"/></svg>
+        Risorse
+    </a>
+    <a href="/matematica" class="nav-link flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#0c0033] hover:text-white transition {% if request.path == '/matematica' %}active bg-pink-500 text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Matematica
+    </a>
+</nav>
+            <!-- User menu at bottom of sidebar -->
+            <div class="mt-auto border-t pt-4 pb-6 px-4">
+                <div class="relative">
+                    <!-- User button with dynamic avatar -->
+                    <a href="/profile" class="flex items-center w-full gap-3 text-left hover:bg-[#0c0033] hover:text-white transition rounded-lg p-2">
+                        {% if session.get('user_avatar') %}
+                            <img src="{{ session['user_avatar'] }}" 
+                                 class="w-10 h-10 rounded-full object-cover border-2 border-gray-200" 
+                                 alt="User Avatar">
+                        {% else %}
+                            <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-medium">{{ session.get('username', 'Ospite') }}</p>
+                            <p class="text-sm text-gray-500">{{ 'Account' if 'username' in session else 'Non loggato' }}</p>
                         </div>
+                    </a>
+
+                    <!-- Dropdown menu that appears above the button -->
+                    <div id="userMenu" class="hidden absolute bottom-full left-0 mb-2 w-full bg-white rounded-lg shadow-lg py-1 z-50 border border-gray-200">
+                        {% if 'username' in session %}
+                            <a href="/profile" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Profilo
+                            </a>
+                            <a href="/settings" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Impostazioni
+                            </a>
+                            <a href="/logout" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Logout
+                            </a>
+                        {% else %}
+                            <a href="/login" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H7a3 3 0 01-3-3V4a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                </svg>
+                                Login
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-    </nav>
+    </aside>
 
-    <!-- Mobile menu -->
-    <div class="mobile-menu lg:hidden hidden bg-white shadow-lg rounded-lg absolute left-4 right-4 mt-2 z-50" id="mobile-menu">
-        <div class="p-4 border-b flex justify-between items-center">
-            <img src="{{ url_for('static', filename='logo_plai2.png') }}" alt="PL-AI Logo" class="h-8">
-            <button type="button" onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        <div class="p-3 space-y-1.5 max-h-[70vh] overflow-y-auto">
-            <a href="/" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-                Home
-            </a>
-            <a href="/regressione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/regressione' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                </svg>
-                Regressione
-            </a>
-            <a href="/classificazione" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/classificazione' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                </svg>
-                Dati
-            </a>
-            
-            <a href="/risorse" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/risorse' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Risorse
-            </a>
-            
-            <!-- Separatore per il menu mobile -->
-            <div class="border-t my-2 border-gray-200"></div>
-            
-            <!-- Link per l'autenticazione nel menu mobile -->
-            {% if session.get('user_id') %}
-            <a href="/profile" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/profile' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                Profilo
-            </a>
-            <a href="/logout" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                </svg>
-                Logout
-            </a>
-            {% else %}
-            <div class="px-4 py-3">
-                <form action="/login" method="POST" class="space-y-3">
-                    <div>
-                        <label for="mobile-username" class="block text-sm font-medium text-gray-700">Username</label>
-                        <input type="text" id="mobile-username" name="username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                    </div>
-                    <div>
-                        <label for="mobile-password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" id="mobile-password" name="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" required>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button type="submit" class="flex-1 bg-black text-white py-2 px-3 rounded-md hover:bg-gray-800 transition-colors duration-300 text-sm">Login</button>
-                        <a href="/register" class="flex-1 bg-gray-200 text-gray-800 text-center py-2 px-3 rounded-md hover:bg-gray-300 transition-colors duration-300 text-sm">Registrati</a>
-                    </div>
-                </form>
-            </div>
-            {% endif %}
-            <a href="/class_img_2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/class_img_2' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                </svg>
-                Visione
-            </a>
-            <a href="/chatbot2" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/chatbot2' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                </svg>
-                Chatbot
-            </a>
-            <a href="/generazione-immagini" class="nav-link block w-full px-4 py-2 text-left hover:bg-gray-100 {% if request.path == '/generazione-immagini' %}active{% endif %}">
-                <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                Generazione
-            </a>
-        </div>
-    </div>
-    </nav>
+    <!-- Toggle Button with Guaranteed Functionality -->
+    <!-- Removed sidebar toggle button -->
+
+    <!-- Hamburger menu -->
+    <button id="openSidebar" class="fixed top-4 left-4 z-50 bg-white shadow p-2 rounded-full focus:outline-none" style="display:none;">
+        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
 
     <!-- Main Content -->
-    <main class="flex-grow pb-24">
-        {% block content %}{% endblock %}
+    <main id="main-content" class="flex-grow pt-4 transition-all duration-300 pl-0 lg:pl-16">
+        <div class="max-w-7xl mx-auto">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
+<script>
+// Sidebar logic
+const sidebar = document.getElementById('sidebar');
+const openSidebarBtn = document.getElementById('openSidebar');
+const closeSidebarBtn = document.getElementById('closeSidebar');
+const mainContent = document.getElementById('main-content');
+
+// Stato sidebar: true = visibile, false = nascosta
+let sidebarVisible = window.innerWidth >= 1024;
+
+function openSidebar() {
+    sidebar.classList.remove('-translate-x-full');
+    mainContent.classList.add('lg:ml-64');
+    sidebarVisible = true;
+    openSidebarBtn.style.display = 'none';
+}
+function closeSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    mainContent.classList.remove('lg:ml-64');
+    sidebarVisible = false;
+    openSidebarBtn.style.display = '';
+}
+openSidebarBtn.addEventListener('click', openSidebar);
+closeSidebarBtn.addEventListener('click', closeSidebar);
+
+// All'avvio: sidebar visibile su desktop, nascosta su mobile
+function setSidebarState() {
+    if (window.innerWidth >= 1024) {
+        if (sidebarVisible) {
+            sidebar.classList.remove('-translate-x-full');
+            mainContent.classList.add('lg:ml-64');
+            openSidebarBtn.style.display = 'none';
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            mainContent.classList.remove('lg:ml-64');
+            openSidebarBtn.style.display = '';
+        }
+    } else {
+        sidebar.classList.add('-translate-x-full');
+        mainContent.classList.remove('lg:ml-64');
+        openSidebarBtn.style.display = '';
+    }
+}
+window.addEventListener('resize', setSidebarState);
+document.addEventListener('DOMContentLoaded', setSidebarState);
+</script>
+
     <!-- Footer -->
-    <footer class="backdrop-blur-md bg-white/0 text-gray-700 py-3 w-full fixed bottom-0 border-t border-gray-200 z-10">
-        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+    <footer class="backdrop-blur-md bg-white/0 text-gray-700 py-3 w-full fixed bottom-0 border-t border-gray-200 z-10 lg:ml-64">
+        <div class="w-full px-6 sm:px-8 lg:px-10">
             <div class="flex flex-col md:flex-row items-center justify-between">
                 <div class="mb-2 md:mb-0">
                     <img src="{{ url_for('static', filename='LogoFG.png') }}" alt="Fondazione Golinelli" class="h-8">
@@ -480,7 +686,7 @@
         
         function closeMenuOutside(event) {
             const menu = document.getElementById('mobile-menu');
-            const button = document.querySelector('button[onclick="toggleMobileMenu()"]');
+            const button = document.querySelector('button[onclick="toggleMobileMenu()"]').parentElement;
             
             if (!menu.contains(event.target) && !button.contains(event.target)) {
                 menu.classList.add('hidden');
@@ -574,7 +780,12 @@
         
         // Esegui al caricamento e ad ogni cambio di orientamento
         window.addEventListener('load', handleOrientationChange);
-        window.addEventListener('resize', handleOrientationChange);
+        // Utilizziamo try-catch per evitare errori
+        try {
+            window.addEventListener('resize', handleOrientationChange);
+        } catch (error) {
+            console.error('Errore nell\'aggiunta dell\'event listener:', error);
+        }
         
         // Gestione del form di registrazione beta tester
         document.addEventListener('DOMContentLoaded', function() {
@@ -632,5 +843,64 @@
             }
         });
     </script>
+    <div class="flex items-center gap-4">
+        <!-- User menu toggle -->
+        <button id="userMenuButton" class="flex items-center gap-2 text-gray-700 hover:text-pink-500 focus:outline-none">
+            <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </div>
+        </button>
+
+        <!-- User dropdown menu -->
+        <div id="userMenu" class="hidden absolute right-4 top-16 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profilo</a>
+            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Impostazioni</a>
+            <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+        </div>
+    </div>
 </body>
 </html>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userMenuButton = document.getElementById('userMenuButton');
+    const userMenu = document.getElementById('userMenu');
+    
+    // Toggle menu on button click
+    userMenuButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        userMenu.classList.toggle('hidden');
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function() {
+        userMenu.classList.add('hidden');
+    });
+    
+    // Prevent menu from closing when clicking inside it
+    userMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sidebar is now always visible on desktop, no toggle button needed
+    const sidebar = document.getElementById('sidebar');
+    
+    // Handle responsive behavior for mobile
+    function handleMobileView() {
+        if (window.innerWidth < 1024) { // lg breakpoint
+            sidebar.classList.add('-translate-x-full');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+        }
+    }
+    
+    // Run on load and resize
+    handleMobileView();
+    window.addEventListener('resize', handleMobileView);
+});
+</script>

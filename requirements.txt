@@ -40,6 +40,7 @@ namex==0.0.8
 narwhals==1.29.1
 numpy==1.26.2
 openai==1.65.4
+openai>=1.0.0
 opt_einsum==3.4.0
 optree==0.14.1
 packaging==24.2

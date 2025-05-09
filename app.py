@@ -12,6 +12,11 @@ import base64
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
@@ -31,7 +36,7 @@ import uuid
 import shutil
 import sqlite3
 from PIL import Image, ImageDraw, ImageFont
-from routes.db import login_required
+from routes.db import login_required, init_user_db, get_user_db_path
 import csv
 import smtplib
 from email.mime.text import MIMEText
@@ -146,7 +151,7 @@ def generate_fallback_image(prompt, aspect_ratio='1:1'):
 from routes.chatbot2 import chatbot2
 from routes.learning import learning
 from routes.resources import resources
-from routes.db import get_db, get_user_db, register_user, authenticate_user, login_required, update_api_credits, get_api_credits
+from routes.db import get_db, get_user_db, register_user, authenticate_user, login_required, update_api_credits, get_api_credits, get_user_db_path
 
 # Configurazione dell'applicazione
 app = Flask(__name__)
@@ -279,35 +284,38 @@ def login():
                 user = cursor.fetchone()
                 conn.close()
                 
-                # Imposta la sessione
-                session['user_id'] = user['id']
+                # Inizializza il database utente
+                if not init_user_db(username):
+                    error = "Errore nell'inizializzazione del database utente"
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({'success': False, 'error': error})
+                    return render_template('login.html', error=error)
+                
+                # Imposta le variabili di sessione
+                session['user_id'] = user[0]
                 session['username'] = username
+                session['email'] = user[1]
+                session['avatar'] = user[2]
                 
-                # Gestisci email e avatar (sqlite3.Row non ha il metodo get())
-                if 'email' in user.keys() and user['email']:
-                    session['user_email'] = user['email']
-                else:
-                    session['user_email'] = ''
-                
-                # Se l'utente ha un avatar, salvalo nella sessione
-                if 'avatar' in user.keys() and user['avatar']:
-                    session['user_avatar'] = user['avatar']
-                    
                 # Carica i crediti API nella sessione
                 api_credits = get_api_credits(username)
                 session['api_credits'] = api_credits
                 
-                # Se è una richiesta AJAX, restituisci un JSON
+                success = 'Login effettuato con successo!'
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'success': True, 'redirect': url_for('profile')})
-                
-                # Altrimenti reindirizza alla pagina del profilo
+                    return jsonify({
+                        'success': True,
+                        'message': success,
+                        'redirect': url_for('profile')
+                    })
                 return redirect(url_for('profile'))
             else:
                 error = message
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return jsonify({'success': False, 'error': error})
     
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': False, 'error': error})
     return render_template('login.html', error=error, success=success)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -417,6 +425,20 @@ def profile():
     # Ottieni i dati dell'utente dal suo database personalizzato
     user_conn = get_user_db(username)
     user_cursor = user_conn.cursor()
+    
+    # Verifica se la tabella user_data esiste e creala se necessario
+    user_cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data_type TEXT,
+        data_name TEXT,
+        data_value TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    user_conn.commit()
+    
+    # Ora possiamo eseguire la query in sicurezza
     user_cursor.execute("SELECT * FROM user_data ORDER BY created_at DESC")
     user_data = user_cursor.fetchall()
     user_conn.close()
@@ -456,6 +478,19 @@ def save_user_data():
     try:
         conn = get_user_db(username)
         cursor = conn.cursor()
+        
+        # Verifica se la tabella user_data esiste e creala se necessario
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data_type TEXT,
+            data_name TEXT,
+            data_value TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+        
         cursor.execute(
             "INSERT INTO user_data (data_type, data_name, data_value) VALUES (?, ?, ?)",
             (data_type, data_name, data_value)
@@ -472,16 +507,32 @@ def save_user_data():
 def view_user_data(data_id):
     username = session.get('username')
     
-    conn = get_user_db(username)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM user_data WHERE id = ?", (data_id,))
-    data = cursor.fetchone()
-    conn.close()
-    
-    if not data:
-        return redirect(url_for('profile', error='Dati non trovati'))
-    
-    return render_template('view_data.html', data=data)
+    try:
+        conn = get_user_db(username)
+        cursor = conn.cursor()
+        
+        # Verifica se la tabella user_data esiste e creala se necessario
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data_type TEXT,
+            data_name TEXT,
+            data_value TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+        
+        cursor.execute("SELECT * FROM user_data WHERE id = ?", (data_id,))
+        data = cursor.fetchone()
+        conn.close()
+        
+        if not data:
+            return redirect(url_for('profile', error='Dati non trovati'))
+        
+        return render_template('view_data.html', data=data)
+    except Exception as e:
+        return redirect(url_for('profile', error=f'Errore durante la visualizzazione dei dati: {str(e)}'))
 
 @app.route('/delete_user_data/<int:data_id>')
 @login_required
@@ -491,6 +542,19 @@ def delete_user_data(data_id):
     try:
         conn = get_user_db(username)
         cursor = conn.cursor()
+        
+        # Verifica se la tabella user_data esiste e creala se necessario
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data_type TEXT,
+            data_name TEXT,
+            data_value TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+        
         cursor.execute("DELETE FROM user_data WHERE id = ?", (data_id,))
         conn.commit()
         conn.close()
@@ -511,44 +575,212 @@ def classificazione():
 def classificazione_immagini():
     return render_template('classificazione_immagini.html')
 
-@app.route('/generazione-immagini')
-def generazione_immagini():
+@app.route('/generazione')
+def generazione():
     return render_template('generazione_immagini.html')
 
 @app.route('/class_img_2')
 def class_img_2():
     return render_template('class_img_2.html')
 
+@app.route('/visione')
+def visione():
+    return render_template('class_img_2.html')
+
 @app.route('/upload-regression', methods=['POST'])
 def upload_regression():
-    if 'file' not in request.files:
+    print("DEBUG: Inizio upload_regression")
+    if 'file' not in request.files and 'file_content' not in request.form:
+        print("DEBUG: Nessun file caricato")
         return jsonify({'error': 'Nessun file caricato'}), 400
     
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'Nessun file selezionato'}), 400
-
+    # Ottieni il tipo di modello richiesto (default: linear)
+    model_type = request.form.get('model_type', 'linear')
+    print(f"DEBUG: Tipo di modello: {model_type}")
+    
     try:
-        df = pd.read_csv(file)
+        # Carica i dati dal file o dal contenuto
+        if 'file' in request.files and request.files['file'].filename != '':
+            file = request.files['file']
+            print(f"DEBUG: Caricamento file: {file.filename}")
+            try:
+                # Leggi il contenuto del file come stringa
+                file_content = file.read().decode('utf-8')
+                print(f"DEBUG: Contenuto file (primi 100 caratteri): {file_content[:100]}")
+                # Usa StringIO per leggere il CSV con opzioni specifiche per gestire i numeri decimali
+                df = pd.read_csv(
+                    StringIO(file_content),
+                    decimal='.',  # Usa il punto come separatore decimale
+                    thousands=None,  # Non usare separatori per le migliaia
+                    float_precision='high'  # Usa precisione alta per i numeri
+                )
+            except Exception as e:
+                print(f"DEBUG: Errore nella lettura del CSV: {str(e)}")
+                return jsonify({'error': f'Errore nella lettura del file CSV: {str(e)}'}), 400
+        elif 'file_content' in request.form:
+            content = request.form['file_content']
+            print(f"DEBUG: Contenuto form (primi 100 caratteri): {content[:100]}")
+            # Usa le stesse opzioni di parsing per i dati forniti tramite form
+            df = pd.read_csv(
+                StringIO(content),
+                decimal='.',  # Usa il punto come separatore decimale
+                thousands=None,  # Non usare separatori per le migliaia
+                float_precision='high'  # Usa precisione alta per i numeri
+            )
+        else:
+            print("DEBUG: Nessun file selezionato")
+            return jsonify({'error': 'Nessun file selezionato'}), 400
+            
+        print(f"DEBUG: Colonne del DataFrame: {df.columns.tolist()}")
+        print(f"DEBUG: Tipi di dati: {df.dtypes}")
+        print(f"DEBUG: Prime 5 righe:\n{df.head()}")
+        
         if len(df.columns) != 2:
+            print(f"DEBUG: Numero di colonne errato: {len(df.columns)}")
             return jsonify({'error': 'Il file deve contenere esattamente due colonne'}), 400
 
-        X = df.iloc[:, 0].values.reshape(-1, 1)
-        y = df.iloc[:, 1].values
-
-        model = LinearRegression()
-        model.fit(X, y)
-
-        # Converti i dati di training in una lista di coppie [x, y]
-        training_data = [[float(x), float(y)] for x, y in zip(X.flatten(), y)]
-
-        return jsonify({
-            'success': True,
-            'columns': df.columns.tolist(),
-            'coefficiente': float(model.coef_[0]),
-            'intercetta': float(model.intercept_),
-            'training_data': training_data
-        })
+        try:
+            X = df.iloc[:, 0].values.reshape(-1, 1)
+            y = df.iloc[:, 1].values
+            
+            # Converti i dati di training in una lista di coppie [x, y]
+            training_data = []
+            for x, y in zip(X.flatten(), y):
+                try:
+                    x_float = float(x)
+                    y_float = float(y)
+                    training_data.append([x_float, y_float])
+                except Exception as e:
+                    print(f"DEBUG: Errore nella conversione dei valori: {x}, {y}, {str(e)}")
+                    return jsonify({'error': f'Errore nella conversione dei valori: {str(e)}'}), 400
+            
+            print(f"DEBUG: Numero di punti dati: {len(training_data)}")
+        except Exception as e:
+            print(f"DEBUG: Errore nell'elaborazione dei dati: {str(e)}")
+            return jsonify({'error': f'Errore nell\'elaborazione dei dati: {str(e)}'}), 400
+        
+        # Crea il modello in base al tipo richiesto
+        if model_type == 'linear':
+            model = LinearRegression()
+            model.fit(X, y)
+            # Per la regressione lineare, restituisci coefficiente e intercetta
+            return jsonify({
+                'success': True,
+                'model_type': 'linear',
+                'columns': df.columns.tolist(),
+                'coefficiente': float(model.coef_[0]),
+                'intercetta': float(model.intercept_),
+                'training_data': training_data
+            })
+        
+        elif model_type == 'polynomial':
+            # Ottieni il grado del polinomio (default: 2)
+            degree = int(request.form.get('degree', 2))
+            model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+            model.fit(X, y)
+            
+            # Genera punti per la curva polinomiale
+            x_range = np.linspace(min(X.flatten()), max(X.flatten()), 100).reshape(-1, 1)
+            y_pred = model.predict(x_range)
+            curve_points = [[float(x), float(y)] for x, y in zip(x_range.flatten(), y_pred)]
+            
+            return jsonify({
+                'success': True,
+                'model_type': 'polynomial',
+                'degree': degree,
+                'columns': df.columns.tolist(),
+                'training_data': training_data,
+                'curve_points': curve_points,
+                'model_params': {
+                    'degree': degree
+                }
+            })
+        
+        elif model_type == 'svr':
+            # Parametri SVR
+            kernel = request.form.get('kernel', 'rbf')
+            C = float(request.form.get('C', 1.0))
+            epsilon = float(request.form.get('epsilon', 0.1))
+            
+            model = SVR(kernel=kernel, C=C, epsilon=epsilon)
+            model.fit(X, y)
+            
+            # Genera punti per la curva SVR
+            x_range = np.linspace(min(X.flatten()), max(X.flatten()), 100).reshape(-1, 1)
+            y_pred = model.predict(x_range)
+            curve_points = [[float(x), float(y)] for x, y in zip(x_range.flatten(), y_pred)]
+            
+            return jsonify({
+                'success': True,
+                'model_type': 'svr',
+                'columns': df.columns.tolist(),
+                'training_data': training_data,
+                'curve_points': curve_points,
+                'model_params': {
+                    'kernel': kernel,
+                    'C': C,
+                    'epsilon': epsilon
+                }
+            })
+            
+        elif model_type == 'random_forest':
+            # Parametri Random Forest
+            n_estimators = int(request.form.get('n_estimators', 100))
+            max_depth = request.form.get('max_depth', 'None')
+            if max_depth != 'None':
+                max_depth = int(max_depth)
+            else:
+                max_depth = None
+                
+            model = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+            model.fit(X, y)
+            
+            # Genera punti per la curva Random Forest
+            x_range = np.linspace(min(X.flatten()), max(X.flatten()), 100).reshape(-1, 1)
+            y_pred = model.predict(x_range)
+            curve_points = [[float(x), float(y)] for x, y in zip(x_range.flatten(), y_pred)]
+            
+            return jsonify({
+                'success': True,
+                'model_type': 'random_forest',
+                'columns': df.columns.tolist(),
+                'training_data': training_data,
+                'curve_points': curve_points,
+                'model_params': {
+                    'n_estimators': n_estimators,
+                    'max_depth': max_depth
+                }
+            })
+            
+        elif model_type == 'decision_tree':
+            # Parametri Decision Tree
+            max_depth = request.form.get('max_depth', 'None')
+            if max_depth != 'None':
+                max_depth = int(max_depth)
+            else:
+                max_depth = None
+                
+            model = DecisionTreeRegressor(max_depth=max_depth, random_state=42)
+            model.fit(X, y)
+            
+            # Genera punti per la curva Decision Tree
+            x_range = np.linspace(min(X.flatten()), max(X.flatten()), 100).reshape(-1, 1)
+            y_pred = model.predict(x_range)
+            curve_points = [[float(x), float(y)] for x, y in zip(x_range.flatten(), y_pred)]
+            
+            return jsonify({
+                'success': True,
+                'model_type': 'decision_tree',
+                'columns': df.columns.tolist(),
+                'training_data': training_data,
+                'curve_points': curve_points,
+                'model_params': {
+                    'max_depth': max_depth
+                }
+            })
+        
+        else:
+            return jsonify({'error': f'Tipo di modello non supportato: {model_type}'}), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -558,11 +790,38 @@ def predict_regression():
     try:
         data = request.json
         value = float(data['value'])
-        coef = float(data['coefficiente'])
-        intercept = float(data['intercetta'])
+        model_type = data.get('model_type', 'linear')
         
-        prediction = coef * value + intercept
-        return jsonify({'prediction': prediction})
+        if model_type == 'linear':
+            # Per regressione lineare, usa coefficiente e intercetta
+            coef = float(data['coefficiente'])
+            intercept = float(data['intercetta'])
+            prediction = coef * value + intercept
+            return jsonify({'prediction': prediction})
+            
+        elif model_type in ['polynomial', 'svr', 'random_forest', 'decision_tree']:
+            # Per modelli non lineari, usa i punti della curva per interpolare
+            curve_points = data['curve_points']
+            x_values = [point[0] for point in curve_points]
+            y_values = [point[1] for point in curve_points]
+            
+            # Trova il punto più vicino o interpola
+            if value <= min(x_values):
+                prediction = y_values[0]
+            elif value >= max(x_values):
+                prediction = y_values[-1]
+            else:
+                # Interpolazione lineare tra i punti più vicini
+                for i in range(len(x_values) - 1):
+                    if x_values[i] <= value <= x_values[i + 1]:
+                        # Calcola l'interpolazione lineare
+                        t = (value - x_values[i]) / (x_values[i + 1] - x_values[i])
+                        prediction = y_values[i] * (1 - t) + y_values[i + 1] * t
+                        break
+            
+            return jsonify({'prediction': prediction})
+        else:
+            return jsonify({'error': f'Tipo di modello non supportato: {model_type}'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
@@ -689,7 +948,7 @@ def train_image_classifier():
         
         if len(all_images) == 0 or len(classes) == 0:
             return jsonify({'error': 'Dati mancanti'}), 400
-
+        
         # Crea cartelle temporanee per le classi
         temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_training')
         if os.path.exists(temp_dir):
@@ -1460,24 +1719,24 @@ def train_image_classifier_v2():
         # Crea il modello
         model = Sequential([
             Conv2D(32, (3, 3), activation='relu', input_shape=(IMG_SIZE, IMG_SIZE, 3)),
-            MaxPooling2D(2, 2),
+            MaxPooling2D(),
             Conv2D(64, (3, 3), activation='relu'),
-            MaxPooling2D(2, 2),
+            MaxPooling2D(),
             Conv2D(128, (3, 3), activation='relu'),
-            MaxPooling2D(2, 2),
+            MaxPooling2D(),
             Flatten(),
             Dense(512, activation='relu'),
             Dropout(0.5),
             Dense(len(class_names), activation='softmax')
         ])
-        
+
         # Compila il modello
         model.compile(
             optimizer='adam',
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
-        
+
         # Callback personalizzato per il logging
         callback = CustomCallback()
         
@@ -1488,7 +1747,7 @@ def train_image_classifier_v2():
             validation_data=(X_val, y_val),
             callbacks=[callback]
         )
-        
+
         # Salva il modello
         model.save(os.path.join(model_dir, 'model.h5'))
         
@@ -1714,7 +1973,291 @@ def send_confirmation_email(nome, cognome, email):
         print(f"Errore nell'invio dell'email: {str(e)}")
         raise
 
+# Route per le impostazioni utente
+@app.route('/impostazioni')
+@login_required
+def impostazioni():
+    """Pagina delle impostazioni utente"""
+    username = session.get('username')
+    if not username:
+        flash('Devi effettuare il login per accedere alle impostazioni', 'error')
+        return redirect(url_for('login'))
+    
+    # Ottieni i dati dell'utente dal database
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT nome, cognome, email, theme, language FROM users WHERE username = ?', (username,))
+    user_data = c.fetchone()
+    
+    if user_data:
+        user = {
+            'nome': user_data[0],
+            'cognome': user_data[1],
+            'email': user_data[2],
+            'theme': user_data[3] or 'light',
+            'language': user_data[4] or 'it'
+        }
+    else:
+        user = {
+            'nome': '',
+            'cognome': '',
+            'email': '',
+            'theme': 'light',
+            'language': 'it'
+        }
+    
+    return render_template('impostazioni.html', user=user)
+
+# Route per aggiornare le impostazioni utente
+@app.route('/update_settings', methods=['POST'])
+@login_required
+def update_settings():
+    """Aggiorna le impostazioni dell'utente"""
+    username = session.get('username')
+    if not username:
+        flash('Devi effettuare il login per aggiornare le impostazioni', 'error')
+        return redirect(url_for('login'))
+    
+    # Ottieni i dati dal form
+    nome = request.form.get('nome', '')
+    cognome = request.form.get('cognome', '')
+    email = request.form.get('email', '')
+    theme = request.form.get('theme', 'light')
+    language = request.form.get('language', 'it')
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+    
+    # Connessione al database
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Aggiorna i dati dell'utente
+    c.execute('UPDATE users SET nome = ?, cognome = ?, email = ?, theme = ?, language = ? WHERE username = ?',
+              (nome, cognome, email, theme, language, username))
+    
+    # Gestisci il cambio password se richiesto
+    if current_password and new_password and confirm_password:
+        # Verifica la password attuale
+        c.execute('SELECT password FROM users WHERE username = ?', (username,))
+        stored_password = c.fetchone()[0]
+        
+        if stored_password != current_password:
+            flash('La password attuale non è corretta', 'error')
+            conn.commit()
+            return redirect(url_for('impostazioni'))
+        
+        if new_password != confirm_password:
+            flash('Le nuove password non corrispondono', 'error')
+            conn.commit()
+            return redirect(url_for('impostazioni'))
+        
+        # Aggiorna la password
+        c.execute('UPDATE users SET password = ? WHERE username = ?', (new_password, username))
+        flash('Password aggiornata con successo', 'success')
+    
+    conn.commit()
+    conn.close()
+    
+    flash('Impostazioni aggiornate con successo', 'success')
+    return redirect(url_for('impostazioni'))
+
+# Route per eliminare l'account
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    """Elimina l'account dell'utente"""
+    username = session.get('username')
+    if not username:
+        return jsonify({'error': 'Devi effettuare il login per eliminare l\'account'}), 401
+    
+    try:
+        data = request.get_json()
+        password = data.get('password')
+        
+        if not password:
+            return jsonify({'error': 'Password richiesta per confermare l\'eliminazione'}), 400
+        
+        # Verifica la password
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT password FROM users WHERE username = ?', (username,))
+        result = c.fetchone()
+        
+        if not result or result[0] != password:
+            return jsonify({'error': 'Password non corretta'}), 401
+        
+        # Elimina l'utente dal database
+        c.execute('DELETE FROM users WHERE username = ?', (username,))
+        
+        # Elimina anche il database delle lezioni dell'utente
+        user_db_path = get_user_db_path(username)
+        if os.path.exists(user_db_path):
+            try:
+                os.remove(user_db_path)
+                print(f"Database delle lezioni dell'utente {username} eliminato: {user_db_path}")
+            except Exception as e:
+                print(f"Errore nell'eliminazione del database delle lezioni: {str(e)}")
+        
+        conn.commit()
+        conn.close()
+        
+        # Elimina la sessione
+        session.clear()
+        
+        return jsonify({'success': True, 'message': 'Account eliminato con successo'})
+        
+    except Exception as e:
+        print(f"Errore nell'eliminazione dell'account: {str(e)}")
+        return jsonify({'error': f'Errore durante l\'eliminazione dell\'account: {str(e)}'}), 500
+
+# Context processor per rendere current_user sempre disponibile nei template
+from flask_login import current_user
+
+@app.context_processor
+def inject_user():
+    return dict(current_user=current_user)
+
+# Route per matematica
+@app.route('/matematica')
+@login_required
+def matematica():
+    return render_template('matematica.html')
+
+# Route per API math progress
+@app.route('/api/math/progress')
+@login_required
+def math_progress():
+    progress = MathProgress.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'topic': p.topic,
+        'completed': p.completed,
+        'correct': p.correct
+    } for p in progress])
+
+# Route per API update math progress
+@app.route('/api/math/update-progress', methods=['POST'])
+@login_required
+def update_math_progress():
+    data = request.json
+    topic = data.get('topic')
+    is_correct = data.get('is_correct')
+    
+    progress = MathProgress.query.filter_by(
+        user_id=current_user.id,
+        topic=topic
+    ).first()
+    
+    if not progress:
+        progress = MathProgress(
+            user_id=current_user.id,
+            topic=topic,
+            completed=0,
+            correct=0
+        )
+        db.session.add(progress)
+    
+    progress.completed += 1
+    if is_correct:
+        progress.correct += 1
+    progress.last_attempt = datetime.utcnow()
+    
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
 # Configurazione per il deployment
 if __name__ == '__main__':
     # In ambiente di sviluppo
     app.run(debug=True)
+
+@app.route('/api/generate-exercise', methods=['POST'])
+@login_required
+def generate_exercise():
+    try:
+        data = request.get_json()
+        grade = data.get('grade')
+        subject = data.get('subject')
+        topic = data.get('topic')
+        
+        prompt = f"""Genera un esercizio di matematica per:
+- Classe: {grade}
+- Materia: {subject}
+- Argomento: {topic}
+
+Formato richiesto:
+1. Domanda chiara in italiano
+2. Formule in LaTeX (es: \\(x^2 + 3x = 0\\))
+3. Risposta corretta tra [RISPOSTA]...[/RISPOSTA]"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un tutor di matematica esperto. Genera esercizi appropriati per il livello scolastico indicato."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content
+        exercise = content.split('[RISPOSTA]')[0].strip()
+        answer = content.split('[RISPOSTA]')[1].split('[/RISPOSTA]')[0].strip()
+        
+        return jsonify({
+            'exercise': exercise,
+            'answer': answer
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-exercise', methods=['POST'])
+@login_required
+def generate_exercise():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Nessun dato ricevuto'}), 400
+            
+        grade = data.get('grade')
+        subject = data.get('subject')
+        topic = data.get('topic')
+        
+        if not all([grade, subject, topic]):
+            return jsonify({'error': 'Dati mancanti'}), 400
+
+        prompt = f"""Genera un esercizio di matematica per:
+- Classe: {grade}
+- Materia: {subject}
+- Argomento: {topic}
+
+Formato richiesto:
+1. Domanda chiara in italiano
+2. Formule in LaTeX (es: \\(x^2 + 3x = 0\\))
+3. Risposta corretta tra [RISPOSTA]...[/RISPOSTA]"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un tutor di matematica esperto. Genera esercizi appropriati per il livello scolastico indicato."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content
+        if '[RISPOSTA]' not in content or '[/RISPOSTA]' not in content:
+            return jsonify({'error': 'Formato risposta non valido'}), 400
+            
+        exercise = content.split('[RISPOSTA]')[0].strip()
+        answer = content.split('[RISPOSTA]')[1].split('[/RISPOSTA]')[0].strip()
+        
+        return jsonify({
+            'status': 'success',
+            'exercise': exercise,
+            'answer': answer
+        })
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500

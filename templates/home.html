@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
+<div class="max-w-4xl mx-auto">
     <h1 class="text-4xl font-bold text-gray-800 mb-8">Benvenuto in ML per Tutti</h1>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -66,17 +66,22 @@
         </div>
 
         <!-- Visione -->
-        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div class="flex items-center mb-4">
-                <svg class="w-6 h-6 text-gray-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                </svg>
-                <h2 class="text-2xl font-semibold text-gray-800">Visione</h2>
+        <a href="/visioni" class="feature-card bg-white hover:bg-gray-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 block hover:no-underline">
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mr-4">
+                        <svg class="w-7 h-7 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="page-title text-xl font-semibold text-black">Visione</h3>
+                </div>
+                <p class="page-subtitle text-black leading-relaxed">
+                    Esplora le capacità di visione artificiale e classificazione delle immagini.
+                </p>
             </div>
-            <p class="text-gray-600 mb-4">Esplora le capacità di visione artificiale e classificazione delle immagini.</p>
-            <a href="/class_img_2" class="inline-block bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors">Inizia</a>
-        </div>
+        </a>
     </div>
 </div>
 {% endblock %}

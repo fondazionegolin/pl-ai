@@ -4,24 +4,24 @@
 <div class="max-w-7xl mx-auto px-4">
     
     <!-- Header con titolo e link al tutorial -->
-    <div class="bg-blue-900 text-white py-4 px-6 rounded-t-lg mb-0">
-        <div class="flex items-center gap-4">
-            <!-- Piccolo grafico di generazione immagini -->
-            <div class="w-20 h-20 bg-white rounded-lg flex items-center justify-center p-2">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-                    <!-- Icona generazione immagini stilizzata -->
-                    <rect x="15" y="15" width="70" height="50" rx="5" fill="none" stroke="#000" stroke-width="2"/>
-                    <circle cx="30" cy="30" r="8" fill="#333"/>
-                    <path d="M15 55 L35 40 L55 50 L75 30 L85 40 L85 65 L15 65 Z" fill="#333"/>
-                </svg>
-            </div>
-            <div>
-                <h1 class="text-2xl font-bold mb-3">Generazione Immagini</h1>
-                <a href="#" id="open-tutorial-modal" class="text-[#BABABA] hover:text-white underline transition-colors">
-                    Come funziona? Apri il tutorial
-                </a>
-            </div>
-        </div>
+    <div class="page-header">
+        <h1>Generazione Immagini</h1>
+        <div class="subtitle">Creazione contenuti visivi</div>
+    </div>
+    
+    <!-- Piccolo grafico di generazione immagini -->
+    <div class="w-20 h-20 bg-white rounded-lg flex items-center justify-center p-2">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+            <!-- Icona generazione immagini stilizzata -->
+            <rect x="15" y="15" width="70" height="50" rx="5" fill="none" stroke="#000" stroke-width="2"/>
+            <circle cx="30" cy="30" r="8" fill="#333"/>
+            <path d="M15 55 L35 40 L55 50 L75 30 L85 40 L85 65 L15 65 Z" fill="#333"/>
+        </svg>
+    </div>
+    <div>
+        <a href="#" id="open-tutorial-modal" class="text-[#BABABA] hover:text-white underline transition-colors">
+            Come funziona? Apri il tutorial
+        </a>
     </div>
     
     <!-- Prompt Input -->
@@ -323,7 +323,7 @@ async function generateImage() {
             notification.innerHTML = `
                 <div class="flex items-center">
                     <svg class="h-6 w-6 text-yellow-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p><strong>Servizio AI temporaneamente non disponibile.</strong> È stata generata un'immagine di fallback. Riprova più tardi per utilizzare il servizio completo.</p>
                 </div>

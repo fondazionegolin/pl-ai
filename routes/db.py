@@ -3,7 +3,7 @@ import sqlite3
 import hashlib
 import uuid
 from functools import wraps
-from flask import session, redirect, url_for, g
+from flask import session, redirect, url_for, g, request
 
 def get_db():
     """Connette al database SQLite principale."""
@@ -14,12 +14,23 @@ def get_db():
 
 def get_user_db(username):
     """Connette al database personalizzato di un utente."""
-    user_db_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'user_databases')
-    os.makedirs(user_db_dir, exist_ok=True)
-    db_path = os.path.join(user_db_dir, f'{username}.sqlite')
+    db_path = get_user_db_path(username)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_user_db_path(username):
+    """Ottiene il percorso del database per un utente specifico."""
+    import os
+    from pathlib import Path
+    
+    # Crea la directory per i database degli utenti se non esiste
+    user_db_dir = Path("user_data")
+    user_db_dir.mkdir(exist_ok=True)
+    
+    # Percorso del database dell'utente
+    db_path = user_db_dir / f"{username}.db"
+    return str(db_path.absolute())
 
 def init_db():
     """Inizializza il database principale con le tabelle necessarie."""
@@ -89,23 +100,41 @@ def init_db():
     conn.close()
 
 def init_user_db(username):
-    """Inizializza il database personalizzato di un utente."""
+    """Inizializza il database per un nuovo utente."""
     conn = get_user_db(username)
-    cursor = conn.cursor()
-    
-    # Crea le tabelle per i dati dell'utente
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_data (
+    c = conn.cursor()
+
+    # Crea la tabella learning_units
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS learning_units (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        data_type TEXT NOT NULL,
-        data_name TEXT NOT NULL,
-        data_value TEXT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        quiz TEXT,
+        answers TEXT DEFAULT '{}',
+        total_questions INTEGER DEFAULT 0,
+        correct_answers INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    
+
+    # Crea la tabella topics se non esiste
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS topics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT,
+        created_at TEXT,
+        status TEXT,
+        quiz TEXT
+    )
+    ''')
+
     conn.commit()
     conn.close()
+    
+    print(f"Database utente inizializzato per: {username}")
+    return True
 
 def hash_password(password, salt=None):
     """Crea un hash sicuro della password."""
