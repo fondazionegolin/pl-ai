@@ -3,3 +3,4 @@ node_modules
 venv
 uploads
 chats
+__pycache__/
