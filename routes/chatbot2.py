@@ -39,19 +39,10 @@ OLLAMA_API_ENDPOINT = "http://localhost:11434"
 ollama_last_request_time = 0
 OLLAMA_RATE_LIMIT_DELAY = 1.0  # Minimum seconds between Ollama API requests
 
-# Check if Ollama is running
-try:
-    print("Checking Ollama API availability...")
-    response = requests.get(f"{OLLAMA_API_ENDPOINT}/api/tags", timeout=3)
-    if response.status_code == 200:
-        api_status['ollama'] = True
-        print("Ollama API is available")
-        # Update last request time
-        ollama_last_request_time = time.time()
-    else:
-        print(f"Ollama API returned status code: {response.status_code}")
-except Exception as e:
-    print(f"Ollama API is not available: {str(e)}")
+# Don't check Ollama on startup to avoid blocking the service
+# We'll check it on-demand when a user tries to use it
+print("Ollama API check deferred until needed")
+api_status['ollama'] = False  # Will be checked on-demand
 
 # Initialize OpenAI client
 try:
