@@ -14,6 +14,8 @@ import pandas as pd
 import pytesseract
 from PIL import Image
 import tiktoken  # Per il conteggio dei token
+import requests
+import time
 
 load_dotenv()
 
@@ -26,8 +28,30 @@ gemini_api_key = os.getenv('GEMINI_API_KEY')
 api_status = {
     'openai': False,
     'anthropic': False,
-    'gemini': False
+    'gemini': False,
+    'ollama': False
 }
+
+# Ollama API endpoint
+OLLAMA_API_ENDPOINT = "http://localhost:11434"
+
+# Last Ollama API request timestamp (for rate limiting)
+ollama_last_request_time = 0
+OLLAMA_RATE_LIMIT_DELAY = 1.0  # Minimum seconds between Ollama API requests
+
+# Check if Ollama is running
+try:
+    print("Checking Ollama API availability...")
+    response = requests.get(f"{OLLAMA_API_ENDPOINT}/api/tags", timeout=3)
+    if response.status_code == 200:
+        api_status['ollama'] = True
+        print("Ollama API is available")
+        # Update last request time
+        ollama_last_request_time = time.time()
+    else:
+        print(f"Ollama API returned status code: {response.status_code}")
+except Exception as e:
+    print(f"Ollama API is not available: {str(e)}")
 
 # Initialize OpenAI client
 try:
@@ -554,6 +578,159 @@ def chat():
                     else:
                         raise Exception("All GPT models failed to generate a response.")
                 
+            elif model_name.startswith('ollama:'):
+                # Extract the actual model name from the 'ollama:model_name' format
+                ollama_model = model_name.split(':', 1)[1] if ':' in model_name else ''
+                
+                if not ollama_model:
+                    raise Exception("No Ollama model specified. Format should be 'ollama:model_name'")
+                
+                print(f"Processing request for Ollama model: {ollama_model}")
+                
+                # Global rate limiting for Ollama API
+                global ollama_last_request_time
+                current_time = time.time()
+                time_since_last_request = current_time - ollama_last_request_time
+                
+                if time_since_last_request < OLLAMA_RATE_LIMIT_DELAY:
+                    # Need to wait before making another request
+                    wait_time = OLLAMA_RATE_LIMIT_DELAY - time_since_last_request
+                    print(f"Rate limiting: Waiting {wait_time:.2f} seconds before making Ollama API request")
+                    time.sleep(wait_time)
+                
+                # Check if Ollama is running
+                if not api_status['ollama']:
+                    print("Ollama API status check failed, rechecking...")
+                    # Try to check Ollama availability again
+                    try:
+                        response = requests.get(f"{OLLAMA_API_ENDPOINT}/api/tags", timeout=3)
+                        if response.status_code == 200:
+                            api_status['ollama'] = True
+                            print("Ollama API is now available")
+                            ollama_last_request_time = time.time()
+                        else:
+                            print(f"Ollama API check failed with status code: {response.status_code}")
+                            raise Exception(f"Ollama API returned status code: {response.status_code}")
+                    except Exception as e:
+                        print(f"Ollama API check failed with error: {str(e)}")
+                        raise Exception(f"Ollama non è in esecuzione o non è raggiungibile: {str(e)}")
+                
+                try:
+                    # Get chat history for context
+                    c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
+                    chat_history = c.fetchall()
+                    
+                    # Prepare messages array with chat history
+                    messages = []
+                    
+                    # Add system message if provided
+                    if system_prompt:
+                        messages.append({"role": "system", "content": system_prompt})
+                    
+                    # Add chat history in reverse order (oldest first)
+                    for role, content in reversed(chat_history):
+                        if role == 'user':
+                            messages.append({"role": "user", "content": content})
+                        elif role == 'bot' or role == 'assistant':
+                            messages.append({"role": "assistant", "content": content})
+                    
+                    # Add current user message
+                    messages.append({"role": "user", "content": message})
+                    
+                    print(f"Prepared {len(messages)} messages for Ollama API request")
+                    
+                    # Maximum number of retries for rate limiting
+                    max_retries = 5  # Increased from 3 to 5
+                    retry_count = 0
+                    retry_delay = 3  # seconds - increased from 2
+                    
+                    while retry_count < max_retries:
+                        try:
+                            print(f"Making Ollama API request (attempt {retry_count + 1}/{max_retries})")
+                            
+                            # Update last request time
+                            ollama_last_request_time = time.time()
+                            
+                            # Make request to Ollama API
+                            ollama_response = requests.post(
+                                f"{OLLAMA_API_ENDPOINT}/api/chat",
+                                json={
+                                    "model": ollama_model,
+                                    "messages": messages,
+                                    "stream": False,
+                                    "options": {
+                                        "temperature": 0.7,
+                                        "num_predict": 1024  # Similar to max_tokens
+                                    }
+                                },
+                                timeout=120  # Increased timeout for model inference
+                            )
+                            
+                            print(f"Ollama API response status code: {ollama_response.status_code}")
+                            
+                            # Check for rate limit errors
+                            if ollama_response.status_code == 429:
+                                print(f"Ollama rate limit exceeded, retrying in {retry_delay} seconds...")
+                                retry_count += 1
+                                time.sleep(retry_delay)
+                                retry_delay *= 2  # Exponential backoff
+                                continue
+                            
+                            # Check for other errors
+                            if ollama_response.status_code != 200:
+                                error_text = ollama_response.text
+                                print(f"Ollama API error: {error_text}")
+                                raise Exception(f"Ollama API returned status code: {ollama_response.status_code}, message: {error_text}")
+                            
+                            # Parse response
+                            result = ollama_response.json()
+                            print(f"Ollama API response format: {list(result.keys())}")
+                            
+                            if 'message' in result and 'content' in result['message']:
+                                response = result['message']['content']
+                                print(f"Successfully used Ollama model: {ollama_model}")
+                                break
+                            else:
+                                print(f"Unexpected Ollama API response format: {result}")
+                                raise Exception(f"Unexpected response format from Ollama API: {result}")
+                            
+                        except requests.exceptions.RequestException as e:
+                            print(f"Ollama API request exception: {str(e)}")
+                            if 'timeout' in str(e).lower():
+                                if retry_count < max_retries - 1:
+                                    print(f"Timeout error, retrying in {retry_delay} seconds...")
+                                    retry_count += 1
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2  # Exponential backoff
+                                    continue
+                                else:
+                                    raise Exception(f"Ollama API request timed out after {retry_count} attempts. The model might be too large or the server is busy.")
+                            else:
+                                raise Exception(f"Error communicating with Ollama API: {str(e)}")
+                        
+                        except Exception as e:
+                            error_msg = str(e)
+                            print(f"Ollama error: {error_msg}")
+                            
+                            if any(term in error_msg.lower() for term in ['rate limit', 'rate_limit', '429']):
+                                if retry_count < max_retries - 1:
+                                    print(f"Rate limit error, retrying in {retry_delay} seconds...")
+                                    retry_count += 1
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2  # Exponential backoff
+                                    continue
+                                else:
+                                    raise Exception("Rate limit exceeded after multiple retries. Please try again in a few seconds.")
+                            else:
+                                raise
+                    
+                    if not response:
+                        raise Exception(f"Failed to get a response from Ollama model: {ollama_model}")
+                    
+                except Exception as e:
+                    print(f"Ollama API Error: {str(e)}")
+                    raise Exception(f"Error with OLLAMA API: {str(e)}")
+                    
             elif model_name == 'claude':
                 if not anthropic_api_key:
                     raise Exception("Anthropic API key not configured. Please check your environment variables.")

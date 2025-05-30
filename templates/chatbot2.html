@@ -278,7 +278,12 @@
                     <option value="o3-mini">O3 Mini</option>
                     <option value="o3-mini-reasoning">O3 Mini con Ragionamento</option>
                     <option value="gemini">Gemini Flash</option>
+                    <option value="ollama">Ollama</option>
                 </select>
+                <select id="ollama-models-select" class="w-full p-2 border rounded bg-white mt-2 hidden">
+                    <option value="" disabled selected>Seleziona modello Ollama</option>
+                </select>
+                <div id="ollama-status" class="text-sm mt-1 hidden"></div>
             </div>
         </div>
 
@@ -1016,6 +1021,21 @@
             let data;
             try {
                 // Prepara il corpo della richiesta in base alla modalità
+                // Get Ollama model if selected
+                const ollamaModelsSelect = document.getElementById('ollama-models-select');
+                let modelValue = modelSelect.value;
+                
+                // If Ollama is selected, format the model name correctly
+                if (modelValue === 'ollama' && ollamaModelsSelect?.value) {
+                    modelValue = `ollama:${ollamaModelsSelect.value}`;
+                    console.log(`Using Ollama model: ${modelValue}`);
+                }
+                
+                // Validate Ollama model selection
+                if (modelValue === 'ollama' || (modelValue === 'ollama' && !ollamaModelsSelect?.value)) {
+                    throw new Error('Seleziona un modello Ollama specifico prima di inviare un messaggio.');
+                }
+                
                 let requestBody = {
                     message: modeSelect.value === 'interrogazione' ? 'START_INTERROGATION' :
                            modeSelect.value === 'intervista' ? 'START_INTERVIEW' : contextInput.value,
@@ -1023,7 +1043,7 @@
                         grade: gradeSelect.value,
                         mode: modeSelect.value,
                         subject: subjectSelect.value,
-                        model: modelSelect.value
+                        model: modelValue
                     },
                     chatId: currentChatId
                 };
@@ -1202,9 +1222,23 @@
                 grade: document.getElementById('grade-select')?.value || '',
                 mode: document.getElementById('mode-select')?.value || '',
                 subject: document.getElementById('subject-select')?.value || '',
-                model: document.getElementById('model-select')?.value || 'gpt4',
                 systemPrompt: document.getElementById('context-input')?.value || ''
             };
+            
+            // Handle Ollama model selection
+            const modelSelect = document.getElementById('model-select');
+            const ollamaModelsSelect = document.getElementById('ollama-models-select');
+            
+            if (modelSelect?.value === 'ollama' && ollamaModelsSelect?.value) {
+                context.model = `ollama:${ollamaModelsSelect.value}`;
+            } else {
+                context.model = modelSelect?.value || 'gpt4';
+            }
+            
+            // Validate Ollama model selection
+            if (modelSelect?.value === 'ollama' && !ollamaModelsSelect?.value) {
+                throw new Error('Seleziona un modello Ollama specifico prima di inviare un messaggio.');
+            }
 
             console.log('Sending request with:', { message, context, chatId: currentChatId });
 
@@ -1325,6 +1359,146 @@
     async function updateModel(model) {
         // Handle model change logic here
         console.log('Model changed to:', model);
+        
+        const ollamaModelsSelect = document.getElementById('ollama-models-select');
+        const ollamaStatus = document.getElementById('ollama-status');
+        
+        // Hide Ollama elements by default
+        ollamaModelsSelect.classList.add('hidden');
+        ollamaStatus.classList.add('hidden');
+        ollamaStatus.textContent = '';
+        
+        // If Ollama is selected, try to fetch available models
+        if (model === 'ollama') {
+            ollamaModelsSelect.classList.remove('hidden');
+            // Only load models if we haven't loaded them recently
+            const now = Date.now();
+            const timeElapsed = now - lastOllamaApiRequestTime;
+            if (timeElapsed > OLLAMA_API_RATE_LIMIT || ollamaModelsSelect.options.length <= 1) {
+                await loadOllamaModels();
+            } else {
+                // Just show the dropdown without reloading
+                ollamaStatus.classList.remove('hidden');
+                ollamaStatus.textContent = `${ollamaModelsSelect.options.length - 1} modelli disponibili`;
+                ollamaStatus.className = 'text-sm mt-1 text-green-600';
+            }
+        }
+    }
+    
+    // Variable to track if we're currently loading Ollama models to prevent multiple simultaneous requests
+    let isLoadingOllamaModels = false;
+    // Timestamp of the last successful Ollama API request
+    let lastOllamaApiRequestTime = 0;
+    // Minimum time between Ollama API requests in milliseconds (1 second)
+    const OLLAMA_API_RATE_LIMIT = 1000;
+    
+    async function loadOllamaModels() {
+        const ollamaModelsSelect = document.getElementById('ollama-models-select');
+        const ollamaStatus = document.getElementById('ollama-status');
+        
+        // If we're already loading models, don't make another request
+        if (isLoadingOllamaModels) {
+            ollamaStatus.classList.remove('hidden');
+            ollamaStatus.textContent = 'Caricamento modelli in corso...';
+            ollamaStatus.className = 'text-sm mt-1 text-blue-600';
+            return;
+        }
+        
+        // Check if we need to wait due to rate limiting
+        const now = Date.now();
+        const timeElapsed = now - lastOllamaApiRequestTime;
+        if (timeElapsed < OLLAMA_API_RATE_LIMIT) {
+            const waitTime = OLLAMA_API_RATE_LIMIT - timeElapsed;
+            ollamaStatus.classList.remove('hidden');
+            ollamaStatus.textContent = `Attendi ${Math.ceil(waitTime/1000)} secondi prima di ricaricare...`;
+            ollamaStatus.className = 'text-sm mt-1 text-yellow-600';
+            
+            // Wait and then try again
+            setTimeout(() => loadOllamaModels(), waitTime + 100);
+            return;
+        }
+        
+        isLoadingOllamaModels = true;
+        
+        try {
+            // Show loading state
+            ollamaStatus.classList.remove('hidden');
+            ollamaStatus.textContent = 'Caricamento modelli Ollama...';
+            ollamaStatus.className = 'text-sm mt-1 text-blue-600';
+            
+            // Try to fetch models from Ollama API
+            const response = await fetch('http://localhost:11434/api/tags', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // Use a short timeout to quickly detect if Ollama is not running
+                signal: AbortSignal.timeout(5000) // Increased timeout for better reliability
+            });
+            
+            // Update the last request time
+            lastOllamaApiRequestTime = Date.now();
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Clear previous options except the first one
+                while (ollamaModelsSelect.options.length > 1) {
+                    ollamaModelsSelect.remove(1);
+                }
+                
+                // Add models to select dropdown
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        ollamaModelsSelect.appendChild(option);
+                    });
+                    
+                    ollamaStatus.textContent = `${data.models.length} modelli disponibili`;
+                    ollamaStatus.className = 'text-sm mt-1 text-green-600';
+                    
+                    // Select the first model by default if none is selected
+                    if (!ollamaModelsSelect.value && ollamaModelsSelect.options.length > 1) {
+                        ollamaModelsSelect.selectedIndex = 1;
+                    }
+                } else {
+                    ollamaStatus.textContent = 'Nessun modello trovato. Scarica un modello con il comando "ollama pull <nome-modello>"';
+                    ollamaStatus.className = 'text-sm mt-1 text-yellow-600';
+                }
+            } else if (response.status === 429) {
+                // Handle rate limit specifically
+                ollamaStatus.textContent = 'Limite di richieste raggiunto. Attendi qualche secondo e riprova.';
+                ollamaStatus.className = 'text-sm mt-1 text-yellow-600';
+                
+                // Try again after a longer delay
+                setTimeout(() => loadOllamaModels(), OLLAMA_API_RATE_LIMIT * 2);
+            } else {
+                throw new Error(`Errore API Ollama: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dei modelli Ollama:', error);
+            
+            // Show appropriate error message based on the error
+            ollamaStatus.classList.remove('hidden');
+            
+            if (error.message.includes('Rate limit') || error.message.includes('429')) {
+                ollamaStatus.textContent = 'Limite di richieste raggiunto. Attendi qualche secondo e riprova.';
+                ollamaStatus.className = 'text-sm mt-1 text-yellow-600';
+                
+                // Try again after a delay
+                setTimeout(() => loadOllamaModels(), OLLAMA_API_RATE_LIMIT * 2);
+            } else if (error.name === 'AbortError' || error.name === 'TypeError' || error.message.includes('Failed to fetch')) {
+                ollamaStatus.innerHTML = 'Ollama non è in esecuzione. <a href="https://ollama.com/download" target="_blank" class="text-blue-600 underline">Installa Ollama</a> e avvialo per utilizzare i modelli locali.';
+                ollamaStatus.className = 'text-sm mt-1 text-red-600';
+            } else {
+                ollamaStatus.textContent = `Errore: ${error.message}`;
+                ollamaStatus.className = 'text-sm mt-1 text-red-600';
+            }
+        } finally {
+            isLoadingOllamaModels = false;
+        }
     }
 
     function startNewChat() {
