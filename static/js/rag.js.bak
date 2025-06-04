@@ -1,0 +1,807 @@
+// RAG (Retrieval-Augmented Generation) page functionality
+
+// Wait for window load to ensure all resources are fully loaded
+window.addEventListener('load', function() {
+    console.log('RAG page fully loaded');
+    
+    // Initialize variables
+    let uploadedFiles = [];
+    let knowledgeBaseReady = false;
+    let processingInProgress = false;
+    
+    // Function to safely get DOM elements
+    function getElement(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element with ID '${id}' not found`);
+        }
+        return element;
+    }
+    
+    // Function to safely add event listeners
+    function addSafeEventListener(element, event, handler) {
+        if (element) {
+            element.addEventListener(event, handler);
+            return true;
+        }
+        return false;
+    }
+    
+    // Get all required elements
+    const elements = {
+        // Processing status elements
+        processingStatus: getElement('processing-status'),
+        processDetails: getElement('process-details'),
+        currentProcess: getElement('current-process'),
+        progressBar: getElement('progress-bar'),
+        progressPercentage: getElement('progress-percentage'),
+        
+        // File upload elements
+        fileInput: getElement('fallback-file-input'),
+        browseButton: getElement('browse-files-btn'),
+        dropzoneContainer: getElement('dropzone-container'),
+        processButton: getElement('process-documents-btn'),
+        
+        // Chat elements
+        chatForm: getElement('chat-form'),
+        chatInput: getElement('chat-input'),
+        chatMessages: getElement('chat-messages'),
+        
+        // Knowledge base elements
+        knowledgeBaseStatus: getElement('knowledge-base-status'),
+        statusMessage: getElement('status-message'),
+        statusDetails: getElement('status-details'),
+        statusIcon: getElement('status-icon'),
+        documentList: getElement('document-list'),
+        clearKnowledgeBaseBtn: getElement('clear-knowledge-base-btn')
+    };
+    
+    // Check if we have the minimum required elements to function
+    const hasUploadElements = elements.fileInput && elements.browseButton && 
+                             elements.dropzoneContainer && elements.processButton;
+    
+    const hasProcessingElements = elements.processingStatus && elements.processDetails && 
+                                elements.currentProcess && elements.progressBar && 
+                                elements.progressPercentage;
+    
+    if (!hasUploadElements) {
+        console.error('Missing critical file upload elements. RAG functionality will be limited.');
+    }
+    
+    if (!hasProcessingElements) {
+        console.error('Missing critical processing status elements. RAG functionality will be limited.');
+    }
+    
+    // Function to update processing status
+    function updateProcessingStatus(message, isError = false) {
+        console.log('Updating processing status:', message, isError);
+        
+        // Make sure the processing status panel is visible
+        if (elements.processingStatus) {
+            elements.processingStatus.classList.remove('hidden');
+        } else {
+            console.warn('Processing status panel not found, cannot update status');
+            return;
+        }
+        
+        // Update current process text
+        if (elements.currentProcess) {
+            if (isError) {
+                elements.currentProcess.classList.remove('text-indigo-600');
+                elements.currentProcess.classList.add('text-red-600');
+                message = 'Errore: ' + message;
+            } else {
+                elements.currentProcess.classList.remove('text-red-600');
+                elements.currentProcess.classList.add('text-indigo-600');
+            }
+            
+            elements.currentProcess.textContent = message;
+        } else {
+            console.warn('Current process element not found, cannot update process text');
+        }
+        
+        // Add message to process details with timestamp
+        if (elements.processDetails) {
+            const timestamp = new Date().toLocaleTimeString();
+            const detailElement = document.createElement('p');
+            detailElement.className = isError ? 'text-sm text-red-600' : 'text-sm text-gray-600';
+            detailElement.textContent = `[${timestamp}] ${message}`;
+            elements.processDetails.appendChild(detailElement);
+        } else {
+            console.warn('Process details element not found, cannot add status message');
+        }
+    }
+    
+    // Function to update progress bar
+    function updateProgressBar(percentage) {
+        if (!elements.progressBar || !elements.progressPercentage) {
+            console.warn('Progress bar elements not found, cannot update progress');
+            return;
+        }
+        
+        elements.progressBar.style.width = `${percentage}%`;
+        elements.progressPercentage.textContent = `${percentage}%`;
+    }
+    
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Initialize the UI if we have the required elements
+    if (hasUploadElements && hasProcessingElements) {
+        // Initial status update
+        updateProcessingStatus('Sistema pronto per il caricamento dei documenti');
+        
+        // Set up event listeners for file upload
+        
+        // Show the browse button when clicked
+        addSafeEventListener(elements.browseButton, 'click', function() {
+            elements.fileInput.click();
+        });
+        
+        // Handle file selection
+        addSafeEventListener(elements.fileInput, 'change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                uploadedFiles = Array.from(files);
+                updateFileList();
+                elements.processButton.disabled = false;
+            }
+        });
+        
+        // Handle drag and drop
+        addSafeEventListener(elements.dropzoneContainer, 'dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            elements.dropzoneContainer.classList.add('border-indigo-500');
+        });
+        
+        addSafeEventListener(elements.dropzoneContainer, 'dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            elements.dropzoneContainer.classList.remove('border-indigo-500');
+        });
+        
+        addSafeEventListener(elements.dropzoneContainer, 'drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            elements.dropzoneContainer.classList.remove('border-indigo-500');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadedFiles = Array.from(files);
+                updateFileList();
+                elements.processButton.disabled = false;
+            }
+        });
+    } else {
+        // Display error message if elements are missing
+        console.error('Critical elements missing. RAG functionality will be limited.');
+        if (elements.processingStatus) {
+            elements.processingStatus.classList.remove('hidden');
+            if (elements.currentProcess) {
+                elements.currentProcess.textContent = 'Errore: Elementi necessari non trovati';
+                elements.currentProcess.classList.remove('text-indigo-600');
+                elements.currentProcess.classList.add('text-red-600');
+            }
+            if (elements.processDetails) {
+                const timestamp = new Date().toLocaleTimeString();
+                const detailElement = document.createElement('p');
+                detailElement.className = 'text-sm text-red-600';
+                detailElement.textContent = `[${timestamp}] Errore: Elementi necessari non trovati`;
+                elements.processDetails.appendChild(detailElement);
+            }
+        }
+    }
+    
+    // Function to update the file list display
+    function updateFileList() {
+        const fileListContainer = elements.documentList;
+        if (!fileListContainer) {
+            console.warn('File list container not found, cannot update file list');
+            return;
+        }
+        
+        // Clear existing list
+        fileListContainer.innerHTML = '';
+        
+        if (uploadedFiles.length === 0) {
+            fileListContainer.innerHTML = '<p class="text-gray-500 text-center">Nessun file selezionato</p>';
+            return;
+        }
+        
+        // Create list of files
+        uploadedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center justify-between p-2 border-b';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'flex items-center';
+            
+            // Icon based on file type
+            const icon = document.createElement('span');
+            icon.className = 'text-indigo-500 mr-2';
+            icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>';
+            
+            const fileName = document.createElement('span');
+            fileName.className = 'text-sm font-medium';
+            fileName.textContent = file.name;
+            
+            const fileSize = document.createElement('span');
+            fileSize.className = 'text-xs text-gray-500 ml-2';
+            fileSize.textContent = formatFileSize(file.size);
+            
+            fileInfo.appendChild(icon);
+            fileInfo.appendChild(fileName);
+            fileInfo.appendChild(fileSize);
+            
+            const removeButton = document.createElement('button');
+            removeButton.className = 'text-red-500 hover:text-red-700';
+            removeButton.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>';
+            removeButton.addEventListener('click', function() {
+                uploadedFiles.splice(index, 1);
+                updateFileList();
+                if (uploadedFiles.length === 0 && elements.processButton) {
+                    elements.processButton.disabled = true;
+                }
+            });
+            
+            fileItem.appendChild(fileInfo);
+            fileItem.appendChild(removeButton);
+            fileListContainer.appendChild(fileItem);
+        });
+        
+        // No need to add the file-list class or append to dropzone container
+        // as we're directly manipulating the documentList element
+    }
+    
+    // Process Documents Button
+    addSafeEventListener(elements.processButton, 'click', function() {
+        if (uploadedFiles.length === 0) {
+            updateProcessingStatus("Nessun file da processare. Carica almeno un documento.", true);
+            return;
+        }
+        
+        if (processingInProgress) {
+            updateProcessingStatus("Elaborazione già in corso", true);
+            return;
+        }
+        
+        // Show processing status
+        processingInProgress = true;
+        updateProcessingStatus("Avvio elaborazione documenti...");
+        updateProgressBar(5);
+        
+        // Create FormData and append all files
+        const formData = new FormData();
+        uploadedFiles.forEach(file => {
+            formData.append('file', file);
+        });
+        
+        // Upload files
+        fetch('/upload_rag_document', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Errore nel caricamento: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Upload successful:', data);
+            updateProcessingStatus("File caricati con successo. Avvio estrazione testo...");
+            updateProgressBar(25);
+            
+            // Start processing the documents
+            return processDocuments(data.fileIds || []);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            processingInProgress = false;
+            updateProcessingStatus(error.message, true);
+        });
+    });
+    
+    // Clear Knowledge Base Button
+    addSafeEventListener(elements.clearKnowledgeBaseBtn, 'click', function() {
+        if (confirm("Sei sicuro di voler cancellare la knowledge base? Questa azione non può essere annullata.")) {
+            clearKnowledgeBase();
+        }
+    });
+    
+    // Chat Form Submission
+    addSafeEventListener(elements.chatForm, 'submit', function(e) {
+        e.preventDefault();
+        
+        if (!knowledgeBaseReady) {
+            alert("La knowledge base non è ancora pronta. Processa i documenti prima di chattare.");
+            return;
+        }
+        
+        if (!elements.chatInput) {
+            console.warn('Chat input element not found, cannot send message');
+            return;
+        }
+        
+        const userMessage = elements.chatInput.value.trim();
+        
+        if (userMessage) {
+            addChatMessage(userMessage, 'user');
+            elements.chatInput.value = '';
+            
+            // Disable input while waiting for response
+            elements.chatInput.disabled = true;
+            
+            // Disable submit button if it exists
+            const submitButton = elements.chatForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+            
+            // Send message to backend
+            sendChatMessage(userMessage);
+        }
+    });
+    // Function to process documents after upload
+    function processDocuments(fileIds) {
+        updateProcessingStatus("Avvio estrazione testo dai documenti...");
+        updateProgressBar(25);
+        
+        fetch('/process_rag_documents', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fileIds: fileIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            updateProcessingStatus("Estrazione testo in corso...");
+            updateProgressBar(30);
+            
+            // Check text extraction status after a delay
+            setTimeout(checkTextExtractionStatus, 2000);
+        })
+        .catch(error => {
+            console.error('Error processing documents:', error);
+            processingInProgress = false;
+        });
+    }
+    
+    // Function to check text extraction status
+    function checkTextExtractionStatus() {
+        fetch('/check_text_extraction_status')
+        .then(response => response.json())
+        .then(data => {
+            updateProcessingStatus(data.status_message);
+            updateProgressBar(data.progress);
+            
+            if (data.completed) {
+                if (data.success) {
+                    updateProcessingStatus("Estrazione testo completata. Creazione embedding...");
+                    updateProgressBar(70);
+                    createEmbeddings();
+                } else {
+                    updateProcessingStatus(`Errore nell'estrazione del testo: ${data.error}`, true);
+                    processingInProgress = false;
+                }
+            } else {
+                // Continue polling
+                setTimeout(checkTextExtractionStatus, 2000);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking text extraction status:', error);
+            updateProcessingStatus(`Errore di connessione: ${error.message}`, true);
+            processingInProgress = false;
+        });
+    }
+    
+    // Function to create embeddings
+    function createEmbeddings() {
+        fetch('/create_rag_embeddings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateProcessingStatus("Creazione embeddings in corso...");
+                
+                // Poll for embedding status
+                checkEmbeddingStatus();
+            } else {
+                updateProcessingStatus(`Errore nella creazione degli embeddings: ${data.error}`, true);
+                processingInProgress = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error creating embeddings:', error);
+            updateProcessingStatus(`Errore di connessione: ${error.message}`, true);
+            processingInProgress = false;
+        });
+    }
+    
+    // Function to check embedding status
+    function checkEmbeddingStatus() {
+        fetch('/check_embedding_status')
+        .then(response => response.json())
+        .then(data => {
+            updateProcessingStatus(data.status_message);
+            updateProgressBar(data.progress);
+            
+            if (data.completed) {
+                if (data.success) {
+                    updateProcessingStatus("Knowledge base creata con successo!");
+                    updateProgressBar(100);
+                    
+                    // Update UI to show knowledge base is ready
+                    knowledgeBaseReady = true;
+                    processingInProgress = false;
+                    
+                    // Enable chat interface
+                    document.getElementById('chat-input').disabled = false;
+                    document.querySelector('#chat-form button').disabled = false;
+                    
+                    // Update knowledge base status
+                    updateKnowledgeBaseStatus(true);
+                    
+                    // Get document list
+                    getDocumentList();
+                    
+                    // Hide processing status after a delay
+                    setTimeout(() => {
+                        document.getElementById('processing-status').classList.add('hidden');
+                    }, 3000);
+                } else {
+                    updateProcessingStatus(`Errore nella creazione della knowledge base: ${data.error}`, true);
+                    processingInProgress = false;
+                }
+            } else {
+                // Continue polling
+                setTimeout(checkEmbeddingStatus, 2000);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking embedding status:', error);
+            updateProcessingStatus(`Errore di connessione: ${error.message}`, true);
+            processingInProgress = false;
+        });
+    }
+    
+    // Function to get document list
+    function getDocumentList() {
+        fetch('/get_rag_documents')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderDocumentList(data.documents);
+            } else {
+                console.error('Error getting document list:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching document list:', error);
+        });
+    }
+    
+    // Function to render document list
+    function renderDocumentList(documents) {
+        const documentListElement = document.getElementById('document-list');
+        documentListElement.innerHTML = '';
+        
+        if (documents.length === 0) {
+            documentListElement.innerHTML = '<p class="text-sm text-gray-500">Nessun documento nella knowledge base</p>';
+            return;
+        }
+        
+        documents.forEach(doc => {
+            const docElement = document.createElement('div');
+            docElement.className = 'flex items-center justify-between p-2 bg-gray-50 rounded-md';
+            
+            // Get file extension for icon
+            const fileExtension = doc.filename.split('.').pop().toLowerCase();
+            let iconPath = '';
+            
+            if (['pdf'].includes(fileExtension)) {
+                iconPath = '<svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z"></path><path d="M3 8a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"></path></svg>';
+            } else if (['doc', 'docx'].includes(fileExtension)) {
+                iconPath = '<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>';
+            } else if (['png', 'jpg', 'jpeg'].includes(fileExtension)) {
+                iconPath = '<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path></svg>';
+            } else {
+                iconPath = '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>';
+            }
+            
+            docElement.innerHTML = `
+                <div class="flex items-center">
+                    <div class="mr-2">${iconPath}</div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">${doc.filename}</p>
+                        <p class="text-xs text-gray-500">${formatFileSize(doc.size)}</p>
+                    </div>
+                </div>
+                <button class="delete-doc-btn text-red-500 hover:text-red-700" data-id="${doc.id}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            `;
+            
+            documentListElement.appendChild(docElement);
+        });
+        
+        // Enable clear knowledge base button
+        document.getElementById('clear-knowledge-base-btn').disabled = false;
+        
+        // Add event listeners to delete buttons
+        document.querySelectorAll('.delete-doc-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const docId = this.getAttribute('data-id');
+                if (confirm("Sei sicuro di voler rimuovere questo documento dalla knowledge base?")) {
+                    deleteDocument(docId);
+                }
+            });
+        });
+    }
+    
+    // Function to delete a document
+    function deleteDocument(docId) {
+        fetch(`/delete_rag_document/${docId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh document list
+                getDocumentList();
+                
+                // Check if knowledge base is empty
+                if (data.empty_kb) {
+                    knowledgeBaseReady = false;
+                    updateKnowledgeBaseStatus(false);
+                    
+                    // Disable chat interface
+                    document.getElementById('chat-input').disabled = true;
+                    document.querySelector('#chat-form button').disabled = true;
+                }
+            } else {
+                alert(`Errore nella cancellazione del documento: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting document:', error);
+            alert('Errore di connessione durante la cancellazione del documento');
+        });
+    }
+    
+    // Function to clear knowledge base
+    function clearKnowledgeBase() {
+        fetch('/clear_rag_knowledge_base', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reset UI
+                knowledgeBaseReady = false;
+                document.getElementById('document-list').innerHTML = '<p class="text-sm text-gray-500">Nessun documento nella knowledge base</p>';
+                document.getElementById('clear-knowledge-base-btn').disabled = true;
+                
+                // Disable chat interface
+                document.getElementById('chat-input').disabled = true;
+                document.querySelector('#chat-form button').disabled = true;
+                
+                // Update knowledge base status
+                updateKnowledgeBaseStatus(false);
+                
+                // Add system message to chat
+                addChatMessage('Knowledge base cancellata. Carica nuovi documenti per continuare.', 'system');
+            } else {
+                alert(`Errore nella cancellazione della knowledge base: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error clearing knowledge base:', error);
+            alert('Errore di connessione durante la cancellazione della knowledge base');
+        });
+    }
+    
+            }
+            if (elements.clearKnowledgeBaseButton) {
+                elements.clearKnowledgeBaseButton.disabled = true;
+            }
+            
+            // Disable chat interface
+            if (elements.chatInput) {
+                elements.chatInput.disabled = true;
+            }
+            if (elements.chatForm) {
+                const submitButton = elements.chatForm.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+            }
+            
+            // Update knowledge base status
+            updateKnowledgeBaseStatus(false);
+            
+            // Add system message to chat
+            addChatMessage('Knowledge base cancellata. Carica nuovi documenti per continuare.', 'system');
+        } else {
+            alert(`Errore nella cancellazione della knowledge base: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error clearing knowledge base:', error);
+        alert('Errore di connessione durante la cancellazione della knowledge base');
+    });
+}
+
+// Function to send chat message
+function sendChatMessage(message) {
+    fetch('/rag_chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Re-enable input
+        if (elements.chatInput) {
+            elements.chatInput.disabled = false;
+        }
+        
+        // Re-enable submit button if it exists
+        if (elements.chatForm) {
+            const submitButton = elements.chatForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
+        
+        if (data.error) {
+            addChatMessage(`Errore: ${data.error}`, 'system', true);
+        } else {
+            addChatMessage(data.response, 'system');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending chat message:', error);
+        
+        // Re-enable input
+        if (elements.chatInput) {
+            elements.chatInput.disabled = false;
+        }
+        
+        // Re-enable submit button if it exists
+        if (elements.chatForm) {
+            const submitButton = elements.chatForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
+        
+        addChatMessage(`Errore di connessione: ${error.message}`, 'system', true);
+    });
+}
+
+// Function to add message to chat
+function addChatMessage(message, sender, isError) {
+    if (elements.chatMessages) {
+        const chatMessages = elements.chatMessages;
+    
+    // Function to add message to chat
+    function addChatMessage(message, sender) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageElement = document.createElement('div');
+        messageElement.className = 'flex items-start';
+        
+        let avatar, messageClass;
+        
+        if (sender === 'user') {
+            avatar = '<div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">Tu</div>';
+            messageClass = 'bg-blue-100';
+        } else if (sender === 'ai') {
+            avatar = '<div class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">AI</div>';
+            messageClass = 'bg-gray-100';
+        } else {
+            avatar = '<div class="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center text-white font-bold">SYS</div>';
+            messageClass = 'bg-yellow-100';
+        }
+        
+        messageElement.innerHTML = `
+            <div class="flex-shrink-0">
+                ${avatar}
+            </div>
+            <div class="ml-3 ${messageClass} p-3 rounded-lg max-w-[80%]">
+                <p class="text-sm text-gray-800">${message}</p>
+            </div>
+        `;
+        
+        chatMessages.appendChild(messageElement);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to update knowledge base status
+    function updateKnowledgeBaseStatus(isReady) {
+        const statusContainer = document.getElementById('knowledge-base-status');
+        const statusIcon = document.getElementById('status-icon');
+        const statusMessage = document.getElementById('status-message');
+        const statusDetails = document.getElementById('status-details');
+        
+        statusContainer.classList.remove('hidden');
+        
+        if (isReady) {
+            statusIcon.innerHTML = `
+                <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            `;
+            statusMessage.textContent = 'Knowledge Base Pronta';
+            statusDetails.textContent = 'Puoi iniziare a chattare con i tuoi documenti';
+            
+            // Add system message to chat
+            addChatMessage('Knowledge base pronta! Puoi farmi domande sui tuoi documenti.', 'system');
+        } else {
+            statusIcon.innerHTML = `
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            `;
+            statusMessage.textContent = 'Nessun documento processato';
+            statusDetails.textContent = 'Carica e processa i documenti per creare la knowledge base';
+        }
+    }
+    
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Check if knowledge base exists on page load
+    fetch('/check_rag_knowledge_base')
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            knowledgeBaseReady = true;
+            updateKnowledgeBaseStatus(true);
+            
+            // Enable chat interface
+            document.getElementById('chat-input').disabled = false;
+            document.querySelector('#chat-form button').disabled = false;
+            
+            // Get document list
+            getDocumentList();
+        } else {
+            knowledgeBaseReady = false;
+            updateKnowledgeBaseStatus(false);
+        }
+    })
+    .catch(error => {
+        console.error('Error checking knowledge base:', error);
+    });
+});

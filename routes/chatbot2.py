@@ -33,7 +33,8 @@ api_status = {
 }
 
 # Ollama API endpoint
-OLLAMA_API_ENDPOINT = "http://localhost:11434"
+# Leggi l'endpoint Ollama da una variabile d'ambiente o usa un valore predefinito
+OLLAMA_API_ENDPOINT = os.getenv('OLLAMA_API_ENDPOINT', "http://localhost:11434")
 
 # Last Ollama API request timestamp (for rate limiting)
 ollama_last_request_time = 0
@@ -60,7 +61,22 @@ except Exception as e:
 # Initialize Anthropic client
 try:
     if anthropic_api_key:
-        anthropic_client = Anthropic(api_key=anthropic_api_key)
+        try:
+            # Try the newer version of the Anthropic client
+            anthropic_client = Anthropic(api_key=anthropic_api_key)
+        except TypeError:
+            # Fall back to older version which might have different parameters
+            import pkg_resources
+            anthropic_version = pkg_resources.get_distribution("anthropic").version
+            print(f"Using Anthropic library version: {anthropic_version}")
+            
+            # For older versions (pre-0.5.0)
+            if pkg_resources.parse_version(anthropic_version) < pkg_resources.parse_version("0.5.0"):
+                anthropic_client = Anthropic(api_key=anthropic_api_key)
+            else:
+                # For newer versions that might have different parameters
+                anthropic_client = Anthropic()
+        
         api_status['anthropic'] = True
     else:
         print("Warning: ANTHROPIC_API_KEY not found in environment variables")
@@ -516,7 +532,7 @@ def chat():
                 last_error = None
                 
                 # Get chat history for context
-                c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
+                c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at ASC', (chat_id,))
                 chat_history = c.fetchall()
                 
                 # Prepare messages array with chat history
@@ -608,7 +624,7 @@ def chat():
                 
                 try:
                     # Get chat history for context
-                    c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
+                    c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at ASC', (chat_id,))
                     chat_history = c.fetchall()
                     
                     # Prepare messages array with chat history
@@ -728,7 +744,7 @@ def chat():
 
                 try:
                     # Get chat history for context
-                    c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
+                    c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at ASC', (chat_id,))
                     chat_history = c.fetchall()
                     
                     # Prepare messages array with chat history
@@ -757,13 +773,40 @@ def chat():
                     for model in claude_models:
                         try:
                             # Create messages request without system role
-                            message_response = anthropic_client.messages.create(
-                                model=model,
-                                max_tokens=4096,
-                                messages=messages,
-                                temperature=0.7,
-                                system=system_prompt if system_prompt else None
-                            )
+                            try:
+                                # Try newer API format first
+                                message_response = anthropic_client.messages.create(
+                                    model=model,
+                                    max_tokens=4096,
+                                    messages=messages,
+                                    temperature=0.7,
+                                    system=system_prompt if system_prompt else None
+                                )
+                            except (TypeError, AttributeError) as api_error:
+                                print(f"Falling back to alternative Anthropic API format: {str(api_error)}")
+                                # Try alternative API format (for older versions)
+                                import pkg_resources
+                                anthropic_version = pkg_resources.get_distribution("anthropic").version
+                                
+                                if hasattr(anthropic_client, 'completions'):
+                                    # Old API format (pre-0.5.0)
+                                    prompt = f"\n\nHuman: {message}\n\nAssistant:"
+                                    message_response = anthropic_client.completions.create(
+                                        model=model,
+                                        prompt=prompt,
+                                        max_tokens_to_sample=4096,
+                                        temperature=0.7
+                                    )
+                                    # Convert to expected format
+                                    class Content:
+                                        def __init__(self, text):
+                                            self.text = text
+                                    
+                                    class Response:
+                                        def __init__(self, content):
+                                            self.content = [Content(content)]
+                                    
+                                    message_response = Response(message_response.completion)
 
                             if message_response and message_response.content:
                                 response = message_response.content[0].text
@@ -810,7 +853,7 @@ def chat():
                 last_error = None
                 
                 # Get chat history for context
-                c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
+                c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at ASC', (chat_id,))
                 chat_history = c.fetchall()
                 
                 # Build conversation history
@@ -879,50 +922,81 @@ def chat():
         if response is None:
             raise Exception("No response generated from the AI model")
             
-        # For interrogation mode, ensure the bot always asks a question
-        if context.get('mode') == 'interrogazione' and message != 'START_INTERROGATION':
-            # Get previous messages to maintain context
-            c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 10', (chat_id,))
-            chat_history = c.fetchall()
-            
-            # Add a reminder to evaluate and ask next question
-            if model_name == 'gpt4':
-                completion = openai_client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        *[{"role": msg[0], "content": msg[1]} for msg in reversed(chat_history)],
-                        {"role": "system", "content": "Valuta la risposta dell'utente, fornisci un feedback costruttivo e poi fai una nuova domanda pertinente."}
-                    ]
-                )
-                response = completion.choices[0].message.content
-            elif model_name == 'claude':
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    *[{"role": msg[0], "content": msg[1]} for msg in reversed(chat_history)],
-                    {"role": "system", "content": "Valuta la risposta dell'utente, fornisci un feedback costruttivo e poi fai una nuova domanda pertinente."}
-                ]
-                message_response = anthropic_client.messages.create(
-                    model="claude-3-haiku-20240307",
-                    max_tokens=1024,
-                    messages=messages
-                )
-                response = message_response.content[0].text
-            else:  # gemini
-                # Create model
-                model = genai.GenerativeModel('gemini-1.5-pro-001')
+        # Per la modalità interrogazione, gestiamo in modo speciale sia il messaggio START_INTERROGATION
+        # che tutte le altre risposte per assicurarci che terminino con una domanda
+        if context.get('mode') == 'interrogazione':
+            if message == 'START_INTERROGATION':
+                # Questo è il messaggio iniziale per avviare la modalità interrogazione
+                # La risposta speciale è già gestita sopra dove impostiamo la risposta iniziale
+                print("DEBUG - Starting interrogation mode with initial prompt")
+                # Nessuna elaborazione aggiuntiva necessaria - il system prompt contiene già le istruzioni
+                pass
+            else:
+                # Per tutti gli altri messaggi, verifichiamo che la risposta termini con una domanda
+                # Se non termina con una domanda, ne aggiungiamo una
                 
-                # Prepare context
-                history_text = "\n".join([f"{msg[0]}: {msg[1]}" for msg in reversed(chat_history)])
-                prompt = f"{system_prompt}\n\nStorico della conversazione:\n{history_text}\n\nValuta la risposta dell'utente, fornisci un feedback costruttivo e poi fai una nuova domanda pertinente."
+                # Verifichiamo se la risposta termina già con un punto interrogativo
+                ends_with_question = False
                 
-                # Generate response
-                result = model.generate_content(prompt)
-                response = result.text
+                # Controlliamo se la risposta termina con un punto interrogativo
+                # o contiene frasi interrogative alla fine
+                if '?' in response[-20:]:  # Controlliamo gli ultimi 20 caratteri
+                    ends_with_question = True
+                
+                # Se non termina con una domanda, aggiungiamo una domanda appropriata
+                if not ends_with_question:
+                    print("DEBUG - Adding question to response in interrogation mode")
+                    
+                    # Utilizziamo il modello per generare una domanda pertinente
+                    if model_name.startswith('gpt'):
+                        # Per i modelli OpenAI
+                        completion = openai_client.chat.completions.create(
+                            model="gpt-4" if model_name == 'gpt4' else "gpt-3.5-turbo",
+                            messages=[
+                                {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. L'argomento è: {context.get('systemPrompt', '').split('L\'argomento è:')[1].split('.')[0] if 'L\'argomento è:' in context.get('systemPrompt', '') else 'argomento generale'}. Devi formulare una domanda pertinente per continuare l'interrogazione."}, 
+                                {"role": "user", "content": f"Ho appena risposto all'utente con: '{response}'. Genera una domanda pertinente per continuare l'interrogazione. La domanda deve essere breve (massimo 1-2 righe) e deve essere formulata in modo da continuare naturalmente la conversazione. Rispondi SOLO con la domanda, senza introduzioni o spiegazioni."}
+                            ]
+                        )
+                        question = completion.choices[0].message.content.strip()
+                        
+                        # Assicuriamoci che la domanda termini con un punto interrogativo
+                        if not question.endswith('?'):
+                            question += '?'
+                            
+                        # Aggiungiamo la domanda alla risposta
+                        response = response.rstrip() + "\n\n" + question
+                    elif model_name.startswith('claude'):
+                        # Per i modelli Claude
+                        try:
+                            message_request = {
+                                "model": "claude-3-haiku-20240307",
+                                "max_tokens": 100,
+                                "messages": [
+                                    {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. Devi formulare una domanda pertinente per continuare l'interrogazione."}, 
+                                    {"role": "user", "content": f"Ho appena risposto all'utente con: '{response}'. Genera una domanda pertinente per continuare l'interrogazione. La domanda deve essere breve (massimo 1-2 righe) e deve essere formulata in modo da continuare naturalmente la conversazione. Rispondi SOLO con la domanda, senza introduzioni o spiegazioni."}
+                                ]
+                            }
+                            
+                            anthropic_response = anthropic_client.messages.create(**message_request)
+                            question = anthropic_response.content[0].text.strip()
+                            
+                            # Assicuriamoci che la domanda termini con un punto interrogativo
+                            if not question.endswith('?'):
+                                question += '?'
+                                
+                            # Aggiungiamo la domanda alla risposta
+                            response = response.rstrip() + "\n\n" + question
+                        except Exception as e:
+                            print(f"Error generating question with Claude: {str(e)}")
+                            # Fallback: aggiungiamo una domanda generica
+                            response = response.rstrip() + "\n\nCosa ne pensi di questo argomento? Hai altre domande?"
+                    else:
+                        # Per altri modelli, aggiungiamo una domanda generica
+                        response = response.rstrip() + "\n\nCosa ne pensi di questo argomento? Hai altre domande?"
             
         # Conteggio token per l'input e l'output
         # Ottieni i messaggi rilevanti per il conteggio
-        c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at DESC LIMIT 20', (chat_id,))
+        c.execute('SELECT role, content FROM chatbot2_messages WHERE chat_id = ? ORDER BY created_at ASC', (chat_id,))
         chat_messages = [{'role': 'user' if msg[0] == 'user' else 'assistant', 'content': msg[1]} for msg in c.fetchall()]
         
         # Aggiungi l'ultimo messaggio dell'utente se non è già incluso

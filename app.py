@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash, Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 from openai import OpenAI
 import os
@@ -11,7 +11,7 @@ import requests
 import base64
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
@@ -20,6 +20,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, mean_squared_error, r2_score, mean_absolute_error
 import pydotplus
 from io import StringIO
 import base64
@@ -41,10 +48,28 @@ import csv
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import pickle
+from sentence_transformers import SentenceTransformer
+import openai
 
 # Import dei blueprint e funzioni di autenticazione
 from routes.chatbot import chatbot
+from routes.chatbot2 import chatbot2
+from routes.learning import learning
 from routes.resources import resources
+from routes.machine_learning import machine_learning_bp
+from routes.mathematics import mathematics
+
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Configurazione cartella upload
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Funzione per creare thumbnail delle immagini
 def create_thumbnail(file_path, thumbnail_path, size=(100, 100)):
@@ -156,7 +181,7 @@ from routes.db import get_db, get_user_db, register_user, authenticate_user, log
 # Configurazione dell'applicazione
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chiave_segreta_predefinita')
 app.config['USER_DB_DIR'] = os.path.join(os.path.dirname(__file__), 'user_databases')
@@ -169,7 +194,6 @@ app.config['SMTP_PASSWORD'] = 'your-app-password'  # Sostituire con la password 
 os.makedirs(app.config['USER_DB_DIR'], exist_ok=True)
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Funzione per aggiornare i crediti API nella sessione prima di ogni richiesta
 @app.before_request
@@ -222,6 +246,8 @@ app.register_blueprint(chatbot)
 app.register_blueprint(chatbot2)
 app.register_blueprint(learning)
 app.register_blueprint(resources)
+app.register_blueprint(machine_learning_bp)
+app.register_blueprint(mathematics)
 
 # Variabili globali per i modelli
 model = None
@@ -2124,48 +2150,1260 @@ def inject_user():
 def matematica():
     return render_template('matematica.html')
 
-# Route per API math progress
 @app.route('/api/math/progress')
 @login_required
 def math_progress():
-    progress = MathProgress.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{
-        'topic': p.topic,
-        'completed': p.completed,
-        'correct': p.correct
-    } for p in progress])
+    username = session.get('username')
+    conn = get_user_db(username)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM math_progress')
+    progress = cursor.fetchall()
+    conn.close()
+    return jsonify({'progress': progress})
 
-# Route per API update math progress
 @app.route('/api/math/update-progress', methods=['POST'])
 @login_required
 def update_math_progress():
-    data = request.json
-    topic = data.get('topic')
-    is_correct = data.get('is_correct')
-    
-    progress = MathProgress.query.filter_by(
-        user_id=current_user.id,
-        topic=topic
-    ).first()
-    
-    if not progress:
-        progress = MathProgress(
-            user_id=current_user.id,
-            topic=topic,
-            completed=0,
-            correct=0
-        )
-        db.session.add(progress)
-    
-    progress.completed += 1
-    if is_correct:
-        progress.correct += 1
-    progress.last_attempt = datetime.utcnow()
-    
-    db.session.commit()
-    return jsonify({'status': 'success'})
+    try:
+        data = request.get_json()
+        topic = data.get('topic')
+        completed = data.get('completed', False)
+        correct_answers = data.get('correctAnswers', 0)
+        
+        username = session.get('username')
+        conn = get_user_db(username)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO math_progress (topic, completed, correct_answers)
+            VALUES (?, ?, ?)
+        ''', (topic, completed, correct_answers))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Configurazione per il deployment
+
+
+@app.route('/machinelearning2')
+@login_required
+def machinelearning2():
+    return render_template('machinelearning2.html')
+
+
+@app.route('/train_model_unified', methods=['POST'])
+@login_required
+def train_model_unified():
+    try:
+        # --- Pulisci i dati del modello precedente dalla sessione ---
+        session.pop('model_pickle', None)
+        session.pop('label_encoder_pickle', None)
+        session.pop('feature_columns', None)
+        session.pop('problem_type', None)
+        app.logger.info('Puliti i dati del modello precedente dalla sessione.')
+        # --- Fine pulizia sessione ---
+
+        data = request.json
+        app.logger.info(f"Ricevuti dati per il training: {data}")
+        
+        raw_data = data.get('rawData')
+        target_column = data.get('targetColumn')
+        problem_type = data.get('problemType')
+        algorithm_name = data.get('algorithmName')
+        algorithm_params_frontend = data.get('algorithmParams', {})
+
+        if not all([raw_data, target_column, problem_type, algorithm_name]):
+            return jsonify({'error': 'Dati mancanti per il training.'}), 400
+
+        df = pd.DataFrame(raw_data)
+        app.logger.info(f"DataFrame creato con colonne: {df.columns.tolist()}")
+
+        if target_column not in df.columns:
+            return jsonify({'error': f'Colonna target "{target_column}" non trovata nel dataset.'}), 400
+
+        y = df[target_column]
+        X = df.drop(columns=[target_column])
+
+        # --- Gestione Parametri Algoritmo (da convertire e validare) ---
+        parsed_params = {}
+        # --- Gestione Parametri Algoritmo (da convertire e validare) ---
+        parsed_params = {}
+        # Definisce come parsare i parametri per ciascun algoritmo
+        # Questo dovrebbe rispecchiare la struttura in machinelearning2.js
+        # Nota: questa è una gestione semplificata, potrebbe essere necessario un parsing più robusto
+        
+        def parse_param(value, param_type, default_if_none=None, choices=None):
+            if value is None or str(value).strip().lower() == 'none' or str(value).strip() == '':
+                return default_if_none # Spesso None per sklearn
+            if param_type == 'int':
+                return int(value)
+            if param_type == 'float':
+                return float(value)
+            if param_type == 'bool': # Inviato come stringa 'true'/'false' o booleano da JS
+                return str(value).lower() == 'true'
+            if param_type == 'str_or_float': # per gamma in SVC
+                if isinstance(value, str) and value in ['scale', 'auto']:
+                    return value
+                return float(value)
+            if choices and value not in choices:
+                 raise ValueError(f"Valore '{value}' non valido. Valori permessi: {choices}")
+            return str(value) # Default a stringa se non specificato altrimenti
+
+        try:
+            # Logistic Regression
+            if algorithm_name == 'Logistic Regression':
+                if 'penalty' in algorithm_params_frontend: parsed_params['penalty'] = parse_param(algorithm_params_frontend['penalty'], 'str', default_if_none='l2', choices=['l1', 'l2', 'elasticnet', 'none'])
+                if 'C' in algorithm_params_frontend: parsed_params['C'] = parse_param(algorithm_params_frontend['C'], 'float', default_if_none=1.0)
+                if 'solver' in algorithm_params_frontend: parsed_params['solver'] = parse_param(algorithm_params_frontend['solver'], 'str', default_if_none='lbfgs') # choices dipendono da penalty
+                if 'max_iter' in algorithm_params_frontend: parsed_params['max_iter'] = parse_param(algorithm_params_frontend['max_iter'], 'int', default_if_none=100)
+            
+            # SVC
+            elif algorithm_name == 'SVC':
+                if 'C' in algorithm_params_frontend: parsed_params['C'] = parse_param(algorithm_params_frontend['C'], 'float', default_if_none=1.0)
+                if 'kernel' in algorithm_params_frontend: parsed_params['kernel'] = parse_param(algorithm_params_frontend['kernel'], 'str', default_if_none='rbf', choices=['linear', 'poly', 'rbf', 'sigmoid'])
+                if 'degree' in algorithm_params_frontend: parsed_params['degree'] = parse_param(algorithm_params_frontend['degree'], 'int', default_if_none=3) # Solo per kernel='poly'
+                if 'gamma' in algorithm_params_frontend: parsed_params['gamma'] = parse_param(algorithm_params_frontend['gamma'], 'str_or_float', default_if_none='scale')
+                parsed_params['probability'] = True # Necessario per predict_proba se lo usassimo
+
+            # Decision Tree Classifier
+            elif algorithm_name == 'Decision Tree Classifier':
+                if 'criterion' in algorithm_params_frontend: parsed_params['criterion'] = parse_param(algorithm_params_frontend['criterion'], 'str', default_if_none='gini', choices=['gini', 'entropy'])
+                if 'max_depth' in algorithm_params_frontend: parsed_params['max_depth'] = parse_param(algorithm_params_frontend['max_depth'], 'int', default_if_none=None)
+                if 'min_samples_split' in algorithm_params_frontend: parsed_params['min_samples_split'] = parse_param(algorithm_params_frontend['min_samples_split'], 'int', default_if_none=2)
+                if 'min_samples_leaf' in algorithm_params_frontend: parsed_params['min_samples_leaf'] = parse_param(algorithm_params_frontend['min_samples_leaf'], 'int', default_if_none=1)
+
+            # Random Forest Classifier
+            elif algorithm_name == 'Random Forest Classifier':
+                if 'n_estimators' in algorithm_params_frontend: parsed_params['n_estimators'] = parse_param(algorithm_params_frontend['n_estimators'], 'int', default_if_none=100)
+                if 'criterion' in algorithm_params_frontend: parsed_params['criterion'] = parse_param(algorithm_params_frontend['criterion'], 'str', default_if_none='gini', choices=['gini', 'entropy'])
+                if 'max_depth' in algorithm_params_frontend: parsed_params['max_depth'] = parse_param(algorithm_params_frontend['max_depth'], 'int', default_if_none=None)
+                if 'min_samples_split' in algorithm_params_frontend: parsed_params['min_samples_split'] = parse_param(algorithm_params_frontend['min_samples_split'], 'int', default_if_none=2)
+                if 'min_samples_leaf' in algorithm_params_frontend: parsed_params['min_samples_leaf'] = parse_param(algorithm_params_frontend['min_samples_leaf'], 'int', default_if_none=1)
+            
+            # Linear Regression
+            elif algorithm_name == 'Linear Regression':
+                # Non ha molti parametri sintonizzabili esposti comunemente in questo modo
+                pass 
+
+            # Ridge Regression
+            elif algorithm_name == 'Ridge Regression':
+                if 'alpha' in algorithm_params_frontend: parsed_params['alpha'] = parse_param(algorithm_params_frontend['alpha'], 'float', default_if_none=1.0)
+
+            # Lasso Regression
+            elif algorithm_name == 'Lasso Regression':
+                if 'alpha' in algorithm_params_frontend: parsed_params['alpha'] = parse_param(algorithm_params_frontend['alpha'], 'float', default_if_none=1.0)
+                if 'max_iter' in algorithm_params_frontend: parsed_params['max_iter'] = parse_param(algorithm_params_frontend['max_iter'], 'int', default_if_none=1000)
+
+            # Random Forest Regressor
+            elif algorithm_name == 'Random Forest Regressor':
+                if 'n_estimators' in algorithm_params_frontend: parsed_params['n_estimators'] = parse_param(algorithm_params_frontend['n_estimators'], 'int', default_if_none=100)
+                if 'max_depth' in algorithm_params_frontend: parsed_params['max_depth'] = parse_param(algorithm_params_frontend['max_depth'], 'int', default_if_none=None)
+                if 'min_samples_split' in algorithm_params_frontend: parsed_params['min_samples_split'] = parse_param(algorithm_params_frontend['min_samples_split'], 'int', default_if_none=2)
+                if 'min_samples_leaf' in algorithm_params_frontend: parsed_params['min_samples_leaf'] = parse_param(algorithm_params_frontend['min_samples_leaf'], 'int', default_if_none=1)
+
+        except ValueError as ve:
+            return jsonify({'error': f'Parametro non valido: {str(ve)}'}), 400
+
+        # --- Preprocessing ---
+        numeric_features = X.select_dtypes(include=np.number).columns.tolist()
+        categorical_features = X.select_dtypes(exclude=np.number).columns.tolist()
+
+        # Imputazione per numeriche e categoriche
+        numeric_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='mean')),
+            ('scaler', StandardScaler()) # Scalare è generalmente una buona pratica
+        ])
+
+        categorical_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='most_frequent')),
+            ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+        ])
+        
+        # Crea il preprocessor con ColumnTransformer
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numeric_transformer, numeric_features),
+                ('cat', categorical_transformer, categorical_features)
+            ],
+            remainder='drop' # scarta colonne non specificate (se ce ne fossero)
+        )
+        
+        # Label Encoding per la variabile target in classificazione
+        if problem_type == 'classification':
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+        elif y.dtype == 'object': # Regressione con target categorico non ha senso
+             # Tenta la conversione se possibile, altrimenti errore
+            try:
+                y = pd.to_numeric(y)
+            except ValueError:
+                return jsonify({'error': 'La colonna target per la regressione deve essere numerica o convertibile in numerica.'}), 400
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # --- Selezione e Addestramento Modello --- 
+        model_instance = None
+        if problem_type == 'classification':
+            if algorithm_name == 'Logistic Regression':
+                model_instance = LogisticRegression(**parsed_params, random_state=42)
+            elif algorithm_name == 'Linear Discriminant Analysis (LDA)':
+                 model_instance = LinearDiscriminantAnalysis(**parsed_params)
+            elif algorithm_name == 'Stochastic Gradient Descent Classifier (SGDClassifier)':
+                 model_instance = SGDClassifier(**parsed_params, random_state=42)
+
+            elif algorithm_name == 'K-Nearest Neighbors (KNN)':
+                 # Aggiungi gestione parametri per KNN Classifier se necessario
+                 model_instance = KNeighborsClassifier(**parsed_params)
+            elif algorithm_name == 'Decision Tree Classifier':
+                model_instance = DecisionTreeClassifier(**parsed_params, random_state=42)
+            elif algorithm_name == 'Random Forest Classifier':
+                model_instance = RandomForestClassifier(**parsed_params, random_state=42)
+            elif algorithm_name == 'Gradient Boosting Classifier (XGBoost)' or \
+                 algorithm_name == 'Gradient Boosting Classifier (LightGBM)' or \
+                 algorithm_name == 'Gradient Boosting Classifier (CatBoost)':
+                 # Nota: XGBoost, LightGBM, CatBoost richiedono le loro librerie. Usiamo scikit-learn's GradientBoostingClassifier come placeholder o aggiungiamo le librerie se disponibili.
+                 # Per ora usiamo GradientBoostingClassifier di sklearn come placeholder
+                 model_instance = GradientBoostingClassifier(**parsed_params, random_state=42)
+            elif algorithm_name == 'Support Vector Machines (SVM)':
+                 # Aggiungi gestione parametri kernel etc per SVC
+                 model_instance = SVC(**parsed_params, random_state=42)
+            elif algorithm_name == 'Naive Bayes (Gaussian)':
+                 model_instance = GaussianNB(**parsed_params)
+            elif algorithm_name == 'Naive Bayes (Multinomial)':
+                 # Richiede che i dati siano conteggi/frequenze, potrebbe necessitare pre-elaborazione specifica
+                 model_instance = MultinomialNB(**parsed_params)
+            elif algorithm_name == 'Naive Bayes (Bernoulli)':
+                 # Richiede dati binari, potrebbe necessitare pre-elaborazione specifica
+                 model_instance = BernoulliNB(**parsed_params)
+            elif algorithm_name == 'Neural Networks (MLPClassifier)':
+                 # Aggiungi gestione parametri per MLPClassifier
+                 model_instance = MLPClassifier(**parsed_params, random_state=42, max_iter=1000) # Aumenta max_iter se necessario
+            else:
+                return jsonify({'error': f'Algoritmo di classificazione "{algorithm_name}" non supportato nel backend.'}), 400
+            
+            model = Pipeline(steps=[('preprocessor', preprocessor),
+                                  ('classifier', model_instance)])
+            
+        elif problem_type == 'regression':
+            if algorithm_name == 'Linear Regression (OLS)':
+                model_instance = LinearRegression(**parsed_params)
+            elif algorithm_name == 'Ridge Regression':
+                model_instance = Ridge(**parsed_params, random_state=42)
+            elif algorithm_name == 'Lasso Regression':
+                model_instance = Lasso(**parsed_params, random_state=42)
+            elif algorithm_name == 'Elastic Net':
+                 model_instance = ElasticNet(**parsed_params, random_state=42)
+            elif algorithm_name == 'Bayesian Linear Regression':
+                 # Scikit-learn ha BayesianRidge che è una forma di Bayesian Linear Regression
+                 model_instance = BayesianRidge(**parsed_params)
+            elif algorithm_name == 'SGD Regressor':
+                 model_instance = SGDRegressor(**parsed_params, random_state=42)
+
+            elif algorithm_name == 'Polynomial Regression':
+                 # Polynomial Regression richiede un pipeline che include PolynomialFeatures e Linear Regression
+                 degree = parsed_params.get('degree', 2) # Assumi un parametro 'degree' per il grado polinomiale
+                 model_instance = make_pipeline(PolynomialFeatures(degree=degree), LinearRegression(**parsed_params))
+                 # Nota: Quando si usa make_pipeline così, model_instance è già il pipeline completo.
+                 # Dobbiamo gestire questo caso in modo diverso più avanti.
+                 model = model_instance # In questo caso, il pipeline è già il modello finale
+                 is_pipeline_already_set = True # Flag per saltare la creazione standard del pipeline sotto
+
+            elif algorithm_name == 'Support Vector Regression (SVR)':
+                 # Aggiungi gestione parametri kernel etc per SVR
+                 model_instance = SVR(**parsed_params)
+            elif algorithm_name == 'Decision Tree Regressor':
+                model_instance = DecisionTreeRegressor(**parsed_params, random_state=42)
+            elif algorithm_name == 'Random Forest Regressor':
+                model_instance = RandomForestRegressor(**parsed_params, random_state=42)
+            elif algorithm_name == 'Gradient Boosting Regressor (XGBoost)' or \
+                 algorithm_name == 'Gradient Boosting Regressor (LightGBM)' or \
+                 algorithm_name == 'Gradient Boosting Regressor (CatBoost)':
+                 # Usiamo scikit-learn's GradientBoostingRegressor come placeholder
+                 model_instance = GradientBoostingRegressor(**parsed_params, random_state=42)
+            elif algorithm_name == 'K-Nearest Neighbors Regressor':
+                 # Aggiungi gestione parametri per KNN Regressor se necessario
+                 model_instance = KNeighborsRegressor(**parsed_params)
+            elif algorithm_name == 'Neural Networks (MLPRegressor)':
+                 # Aggiungi gestione parametri per MLPRegressor
+                 model_instance = MLPRegressor(**parsed_params, random_state=42, max_iter=1000) # Aumenta max_iter se necessario
+            else:
+                return jsonify({'error': f'Algoritmo di regressione "{algorithm_name}" non supportato nel backend.'}), 400
+
+            # Gestisci il caso speciale di Polynomial Regression dove il pipeline è già stato creato
+            if algorithm_name != 'Polynomial Regression':
+                 model = Pipeline(steps=[('preprocessor', preprocessor),
+                                       ('regressor', model_instance)])
+            # Altrimenti, 'model' è già stato assegnato nel blocco Polynomial Regression
+
+        else:
+            return jsonify({'error': f'Tipo di problema "{problem_type}" non supportato.'}), 400
+
+        # --- Addestramento ---
+        app.logger.info('Inizio fase di addestramento.')
+        app.logger.info(f'Tipo di oggetto model prima del fit: {type(model)}')
+        # Per Polynomial Regression, il fit è già incluso nel make_pipeline
+        if algorithm_name != 'Polynomial Regression':
+             app.logger.info('Chiamata model.fit()...')
+             model.fit(X_train, y_train)
+             app.logger.info('Chiamata model.fit() completata.')
+        else:
+             app.logger.info('Polynomial Regression: fit incluso nel make_pipeline, saltando model.fit().')
+
+        y_pred = model.predict(X_test)
+
+        # --- Calcolo Metriche ---
+        metrics = {}
+        if problem_type == 'classification':
+            metrics['accuracy'] = accuracy_score(y_test, y_pred)
+            metrics['precision'] = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+            metrics['recall'] = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+            metrics['f1_score'] = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+            # Confusion matrix potrebbe essere utile, ma più complessa da inviare/visualizzare
+            # cm = confusion_matrix(y_test, y_pred)
+            # metrics['confusion_matrix'] = cm.tolist() # Converti a lista per JSON
+        
+        elif problem_type == 'regression':
+            metrics['r2_score'] = r2_score(y_test, y_pred)
+            metrics['mean_squared_error'] = mean_squared_error(y_test, y_pred)
+            metrics['mean_absolute_error'] = mean_absolute_error(y_test, y_pred)
+
+        # Prepara le informazioni sulle feature per la predizione
+        feature_info = {}
+        for feature in X.columns:
+            if pd.api.types.is_numeric_dtype(X[feature]):
+                feature_info[feature] = {
+                    'type': 'numeric',
+                    'min': float(X[feature].min()),
+                    'max': float(X[feature].max()),
+                    'default': float(X[feature].mean())
+                }
+            else:
+                feature_info[feature] = {
+                    'type': 'categorical',
+                    'values': X[feature].unique().tolist()
+                }
+
+        # Serialize the model and label encoder (if classification)
+        model_pickle = pickle.dumps(model)
+        label_encoder_pickle = pickle.dumps(le) if problem_type == 'classification' else None
+
+        # Store the serialized objects and other necessary info in the session
+        session['model_pickle'] = model_pickle
+        session['label_encoder_pickle'] = label_encoder_pickle
+        session['feature_columns'] = X.columns.tolist()
+        session['problem_type'] = problem_type
+
+        response_data = {
+            'metrics': metrics,
+            'feature_info': feature_info,
+            'message': 'Training completato con successo!'
+        }
+        app.logger.info(f"Risposta preparata: {response_data}")
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        app.logger.error(f"Errore in /train_model_unified: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': f'Errore interno del server: {str(e)}'}), 500
+
+
+# RAG (Retrieval-Augmented Generation) Routes
+
+def init_rag_database(db_path):
+    """Inizializza la tabella rag_documents nel database"""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS rag_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        processed BOOLEAN DEFAULT 0,
+        text_content TEXT,
+        embedding_path TEXT
+    )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+@app.route('/rag')
+@login_required
+def rag():
+    """Renderizza la pagina RAG"""
+    # Inizializza il database se necessario
+    db_path = get_user_db_path(session.get('username'))
+    init_rag_database(db_path)
+    return render_template('rag.html')
+
+@app.route('/upload_rag_document', methods=['POST'])
+@login_required
+def upload_rag_document():
+    """Endpoint per caricare documenti per RAG"""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'Nessun file inviato'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Nessun file selezionato'}), 400
+    
+    # Crea directory per documenti RAG dell'utente se non esiste
+    user_id = session.get('user_id')
+    user_rag_dir = os.path.join('user_data', str(user_id), 'rag_documents')
+    os.makedirs(user_rag_dir, exist_ok=True)
+    
+    # Salva il file con nome sicuro
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(user_rag_dir, filename)
+    
+    # Controlla se il file esiste già e aggiungi un suffisso numerico se necessario
+    base_name, extension = os.path.splitext(filename)
+    counter = 1
+    while os.path.exists(file_path):
+        filename = f"{base_name}_{counter}{extension}"
+        file_path = os.path.join(user_rag_dir, filename)
+        counter += 1
+    
+    try:
+        file.save(file_path)
+        
+        # Salva informazioni sul file nel database dell'utente
+        db_path = get_user_db_path(session.get('username'))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Crea tabella se non esiste
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rag_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            file_type TEXT NOT NULL,
+            size INTEGER NOT NULL,
+            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed BOOLEAN DEFAULT 0,
+            text_content TEXT,
+            embedding_path TEXT
+        )
+        ''')
+        
+        # Determina il tipo di file
+        file_type = extension.lower().replace('.', '')
+        file_size = os.path.getsize(file_path)
+        
+        # Inserisci record nel database
+        cursor.execute('''
+        INSERT INTO rag_documents (filename, file_path, file_type, size)
+        VALUES (?, ?, ?, ?)
+        ''', (filename, file_path, file_type, file_size))
+        
+        file_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'filename': filename,
+            'file_id': file_id
+        }), 200
+        
+    except Exception as e:
+        print(f"Errore durante il caricamento del file: {str(e)}")
+        # Se c'è un errore, elimina il file se è stato creato
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        return jsonify({
+            'success': False, 
+            'error': f'Errore durante il caricamento del file: {str(e)}'
+        }), 500
+
+@app.route('/process_rag_documents', methods=['POST'])
+@login_required
+def process_rag_documents():
+    """Avvia il processo di elaborazione dei documenti caricati"""
+    try:
+        user_id = session.get('user_id')
+        print(f"[DEBUG] Starting document processing for user {user_id}")
+        
+        # Crea directory per i file elaborati se non esiste
+        user_rag_processed_dir = os.path.join('user_data', str(user_id), 'rag_processed')
+        os.makedirs(user_rag_processed_dir, exist_ok=True)
+        
+        # Inizializza lo stato di elaborazione nella sessione
+        session['rag_processing'] = {
+            'status': 'starting',
+            'progress': 0,
+            'total_documents': 0,
+            'processed_documents': 0,
+            'failed_documents': 0,
+            'current_document': '',
+            'errors': []
+        }
+        
+        # Ottieni i documenti non elaborati dal database
+        db_path = get_user_db_path(session.get('username'))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+        SELECT id, filename, file_path, file_type FROM rag_documents 
+        WHERE processed = 0
+        ''')
+        
+        documents = cursor.fetchall()
+        conn.close()
+        
+        print(f"[DEBUG] Found {len(documents)} documents to process")
+        
+        # Aggiorna lo stato di elaborazione
+        session['rag_processing']['total_documents'] = len(documents)
+        session.modified = True
+        
+        if len(documents) == 0:
+            print("[DEBUG] No documents to process")
+            return jsonify({'success': False, 'error': 'Nessun documento da elaborare'}), 400
+        
+        # Avvia l'estrazione del testo
+        print("[DEBUG] Starting text extraction")
+        extract_text_from_documents()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Elaborazione documenti avviata', 
+            'document_count': len(documents)
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Error in process_rag_documents: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Errore durante l\'elaborazione dei documenti: {str(e)}'
+        }), 500
+
+@app.route('/check_text_extraction_status')
+@login_required
+def check_text_extraction_status():
+    """Controlla lo stato dell'estrazione del testo dai documenti"""
+    # In un'implementazione reale, questo dovrebbe controllare lo stato di un task asincrono
+    # Per questa demo, simuliamo l'avanzamento dell'estrazione del testo
+    
+    processing_state = session.get('rag_processing', {
+        'status': 'not_started',
+        'progress': 0,
+        'total_documents': 0,
+        'processed_documents': 0,
+        'failed_documents': 0,
+        'current_document': '',
+        'errors': []
+    })
+    
+    print(f"[DEBUG] Current processing state: {processing_state}")
+    
+    # Se non è stato avviato, avvia l'estrazione del testo
+    if processing_state['status'] == 'starting':
+        print("[DEBUG] Starting text extraction process")
+        # Simuliamo l'avvio dell'estrazione del testo
+        processing_state['status'] = 'extracting_text'
+        processing_state['progress'] = 10
+        session['rag_processing'] = processing_state
+        session.modified = True
+        
+        # Avvia l'estrazione del testo (simulata)
+        extract_text_from_documents()
+        
+        return jsonify({
+            'status_message': 'Avvio estrazione testo...',
+            'progress': 10,
+            'completed': False,
+            'success': True
+        })
+    
+    # Se l'estrazione è in corso, restituisci lo stato corrente
+    elif processing_state['status'] == 'extracting_text':
+        total = processing_state['total_documents']
+        processed = processing_state['processed_documents']
+        failed = processing_state['failed_documents']
+        current = processing_state['current_document']
+        
+        print(f"[DEBUG] Extraction in progress - Total: {total}, Processed: {processed}, Failed: {failed}, Current: {current}")
+        
+        # Calcola la percentuale di avanzamento (dal 10% al 50%)
+        if total > 0:
+            base_progress = 10
+            extraction_progress = int(40 * (processed + failed) / total)
+            progress = min(base_progress + extraction_progress, 50)
+        else:
+            progress = 10
+        
+        print(f"[DEBUG] Calculated progress: {progress}%")
+        
+        processing_state['progress'] = progress
+        session['rag_processing'] = processing_state
+        session.modified = True
+        
+        # Controlla se l'estrazione è completata
+        completed = (processed + failed) >= total
+        success = failed < total  # Consideriamo il processo riuscito se almeno un documento è stato elaborato con successo
+        
+        if completed:
+            print("[DEBUG] Text extraction completed")
+            processing_state['status'] = 'text_extraction_completed'
+            session['rag_processing'] = processing_state
+            session.modified = True
+        
+        return jsonify({
+            'status_message': f"Estrazione testo: {processed}/{total} documenti" + (f" (Elaborazione: {current})" if current else ""),
+            'progress': progress,
+            'completed': completed,
+            'success': success,
+            'errors': processing_state['errors'] if failed > 0 else []
+        })
+    
+    # Se l'estrazione è completata
+    elif processing_state['status'] == 'text_extraction_completed':
+        print("[DEBUG] Text extraction already completed")
+        return jsonify({
+            'status_message': 'Estrazione testo completata',
+            'progress': 50,
+            'completed': True,
+            'success': processing_state['failed_documents'] < processing_state['total_documents']
+        })
+    
+    # Se non è stato avviato
+    else:
+        print("[DEBUG] Text extraction not started")
+        return jsonify({
+            'status_message': 'Estrazione testo non avviata',
+            'progress': 0,
+            'completed': False,
+            'success': False
+        })
+
+def extract_text_from_documents():
+    """Estrae il testo dai documenti caricati"""
+    user_id = session.get('user_id')
+    db_path = get_user_db_path(session.get('username'))
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    print(f"[DEBUG] Starting text extraction for user {user_id}")
+    
+    # Ottieni i documenti non elaborati
+    cursor.execute('''
+    SELECT id, filename, file_path, file_type FROM rag_documents 
+    WHERE processed = 0
+    ''')
+    
+    documents = cursor.fetchall()
+    print(f"[DEBUG] Found {len(documents)} documents to process")
+    
+    for doc_id, filename, file_path, file_type in documents:
+        try:
+            print(f"[DEBUG] Processing document: {filename} (ID: {doc_id}, Type: {file_type})")
+            
+            # Aggiorna lo stato di elaborazione
+            processing_state = session.get('rag_processing', {})
+            processing_state['current_document'] = filename
+            session['rag_processing'] = processing_state
+            session.modified = True
+            
+            text_content = ""
+            
+            # Estrai il testo in base al tipo di file
+            if file_type in ['txt']:
+                print(f"[DEBUG] Extracting text from TXT file")
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text_content = f.read()
+                print(f"[DEBUG] Extracted {len(text_content)} characters from TXT")
+            
+            elif file_type in ['pdf']:
+                print(f"[DEBUG] Extracting text from PDF file")
+                import PyPDF2
+                with open(file_path, 'rb') as f:
+                    pdf_reader = PyPDF2.PdfReader(f)
+                    num_pages = len(pdf_reader.pages)
+                    print(f"[DEBUG] PDF has {num_pages} pages")
+                    text_content = ""
+                    for i, page in enumerate(pdf_reader.pages):
+                        print(f"[DEBUG] Processing page {i+1}/{num_pages}")
+                        page_text = page.extract_text() or ""
+                        text_content += page_text + "\n"
+                        print(f"[DEBUG] Extracted {len(page_text)} characters from page {i+1}")
+                print(f"[DEBUG] Total extracted text length: {len(text_content)} characters")
+            
+            elif file_type in ['doc', 'docx']:
+                print(f"[DEBUG] Extracting text from DOC/DOCX file")
+                import docx
+                doc = docx.Document(file_path)
+                text_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+                print(f"[DEBUG] Extracted {len(text_content)} characters from DOC/DOCX")
+            
+            elif file_type in ['jpg', 'jpeg', 'png']:
+                print(f"[DEBUG] Extracting text from image file")
+                import pytesseract
+                from PIL import Image
+                image = Image.open(file_path)
+                print(f"[DEBUG] Image size: {image.size}, format: {image.format}")
+                text_content = pytesseract.image_to_string(image, lang='ita+eng')
+                print(f"[DEBUG] Extracted {len(text_content)} characters from image")
+            
+            print(f"[DEBUG] Saving extracted text to database for document {doc_id}")
+            # Salva il testo estratto nel database
+            cursor.execute('''
+            UPDATE rag_documents 
+            SET text_content = ?, processed = 1
+            WHERE id = ?
+            ''', (text_content, doc_id))
+            
+            conn.commit()
+            print(f"[DEBUG] Successfully saved text to database for document {doc_id}")
+            
+            # Aggiorna il contatore dei documenti elaborati
+            processing_state = session.get('rag_processing', {})
+            processing_state['processed_documents'] += 1
+            session['rag_processing'] = processing_state
+            session.modified = True
+            print(f"[DEBUG] Updated processing state: {processing_state['processed_documents']} documents processed")
+            
+        except Exception as e:
+            print(f"[ERROR] Error processing document {filename}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            # Aggiorna il contatore dei documenti falliti
+            processing_state = session.get('rag_processing', {})
+            processing_state['failed_documents'] += 1
+            processing_state['errors'].append(f"Errore nel documento {filename}: {str(e)}")
+            session['rag_processing'] = processing_state
+            session.modified = True
+            print(f"[DEBUG] Updated processing state: {processing_state['failed_documents']} documents failed")
+    
+    print("[DEBUG] Text extraction process completed")
+    conn.close()
+
+@app.route('/create_rag_embeddings', methods=['POST'])
+@login_required
+def create_rag_embeddings():
+    """Avvia il processo di creazione degli embedding"""
+    try:
+        print("[DEBUG] Starting embedding creation process")
+        # Inizializza lo stato di elaborazione nella sessione
+        session['rag_embedding'] = {
+            'status': 'starting',
+            'progress': 0,
+            'total_documents': 0,
+            'processed_documents': 0,
+            'failed_documents': 0,
+            'errors': []
+        }
+        
+        # Ottieni i documenti da processare
+        db_path = get_user_db_path(session.get('username'))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+        SELECT id, text_content FROM rag_documents 
+        WHERE processed = 1 AND embedding_path IS NULL
+        ''')
+        
+        documents = cursor.fetchall()
+        conn.close()
+        
+        print(f"[DEBUG] Found {len(documents)} documents for embedding creation")
+        
+        # Aggiorna lo stato
+        session['rag_embedding']['total_documents'] = len(documents)
+        session['rag_embedding']['status'] = 'creating_embeddings'
+        session.modified = True
+        
+        if len(documents) == 0:
+            print("[DEBUG] No documents to create embeddings for")
+            return jsonify({'success': False, 'error': 'Nessun documento da elaborare'}), 400
+        
+        # Avvia il processo di creazione degli embedding
+        create_embeddings_for_documents()
+        
+        return jsonify({'success': True, 'message': 'Creazione embedding avviata'}), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Error in create_rag_embeddings: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Errore durante la creazione degli embedding: {str(e)}'
+        }), 500
+
+@app.route('/check_embedding_status')
+@login_required
+def check_embedding_status():
+    """Controlla lo stato della creazione degli embedding"""
+    try:
+        embedding_state = session.get('rag_embedding', {
+            'status': 'not_started',
+            'progress': 0,
+            'total_documents': 0,
+            'processed_documents': 0,
+            'failed_documents': 0,
+            'errors': []
+        })
+        
+        print(f"[DEBUG] Current embedding state: {embedding_state}")
+        
+        # Se non è stato avviato
+        if embedding_state['status'] == 'not_started':
+            print("[DEBUG] Embedding process not started")
+            return jsonify({
+                'status_message': 'Creazione embedding non avviata',
+                'progress': 0,
+                'completed': False,
+                'success': False
+            })
+        
+        # Se è in corso
+        elif embedding_state['status'] == 'creating_embeddings':
+            total = embedding_state['total_documents']
+            processed = embedding_state['processed_documents']
+            failed = embedding_state['failed_documents']
+            
+            print(f"[DEBUG] Embedding in progress - Total: {total}, Processed: {processed}, Failed: {failed}")
+            
+            # Calcola la percentuale di avanzamento (dal 60% al 100%)
+            if total > 0:
+                base_progress = 60
+                embedding_progress = int(40 * (processed + failed) / total)
+                progress = min(base_progress + embedding_progress, 100)
+            else:
+                progress = 60
+            
+            print(f"[DEBUG] Calculated progress: {progress}%")
+            
+            # Controlla se la creazione è completata
+            completed = (processed + failed) >= total
+            success = failed < total
+            
+            if completed:
+                print("[DEBUG] Embedding creation completed")
+                embedding_state['status'] = 'completed'
+                session['rag_embedding'] = embedding_state
+                session.modified = True
+            
+            return jsonify({
+                'status_message': f"Creazione embedding: {processed}/{total} documenti",
+                'progress': progress,
+                'completed': completed,
+                'success': success,
+                'errors': embedding_state['errors'] if failed > 0 else []
+            })
+        
+        # Se è completata
+        elif embedding_state['status'] == 'completed':
+            print("[DEBUG] Embedding creation already completed")
+            return jsonify({
+                'status_message': 'Creazione embedding completata',
+                'progress': 100,
+                'completed': True,
+                'success': True
+            })
+        
+        # Stato non riconosciuto
+        else:
+            print(f"[DEBUG] Unknown embedding state: {embedding_state['status']}")
+            return jsonify({
+                'status_message': 'Stato non riconosciuto',
+                'progress': 0,
+                'completed': False,
+                'success': False
+            })
+            
+    except Exception as e:
+        print(f"[ERROR] Error in check_embedding_status: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status_message': f'Errore durante il controllo dello stato: {str(e)}',
+            'progress': 0,
+            'completed': False,
+            'success': False
+        }), 500
+
+def create_embeddings_for_documents():
+    """Crea gli embedding per i documenti processati"""
+    try:
+        print("[DEBUG] Starting embedding creation process")
+        # Ottieni i documenti da processare
+        db_path = get_user_db_path(session.get('username'))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+        SELECT id, text_content FROM rag_documents 
+        WHERE processed = 1 AND embedding_path IS NULL
+        ''')
+        
+        documents = cursor.fetchall()
+        print(f"[DEBUG] Found {len(documents)} documents for embedding creation")
+        
+        if not documents:
+            print("[DEBUG] No documents to create embeddings for")
+            return
+        
+        # Aggiorna lo stato iniziale
+        session['rag_embedding'] = {
+            'status': 'creating_embeddings',
+            'progress': 0,
+            'total_documents': len(documents),
+            'processed_documents': 0,
+            'failed_documents': 0,
+            'errors': []
+        }
+        session.modified = True
+        
+        # Crea la directory per gli embedding se non esiste
+        embeddings_dir = os.path.join(os.path.dirname(db_path), 'embeddings')
+        os.makedirs(embeddings_dir, exist_ok=True)
+        
+        # Processa ogni documento
+        for doc_id, text_content in documents:
+            try:
+                print(f"[DEBUG] Creating embedding for document {doc_id}")
+                # Crea l'embedding
+                embedding = create_embedding(text_content)
+                
+                # Salva l'embedding
+                embedding_path = os.path.join(embeddings_dir, f'doc_{doc_id}.npy')
+                np.save(embedding_path, embedding)
+                
+                # Aggiorna il database
+                cursor.execute('''
+                UPDATE rag_documents 
+                SET embedding_path = ? 
+                WHERE id = ?
+                ''', (embedding_path, doc_id))
+                conn.commit()
+                
+                # Aggiorna lo stato
+                session['rag_embedding']['processed_documents'] += 1
+                session.modified = True
+                print(f"[DEBUG] Successfully created embedding for document {doc_id}")
+                
+            except Exception as e:
+                print(f"[ERROR] Error creating embedding for document {doc_id}: {str(e)}")
+                session['rag_embedding']['failed_documents'] += 1
+                session['rag_embedding']['errors'].append(f"Errore documento {doc_id}: {str(e)}")
+                session.modified = True
+        
+        # Aggiorna lo stato finale
+        session['rag_embedding']['status'] = 'completed'
+        session.modified = True
+        print("[DEBUG] Embedding creation process completed")
+        
+    except Exception as e:
+        print(f"[ERROR] Error in create_embeddings_for_documents: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        if 'rag_embedding' in session:
+            session['rag_embedding']['status'] = 'error'
+            session['rag_embedding']['errors'].append(str(e))
+            session.modified = True
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def create_embedding(text):
+    """Crea un embedding per il testo fornito"""
+    try:
+        print("[DEBUG] Creating embedding for text")
+        # Usa il modello per creare l'embedding
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        embedding = model.encode(text)
+        print(f"[DEBUG] Successfully created embedding of size {embedding.shape}")
+        return embedding
+    except Exception as e:
+        print(f"[ERROR] Error creating embedding: {str(e)}")
+        raise
+
+@app.route('/get_rag_documents')
+@login_required
+def get_rag_documents():
+    """Ottiene la lista dei documenti nella knowledge base"""
+    db_path = get_user_db_path(session.get('username'))
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Ottieni tutti i documenti elaborati
+    cursor.execute('''
+    SELECT id, filename, file_type, size, upload_date FROM rag_documents 
+    WHERE processed = 1
+    ''')
+    
+    documents = cursor.fetchall()
+    conn.close()
+    
+    # Formatta i risultati
+    document_list = []
+    for doc_id, filename, file_type, size, upload_date in documents:
+        document_list.append({
+            'id': doc_id,
+            'filename': filename,
+            'type': file_type,
+            'size': size,
+            'upload_date': upload_date
+        })
+    
+    return jsonify({'success': True, 'documents': document_list}), 200
+
+@app.route('/delete_rag_document/<int:doc_id>', methods=['DELETE'])
+@login_required
+def delete_rag_document(doc_id):
+    """Elimina un documento dalla knowledge base"""
+    db_path = get_user_db_path(session.get('username'))
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Ottieni il percorso del file e dell'embedding
+    cursor.execute('''
+    SELECT file_path, embedding_path FROM rag_documents 
+    WHERE id = ?
+    ''', (doc_id,))
+    
+    result = cursor.fetchone()
+    if not result:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Documento non trovato'}), 404
+    
+    file_path, embedding_path = result
+    
+    # Elimina il file se esiste
+    if file_path and os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Elimina l'embedding se esiste
+    if embedding_path and os.path.exists(embedding_path):
+        os.remove(embedding_path)
+    
+    # Elimina il record dal database
+    cursor.execute('''
+    DELETE FROM rag_documents 
+    WHERE id = ?
+    ''', (doc_id,))
+    
+    conn.commit()
+    
+    # Controlla se la knowledge base è vuota
+    cursor.execute('''
+    SELECT COUNT(*) FROM rag_documents 
+    WHERE processed = 1
+    ''')
+    
+    count = cursor.fetchone()[0]
+    empty_kb = count == 0
+    
+    conn.close()
+    
+    return jsonify({'success': True, 'empty_kb': empty_kb}), 200
+
+@app.route('/clear_rag_knowledge_base', methods=['POST'])
+@login_required
+def clear_rag_knowledge_base():
+    """Cancella l'intera knowledge base"""
+    user_id = session.get('user_id')
+    db_path = get_user_db_path(session.get('username'))
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Ottieni tutti i percorsi dei file e degli embedding
+    cursor.execute('''
+    SELECT file_path, embedding_path FROM rag_documents
+    ''')
+    
+    paths = cursor.fetchall()
+    
+    # Elimina tutti i file e gli embedding
+    for file_path, embedding_path in paths:
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        
+        if embedding_path and os.path.exists(embedding_path):
+            os.remove(embedding_path)
+    
+    # Elimina tutti i record dal database
+    cursor.execute('''
+    DELETE FROM rag_documents
+    ''')
+    
+    conn.commit()
+    conn.close()
+    
+    # Elimina le directory se vuote
+    user_rag_dir = os.path.join('user_data', str(user_id), 'rag_documents')
+    user_embeddings_dir = os.path.join('user_data', str(user_id), 'rag_embeddings')
+    
+    try:
+        if os.path.exists(user_rag_dir) and not os.listdir(user_rag_dir):
+            os.rmdir(user_rag_dir)
+        
+        if os.path.exists(user_embeddings_dir) and not os.listdir(user_embeddings_dir):
+            os.rmdir(user_embeddings_dir)
+    except Exception as e:
+        print(f"Errore nella pulizia delle directory: {str(e)}")
+    
+    return jsonify({'success': True}), 200
+
+@app.route('/check_rag_knowledge_base')
+@login_required
+def check_rag_knowledge_base():
+    """Controlla se esiste una knowledge base per l'utente"""
+    db_path = get_user_db_path(session.get('username'))
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Controlla se esistono documenti elaborati
+    cursor.execute('''
+    SELECT COUNT(*) FROM rag_documents 
+    WHERE processed = 1
+    ''')
+    
+    try:
+        count = cursor.fetchone()[0]
+        exists = count > 0
+    except:
+        # La tabella potrebbe non esistere
+        exists = False
+    
+    conn.close()
+    
+    return jsonify({'ready': exists}), 200
+
+@app.route('/rag_chat', methods=['POST'])
+@login_required
+def rag_chat():
+    """Gestisce le richieste di chat con la knowledge base"""
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Messaggio mancante'}), 400
+    
+    user_message = data['message']
+    
+    try:
+        print("[DEBUG] Starting chat processing")
+        # Crea l'embedding del messaggio dell'utente usando SentenceTransformer
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        query_embedding = model.encode(user_message)
+        print("[DEBUG] Created query embedding")
+        
+        # Cerca i documenti più rilevanti
+        db_path = get_user_db_path(session.get('username'))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id, text_content, embedding_path FROM rag_documents WHERE embedding_path IS NOT NULL')
+        documents = cursor.fetchall()
+        conn.close()
+        
+        print(f"[DEBUG] Found {len(documents)} documents with embeddings")
+        
+        # Calcola la similarità con ogni documento
+        similarities = []
+        for doc_id, text_content, embedding_path in documents:
+            try:
+                doc_embedding = np.load(embedding_path)
+                similarity = np.dot(query_embedding, doc_embedding) / (np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding))
+                similarities.append((doc_id, text_content, similarity))
+                print(f"[DEBUG] Calculated similarity for document {doc_id}: {similarity}")
+            except Exception as e:
+                print(f"[ERROR] Error calculating similarity for document {doc_id}: {str(e)}")
+                continue
+        
+        # Ordina per similarità e prendi i primi 3 documenti
+        similarities.sort(key=lambda x: x[2], reverse=True)
+        top_docs = similarities[:3]
+        
+        print(f"[DEBUG] Selected top {len(top_docs)} documents")
+        
+        # Funzione per dividere il testo in chunks
+        def split_text_into_chunks(text, max_chunk_size=4000):
+            words = text.split()
+            chunks = []
+            current_chunk = []
+            current_size = 0
+            
+            for word in words:
+                current_chunk.append(word)
+                current_size += len(word) + 1  # +1 per lo spazio
+                
+                if current_size >= max_chunk_size:
+                    chunks.append(' '.join(current_chunk))
+                    current_chunk = []
+                    current_size = 0
+            
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+            
+            return chunks
+        
+        # Prepara il contesto per il modello
+        context_chunks = []
+        for i, doc in enumerate(top_docs):
+            doc_chunks = split_text_into_chunks(doc[1])
+            for chunk in doc_chunks:
+                context_chunks.append(f"Documento {i+1} (parte):\n{chunk}")
+        
+        # Se abbiamo troppi chunks, prendiamo solo i più rilevanti
+        if len(context_chunks) > 3:
+            context_chunks = context_chunks[:3]
+        
+        context = "\n\n".join(context_chunks)
+        
+        # Genera la risposta usando GPT-4 con streaming
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": """Sei un assistente esperto che risponde alle domande basandosi sul contesto fornito. 
+                Il tuo compito è:
+                1. Analizzare attentamente i documenti forniti
+                2. Rispondere alla domanda dell'utente basandoti SOLO sulle informazioni presenti nei documenti
+                3. Se la risposta non può essere dedotta dal contesto, dillo chiaramente
+                4. Se ci sono informazioni contraddittorie nei documenti, segnalalo
+                5. Cita i documenti specifici quando possibile
+                6. Fornisci risposte dettagliate e precise"""},
+                {"role": "user", "content": f"Contesto:\n{context}\n\nDomanda: {user_message}"}
+            ],
+            temperature=0.7,
+            max_tokens=2000,
+            stream=True  # Abilita lo streaming
+        )
+        
+        print("[DEBUG] Generated streaming response from GPT-4")
+
+        def generate():
+            for chunk in response:
+                if chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        
+        return Response(generate(), mimetype='text/event-stream')
+        
+    except Exception as e:
+        print(f"[ERROR] Error in rag_chat: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Errore nella generazione della risposta'}), 500
+
 if __name__ == '__main__':
     # In ambiente di sviluppo
     app.run(debug=True)
@@ -2261,3 +3499,238 @@ Formato richiesto:
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/generate-lesson', methods=['POST'])
+@login_required
+def generate_lesson():
+    try:
+        data = request.get_json()
+        grade = data.get('grade')
+        subject = data.get('subject')
+        topic = data.get('topic')
+        
+        prompt = f"""Genera una mini-lezione di matematica per:
+- Classe: {grade}
+- Materia: {subject}
+- Argomento: {topic}
+
+La lezione deve:
+1. Essere concisa (max 15 righe)
+2. Spiegare i concetti in modo chiaro e didattico
+3. Includere esempi pratici
+4. Usare formule in LaTeX quando necessario (es: \\(x^2 + 3x = 0\\))
+5. Essere adatta al livello scolastico indicato"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un insegnante di matematica esperto. Scrivi lezioni chiare e didattiche."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        lesson = response.choices[0].message.content.strip()
+        
+        return jsonify({
+            'status': 'success',
+            'lesson': lesson
+        })
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/generate-exercise', methods=['POST'])
+@login_required
+def generate_exercise():
+    try:
+        data = request.get_json()
+        grade = data.get('grade')
+        subject = data.get('subject')
+        topic = data.get('topic')
+        exercise_type = data.get('exerciseType')
+        
+        prompt = f"""Genera un esercizio di matematica per:
+- Classe: {grade}
+- Materia: {subject}
+- Argomento: {topic}
+- Tipo: {exercise_type}
+
+Formato richiesto:
+1. Domanda chiara in italiano
+2. Formule in LaTeX (es: \\(x^2 + 3x = 0\\))
+3. Risposta corretta tra [RISPOSTA]...[/RISPOSTA]
+
+Per il tipo di esercizio:
+- 'fill': domanda con risposta numerica o algebrica
+- 'text': domanda che richiede una spiegazione in italiano
+- 'image': domanda che richiede di mostrare i passaggi della soluzione"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un tutor di matematica esperto. Genera esercizi appropriati per il livello scolastico indicato."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        content = response.choices[0].message.content
+        exercise = content.split('[RISPOSTA]')[0].strip()
+        answer = content.split('[RISPOSTA]')[1].split('[/RISPOSTA]')[0].strip()
+        
+        return jsonify({
+            'status': 'success',
+            'exercise': exercise,
+            'answer': answer
+        })
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/check-answer', methods=['POST'])
+@login_required
+def check_answer():
+    try:
+        data = request.get_json()
+        answer = data.get('answer')
+        exercise_type = data.get('exerciseType')
+        correct_answer = data.get('correctAnswer')
+        
+        if exercise_type == 'fill':
+            # Per risposte numeriche/algebriche, normalizza e confronta
+            is_correct = normalize_answer(answer) == normalize_answer(correct_answer)
+            feedback = "Risposta corretta!" if is_correct else f"Risposta errata. La soluzione corretta è: {correct_answer}"
+        
+        elif exercise_type == 'text':
+            # Per risposte testuali, usa GPT per valutare
+            prompt = f"""Valuta se la risposta dello studente è corretta rispetto alla soluzione attesa.
+            
+Soluzione attesa:
+{correct_answer}
+
+Risposta dello studente:
+{answer}
+
+Rispondi con un JSON nel formato:
+{{
+    "is_correct": true/false,
+    "feedback": "spiegazione dettagliata"
+}}"""
+
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Sei un insegnante di matematica che valuta le risposte degli studenti."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=200
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            is_correct = result['is_correct']
+            feedback = result['feedback']
+        
+        else:
+            return jsonify({'status': 'error', 'message': 'Tipo di esercizio non supportato'}), 400
+        
+        return jsonify({
+            'status': 'success',
+            'isCorrect': is_correct,
+            'feedback': feedback
+        })
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/check-image-answer', methods=['POST'])
+@login_required
+def check_image_answer():
+    try:
+        if 'image' not in request.files:
+            return jsonify({'status': 'error', 'message': 'Nessuna immagine caricata'}), 400
+        
+        image = request.files['image']
+        correct_answer = request.form.get('correctAnswer')
+        
+        # Salva temporaneamente l'immagine
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + secure_filename(image.filename))
+        image.save(temp_path)
+        
+        try:
+            # Usa GPT-4 Vision per analizzare l'immagine
+            with open(temp_path, 'rb') as img_file:
+                base64_image = base64.b64encode(img_file.read()).decode('utf-8')
+            
+            prompt = f"""Analizza l'immagine della soluzione di un esercizio di matematica e verifica se è corretta.
+            
+Soluzione attesa:
+{correct_answer}
+
+Rispondi con un JSON nel formato:
+{{
+    "is_correct": true/false,
+    "feedback": "spiegazione dettagliata"
+}}"""
+
+            response = openai.ChatCompletion.create(
+                model="gpt-4-vision-preview",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=300
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            
+            return jsonify({
+                'status': 'success',
+                'isCorrect': result['is_correct'],
+                'feedback': result['feedback']
+            })
+            
+        finally:
+            # Pulisci il file temporaneo
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+    
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def normalize_answer(answer):
+    """Normalizza una risposta matematica per il confronto."""
+    # Rimuovi spazi extra
+    answer = ' '.join(answer.split())
+    
+    # Converti in minuscolo
+    answer = answer.lower()
+    
+    # Sostituisci caratteri speciali
+    replacements = {
+        '×': '*',
+        '÷': '/',
+        '²': '^2',
+        '³': '^3',
+        '√': 'sqrt',
+        'π': 'pi',
+        '∞': 'inf'
+    }
+    
+    for old, new in replacements.items():
+        answer = answer.replace(old, new)
+    
+    return answer

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block head_scripts %}
+    {{ super() }}
+    <!-- Script per Dropzone.js (upload file) -->
+    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header Pagina -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Retrieval-Augmented Generation (RAG)</h1>
+        <p class="text-gray-600">Carica documenti, crea una knowledge base e interagisci con un chatbot basato sui tuoi dati.</p>
+    </div>
+
+    <!-- Layout Principale a Due Colonne -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Colonna Sinistra: Caricamento Documenti e Knowledge Base -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- 1. Sezione Caricamento Documenti -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Carica Documenti</h2>
+                <p class="text-sm text-gray-500 mb-4">Supporta file .pdf, .doc, .docx, .txt e immagini</p>
+                
+                <div id="dropzone-container" class="border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer">
+                    <form id="document-upload" action="/upload_rag_document" method="post" enctype="multipart/form-data">
+                        <div class="dz-message text-center">
+                            <div class="text-lg font-medium text-gray-500">Trascina qui i file o clicca per caricare</div>
+                            <div class="text-sm text-gray-400 mt-2">Dimensione massima: 10MB per file</div>
+                            <input type="file" id="fallback-file-input" name="file" multiple class="hidden" />
+                            <button type="button" id="browse-files-btn" class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline">
+                                Sfoglia file
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="mt-4 flex justify-end">
+                    <button id="process-documents-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:opacity-50" disabled>
+                        Processa Documenti
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Sezione Knowledge Base -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">2. Knowledge Base</h2>
+                
+                <div id="knowledge-base-status" class="p-3 bg-gray-50 rounded-md mb-4">
+                    <div class="flex items-center">
+                        <div id="status-icon" class="mr-3">
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p id="status-message" class="text-sm font-medium text-gray-700">Nessun documento processato</p>
+                            <p id="status-details" class="text-xs text-gray-500">Carica e processa i documenti per creare la knowledge base</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="document-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                
+                <div class="mt-4 flex justify-end">
+                    <button id="clear-knowledge-base-btn" class="text-red-600 hover:text-red-800 text-sm font-medium py-1 px-2 rounded-md focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Cancella Knowledge Base
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonna Destra: Chat Interface -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg h-[600px] flex flex-col">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Chat con la tua Knowledge Base</h2>
+                
+                <!-- Chat Messages Container -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto mb-4 space-y-4 p-2">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">AI</div>
+                        </div>
+                        <div class="ml-3 bg-gray-100 p-3 rounded-lg max-w-[80%]">
+                            <p class="text-sm text-gray-800">Ciao! Carica dei documenti e processali per creare una knowledge base. Poi potrai farmi domande sui tuoi documenti.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="mt-auto">
+                    <form id="chat-form" class="flex items-center">
+                        <input id="chat-input" type="text" placeholder="Scrivi un messaggio..." class="flex-1 border border-gray-300 rounded-l-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" disabled>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-r-lg focus:outline-none focus:shadow-outline disabled:opacity-50" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Processing Status -->
+            <div id="processing-status" class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Stato Elaborazione</h3>
+                <div class="space-y-4">
+                    <div class="relative pt-1">
+                        <div class="flex mb-2 items-center justify-between">
+                            <div>
+                                <span id="current-process" class="text-xs font-semibold inline-block text-indigo-600">
+                                    In attesa...
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <span id="progress-percentage" class="text-xs font-semibold inline-block text-indigo-600">
+                                    0%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200">
+                            <div id="progress-bar" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="process-details" class="text-sm text-gray-600">
+                        <p>In attesa dell'elaborazione dei documenti...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@babel/polyfill@7.12.1/dist/polyfill.min.js"></script>
+<script src="{{ url_for('static', filename='js/rag.js') }}" defer></script>
+{% endblock %}

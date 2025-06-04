@@ -1,0 +1,105 @@
+{% extends "base_with_console.html" %}
+
+{% block head_scripts %}
+    {{ super() }}
+    <!-- Script per PapaParse (parsing CSV) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <!-- Script per Chart.js (grafici) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Script per Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Script personalizzato per la pagina -->
+    <script src="{{ url_for('static', filename='js/machinelearning2.js') }}" defer></script>
+{% endblock %}
+
+{% block main_content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+    <!-- Header Pagina -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Intelligent Machine Learning</h1>
+        <p class="text-gray-600">Unifica classificazione e regressione con suggerimenti intelligenti.</p>
+    </div>
+
+    <!-- Layout Principale a Due Colonne -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <!-- Colonna Sinistra: Caricamento Dataset, Anteprima Dati e Visualizzazioni -->
+        <div class="space-y-6">
+            <!-- 1. Sezione Caricamento Dataset -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Carica il tuo Dataset</h2>
+                <div>
+                    <label for="csv-file-input" class="block text-sm font-medium text-gray-700">File CSV</label>
+                    <input type="file" id="csv-file-input" accept=".csv" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                </div>
+            </div>
+
+            <!-- Contenitore per Anteprima Dati e Visualizzazioni (mostrato dopo il caricamento) -->
+            <div id="data-visualization-section" class="space-y-6 hidden">
+                <!-- Anteprima Dati -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                     <h3 class="text-xl font-semibold text-gray-700 mb-4">Anteprima Dati (prime 5 righe)</h3>
+                    <div id="data-preview-table" class="overflow-x-auto max-h-60 border border-gray-200 rounded"></div>
+                </div>
+
+                <!-- I grafici 3D e la matrice di correlazione verranno inseriti qui dinamicamente dal JS -->
+            </div>
+        </div>
+
+        <!-- Colonna Destra: Configurazione Analisi, Risultati Training e Inferenza -->
+        <div class="space-y-6">
+            <!-- 2. Sezione Configurazione Analisi (mostrata dopo il caricamento dati) -->
+            <div id="analysis-setup-section" class="bg-white p-6 rounded-lg shadow-lg hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">2. Configura Analisi</h2>
+
+                <!-- Selezione Colonna Target -->
+                <div class="mb-4">
+                    <label for="target-column-select" class="block text-sm font-medium text-gray-700">Colonna Target</label>
+                    <select id="target-column-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
+                </div>
+
+                <!-- Tipo di Problema -->
+                <div class="mb-4">
+                    <label for="problem-type-select" class="block text-sm font-medium text-gray-700">Tipo di Problema</label>
+                    <select id="problem-type-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="" disabled selected>Seleziona tipo...</option>
+                        <option value="classification">Classificazione</option>
+                        <option value="regression">Regressione</option>
+                    </select>
+                </div>
+
+                <!-- Selezione Algoritmo -->
+                <div class="mb-4">
+                    <label for="algorithm-select" class="block text-sm font-medium text-gray-700">Algoritmo</label>
+                    <select id="algorithm-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
+                </div>
+
+                <!-- Parametri Algoritmo -->
+                <div id="algorithm-params-container" class="mb-4 space-y-3"></div>
+
+                <button id="train-model-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:opacity-50" disabled>
+                    Addestra Modello
+                </button>
+            </div>
+
+            <!-- 3. Sezione Risultati Training (mostrata dopo il training) -->
+            <div id="training-results-section" class="bg-white p-6 rounded-lg shadow-lg hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Risultati del Training</h2>
+                <div id="metrics-container" class="mb-4"></div>
+                <!-- La sezione visualizzazione-container è ora nella colonna di sinistra -->
+            </div>
+
+            <!-- 4. Sezione Inferenza (mostrata dopo il training) -->
+            <div id="inference-section" class="bg-white p-6 rounded-lg shadow-lg hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">4. Effettua una Previsione</h2>
+                <div id="inference-form-container" class="space-y-3 mb-4"></div>
+                <button id="predict-button" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline">
+                    Esegui Previsione
+                </button>
+                <div id="prediction-result-container" class="mt-4 p-3 bg-gray-50 rounded-md"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

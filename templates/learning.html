@@ -1,27 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="learningpage-container flex h-[70vh] w-full max-w-5xl ml-4 mt-8 rounded-xl shadow-lg overflow-hidden bg-white">
+<div class="learningpage-container flex h-auto min-h-[80vh] w-full max-w-full mx-4 my-8 rounded-xl shadow-lg overflow-hidden bg-white">
+    <style>
+        /* Stili per forzare l'allineamento a sinistra e riempire lo spazio disponibile */
+        .learningpage-container {
+            max-width: calc(100% - 2rem) !important;
+        }
+        .main-content-left {
+            padding-left: 1rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+        }
+        .main-content-left > div {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+            text-align: left !important;
+        }
+        #lesson-section {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+            justify-content: flex-start !important;
+        }
+        #lesson-content {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+        }
+    </style>
     <!-- Sidebar -->
     <aside class="sidebar w-64 bg-gray-50 border-r flex flex-col p-3 overflow-y-auto">
-        <h2 class="text-lg font-bold text-[#ff1649] mb-3 border-b pb-1">Lezioni salvate</h2>
+        <div class="flex justify-between items-center mb-3 border-b pb-1">
+            <h2 class="text-lg font-bold text-[#ff1649]">Lezioni salvate</h2>
+            <button id="delete-all-btn" class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-all" title="Elimina tutte le lezioni">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
         <div id="lessons-list" class="flex-1 overflow-y-auto space-y-2">
             <div class="text-gray-400 text-center">Nessuna lezione</div>
         </div>
         
         <!-- Template for lesson items that will be cloned by JavaScript -->
         <template id="lesson-item-template">
-            <div class="lesson-item flex items-center p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-all">
+            <div class="lesson-item flex items-center p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-all group relative">
                 <svg class="w-5 h-5 text-[#ff1649] mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 <span class="lesson-title text-sm font-medium text-gray-700 truncate"></span>
+                <!-- Bottone di eliminazione che appare al passaggio del mouse -->
+                <button class="delete-lesson-btn absolute right-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-all" title="Elimina lezione">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
         </template>
     </aside>
     <!-- Main -->
-    <main class="flex-1 flex flex-col justify-start">
-        <div class="w-full max-w-xl mx-auto mt-4 mb-2">
-            <label for="topic-input" class="block text-lg font-medium text-gray-700 mb-2 text-center">Scrivi un argomento per generare una mini-lezione</label>
+    <main class="flex-1 flex flex-col justify-start pl-6 pr-6 main-content-left">
+        <div class="w-full ml-0 mt-4 mb-2">
+            <label for="topic-input" class="block text-lg font-medium text-gray-700 mb-2 text-left">Scrivi un argomento per generare una mini-lezione</label>
             <div class="flex gap-1 items-center">
                 <input id="topic-input" type="text" placeholder="Es: La fotosintesi clorofilliana" class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#ff1649] text-lg shadow-sm">
                 <button id="generate-btn" class="bg-[#ff1649] hover:bg-[#e01440] text-white rounded-r-lg px-5 py-3 flex items-center gap-2 transition-all shadow-md">
@@ -33,16 +72,16 @@
                 </button>
             </div>
         </div>
-        <div id="lesson-section" class="w-full max-w-3xl mx-auto bg-white rounded-lg shadow p-0 hidden flex-col mt-4">
+        <div id="lesson-section" class="w-full ml-0 bg-white rounded-lg shadow p-0 hidden flex-col mt-4">
             <div class="flex border-b bg-gray-100 rounded-t-lg">
                 <button id="tab-lesson" class="tab-btn flex-1 py-2 text-base font-semibold border-b-2 border-[#ff1649] text-[#ff1649] bg-red-50 rounded-tl-lg">Lezione</button>
                 <button id="tab-quiz" class="tab-btn flex-1 py-2 text-base font-semibold border-b-2 border-transparent text-gray-500 bg-white rounded-tr-lg">Quiz</button>
             </div>
             <div class="tab-content">
-                <div id="tab-content-lesson" class="p-6 bg-white overflow-y-auto" style="max-height: 60vh; display: block;">
+                <div id="tab-content-lesson" class="p-6 bg-white overflow-y-auto" style="max-height: calc(70vh - 100px); display: block;">
                     <div class="card-box bg-gray-50 rounded-lg shadow p-6">
                         <h2 id="lesson-title" class="text-xl font-bold text-[#ff1649] mb-2"></h2>
-                        <div id="lesson-content" class="prose prose-base max-w-[700px] mx-auto mb-6"></div>
+                        <div id="lesson-content" class="prose prose-base w-full ml-0 mb-6"></div>
                         <div id="approfondimenti-section" class="mt-6 pt-4 border-t border-gray-200">
                             <h3 class="text-lg font-semibold text-[#ff1649] mb-3">Approfondimenti</h3>
                             <div id="approfondimenti-buttons" class="flex flex-wrap gap-2"></div>
@@ -57,7 +96,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="tab-content-quiz" class="p-6 bg-white overflow-y-auto" style="max-height: 60vh; display: none;">
+                <div id="tab-content-quiz" class="p-6 bg-white overflow-y-auto" style="max-height: calc(70vh - 100px); display: none;">
                     <div class="card-box bg-gray-50 rounded-lg shadow p-6">
                         <div id="quiz-section">
                             <h3 class="text-lg font-bold text-[#ff1649] mb-3">Quiz sulla lezione</h3>
@@ -94,16 +133,128 @@ function loadLessonsList(selectedId=null) {
             list.innerHTML = '<div class="text-gray-400 text-center">Nessuna lezione</div>';
             return;
         }
+        
         data.lessons.forEach(lesson => {
-            let dotClass = 'orange';
-            if (lesson.status === 'done') dotClass = 'green';
-            const btn = document.createElement('div');
-            btn.className = `lesson-item${selectedId == lesson.id ? ' selected' : ''}`;
-            btn.innerHTML = `<span class="lesson-status-dot ${dotClass}"></span><span>${lesson.title}</span>`;
-            btn.onclick = () => showLesson(lesson.id);
-            list.appendChild(btn);
+            // Clona il template per ogni lezione
+            const template = document.getElementById('lesson-item-template');
+            const clone = document.importNode(template.content, true);
+            const itemEl = clone.querySelector('.lesson-item');
+            
+            // Aggiungi la classe 'selected' se questa è la lezione selezionata
+            if (selectedId == lesson.id) {
+                itemEl.classList.add('selected');
+            }
+            
+            // Imposta il titolo della lezione
+            const titleEl = clone.querySelector('.lesson-title');
+            titleEl.textContent = lesson.title;
+            
+            // Aggiungi l'indicatore di stato (punto colorato)
+            let dotClass = lesson.status === 'done' ? 'green' : 'orange';
+            const dotEl = document.createElement('span');
+            dotEl.className = `lesson-status-dot ${dotClass}`;
+            itemEl.insertBefore(dotEl, titleEl);
+            
+            // Configura il click sulla lezione (ma non sul bottone di eliminazione)
+            itemEl.dataset.id = lesson.id;
+            itemEl.addEventListener('click', function(e) {
+                // Verifica che il click non sia sul bottone di eliminazione
+                if (!e.target.closest('.delete-lesson-btn')) {
+                    showLesson(lesson.id);
+                }
+            });
+            
+            // Configura il bottone di eliminazione
+            const deleteBtn = clone.querySelector('.delete-lesson-btn');
+            deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation(); // Previene il click sulla lezione
+                deleteLesson(lesson.id, lesson.title);
+            });
+            
+            list.appendChild(clone);
         });
     });
+}
+
+// Elimina una singola lezione
+function deleteLesson(id, title) {
+    if (!confirm(`Sei sicuro di voler eliminare la lezione "${title}"?`)) {
+        return;
+    }
+    
+    fetch(`/delete_lesson/${id}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Ricarica la lista delle lezioni
+            loadLessonsList();
+            // Se la lezione corrente è stata eliminata, pulisci l'area principale
+            if (window.currentLesson && window.currentLesson.id == id) {
+                resetMainContent();
+            }
+            showToast('Lezione eliminata con successo', 'success');
+        } else {
+            showToast('Errore durante l\'eliminazione della lezione', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        showToast('Errore durante l\'eliminazione della lezione', 'error');
+    });
+}
+
+// Elimina tutte le lezioni
+function deleteAllLessons() {
+    if (!confirm('Sei sicuro di voler eliminare tutte le lezioni? Questa azione non può essere annullata.')) {
+        return;
+    }
+    
+    fetch('/delete_all_lessons', {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Ricarica la lista delle lezioni (sarà vuota)
+            loadLessonsList();
+            // Pulisci l'area principale
+            resetMainContent();
+            showToast('Tutte le lezioni sono state eliminate', 'success');
+        } else {
+            showToast('Errore durante l\'eliminazione delle lezioni', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        showToast('Errore durante l\'eliminazione delle lezioni', 'error');
+    });
+}
+
+// Resetta il contenuto principale
+function resetMainContent() {
+    // Nascondi il contenuto della lezione e mostra il messaggio iniziale
+    document.getElementById('lesson-container').classList.add('hidden');
+    document.getElementById('initial-message').classList.remove('hidden');
+    document.getElementById('loading-message').classList.add('hidden');
+    // Pulisci le variabili globali
+    window.currentLesson = null;
+    window.currentApprofondimenti = [];
+}
+
+// Mostra un toast di notifica
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white z-50`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Rimuovi il toast dopo 3 secondi
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
 }
 
 // Mostra una lezione e quiz
@@ -277,6 +428,8 @@ function renderLesson(lesson, quiz) {
     // Mostra la sezione lezione
     document.getElementById('lesson-section').classList.remove('hidden');
     document.getElementById('lesson-section').style.display = 'flex';
+    document.getElementById('lesson-section').style.justifyContent = 'flex-start';
+    document.getElementById('lesson-section').style.marginLeft = '0';
     
     // Assicurati che il tab Lezione sia attivo di default
     if (window.activateTabLesson) {
@@ -332,19 +485,32 @@ function generateApprofondimenti(title, content) {
 // Funzione per espandere un approfondimento
 function expandApprofondimento(title, content) {
     const lessonContent = document.getElementById('lesson-content');
+    const lessonTitle = document.getElementById('lesson-title').textContent;
     
-    // Crea un elemento per l'approfondimento
+    // Crea un elemento per l'approfondimento con indicatore di caricamento
     const approfondimentoEl = document.createElement('div');
     approfondimentoEl.className = 'mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200';
+    approfondimentoEl.id = `approfondimento-${title.replace(/\s+/g, '-').toLowerCase()}`;
     approfondimentoEl.innerHTML = `
         <h4 class="text-lg font-semibold text-blue-800 mb-2">Approfondimento: ${title}</h4>
-        <div class="prose prose-sm">${content.replace(/\n/g, '<br>')}</div>
+        <div class="prose prose-sm approfondimento-content">
+            <div class="flex items-center justify-center py-4">
+                <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="ml-2 text-blue-800">Generazione approfondimento in corso...</span>
+            </div>
+        </div>
     `;
     
     // Aggiungi l'approfondimento al contenuto della lezione
     lessonContent.appendChild(approfondimentoEl);
     
-    // Aggiungi l'approfondimento alla lista di quelli visualizzati
+    // Scorri fino all'approfondimento
+    approfondimentoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Evita duplicati nella lista di approfondimenti visualizzati
     if (!window.currentApprofondimenti) {
         window.currentApprofondimenti = [];
     }
@@ -356,8 +522,42 @@ function expandApprofondimento(title, content) {
         console.log('Approfondimento aggiunto:', title);
     }
     
-    // Scorri fino all'approfondimento
-    approfondimentoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Chiamata API per generare un approfondimento dettagliato
+    fetch('/generate_detailed_approfondimento', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            title: title,
+            lesson_title: lessonTitle,
+            lesson_content: document.getElementById('lesson-content').textContent
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Aggiorna il contenuto dell'approfondimento con il contenuto dettagliato
+            const contentEl = approfondimentoEl.querySelector('.approfondimento-content');
+            contentEl.innerHTML = data.content;
+            
+            // Aggiorna l'approfondimento nella lista di quelli visualizzati con il contenuto dettagliato
+            const index = window.currentApprofondimenti.findIndex(app => app.title === title);
+            if (index !== -1) {
+                // Salva sia il contenuto HTML formattato che una versione testuale per il quiz
+                window.currentApprofondimenti[index].content = data.content;
+                window.currentApprofondimenti[index].text_content = document.createElement('div').textContent = data.content.replace(/<[^>]*>/g, ' ');
+            }
+        } else {
+            // In caso di errore, mostra un messaggio
+            const contentEl = approfondimentoEl.querySelector('.approfondimento-content');
+            contentEl.innerHTML = `<p class="text-red-600">Errore nella generazione dell'approfondimento: ${data.error || 'Si è verificato un errore'}</p>`;
+        }
+    })
+    .catch(err => {
+        // In caso di errore di rete, mostra un messaggio
+        const contentEl = approfondimentoEl.querySelector('.approfondimento-content');
+        contentEl.innerHTML = `<p class="text-red-600">Errore di connessione: impossibile generare l'approfondimento</p>`;
+        console.error('Errore nella generazione dell\'approfondimento:', err);
+    });
 }
 
 // Funzione per renderizzare il quiz
@@ -420,8 +620,15 @@ document.getElementById('topic-input').addEventListener('keydown', function(e) {
 });
 
 // Inizializzazione
-window.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica lo storico lezioni
     loadLessonsList();
+    
+    // Configura il bottone per eliminare tutte le lezioni
+    const deleteAllBtn = document.getElementById('delete-all-btn');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', deleteAllLessons);
+    }
     setupTabs();
 });
 </script>

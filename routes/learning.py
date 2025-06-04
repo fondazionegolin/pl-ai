@@ -149,6 +149,50 @@ def generate_approfondimenti():
         print('Errore in generate_approfondimenti:', traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@learning.route('/generate_detailed_approfondimento', methods=['POST'])
+@login_required
+def generate_detailed_approfondimento():
+    try:
+        data = request.get_json()
+        title = data.get('title', '')
+        lesson_title = data.get('lesson_title', '')
+        lesson_content = data.get('lesson_content', '')
+        
+        if not title or not lesson_content:
+            return jsonify({'success': False, 'error': 'Titolo o contenuto mancante'}), 400
+        
+        # Prompt per OpenAI per generare un approfondimento dettagliato
+        prompt = f"""Basandoti sulla seguente lezione dal titolo '{lesson_title}', genera un approfondimento dettagliato sul tema specifico '{title}'.
+        L'approfondimento deve essere completo, informativo e ben strutturato, con una lunghezza di almeno 300-400 parole.
+        Includi informazioni rilevanti, esempi, e dettagli che espandono la comprensione dell'argomento.
+        
+        Lezione originale:
+        {lesson_content}
+        
+        Titolo dell'approfondimento: {title}
+        
+        Fornisci un approfondimento completo e ben strutturato in formato HTML con paragrafi (<p>), titoli (<h3>, <h4>) e liste (<ul>, <li>) dove appropriato.
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        # Ottieni il contenuto dell'approfondimento
+        detailed_content = response.choices[0].message.content
+        
+        return jsonify({
+            'success': True, 
+            'title': title,
+            'content': detailed_content
+        })
+            
+    except Exception as e:
+        import traceback
+        print('Errore in generate_detailed_approfondimento:', traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @learning.route('/generate_quiz', methods=['POST'])
 @login_required
 def generate_quiz():
@@ -178,8 +222,13 @@ def generate_quiz():
         if approfondimenti:
             full_content += "\n\nApprofondimenti:\n"
             for app in approfondimenti:
-                if isinstance(app, dict) and 'title' in app and 'content' in app:
-                    full_content += f"\n{app['title']}:\n{app['content']}\n"
+                if isinstance(app, dict) and 'title' in app:
+                    # Usa text_content se disponibile (versione senza HTML), altrimenti usa content
+                    app_content = app.get('text_content', app.get('content', ''))
+                    # Rimuovi eventuali tag HTML residui
+                    import re
+                    app_content = re.sub(r'<[^>]*>', ' ', app_content)
+                    full_content += f"\n{app['title']}:\n{app_content}\n"
         
         # Prompt OpenAI per le domande
         prompt_quiz = f"""Crea 5 domande a risposta multipla (con 4 opzioni ciascuna) basate sulla seguente mini-lezione e sui suoi approfondimenti. 
@@ -599,25 +648,49 @@ def submit_answer():
         print(f"Errore nel submit della risposta: {e}")
         return jsonify({'error': str(e)}), 500
 
-@learning.route('/delete_topic/<topic_id>', methods=['DELETE'])
+@learning.route('/delete_lesson/<lesson_id>', methods=['DELETE'])
 @login_required
-def delete_topic(topic_id):
+def delete_lesson(lesson_id):
     try:
         conn = get_user_db(session['username'])
         c = conn.cursor()
         
         # Verifica che la lezione esista
-        c.execute('SELECT id FROM learning_units WHERE id = ?', (topic_id,))
+        c.execute('SELECT id FROM topics WHERE id = ?', (lesson_id,))
         if not c.fetchone():
             conn.close()
             return jsonify({'error': 'Lezione non trovata'}), 404
         
         # Elimina la lezione
-        c.execute('DELETE FROM learning_units WHERE id = ?', (topic_id,))
+        c.execute('DELETE FROM topics WHERE id = ?', (lesson_id,))
         conn.commit()
         conn.close()
         
         return jsonify({'success': True})
+    
+    except Exception as e:
+        import traceback
+        print('Errore in delete_lesson:', traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+@learning.route('/delete_all_lessons', methods=['DELETE'])
+@login_required
+def delete_all_lessons():
+    try:
+        conn = get_user_db(session['username'])
+        c = conn.cursor()
+        
+        # Elimina tutte le lezioni dell'utente
+        c.execute('DELETE FROM topics')
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        import traceback
+        print('Errore in delete_all_lessons:', traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
         
     except Exception as e:
         print(f"Errore nell'eliminazione della lezione: {e}")

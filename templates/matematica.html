@@ -1,12 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4">
-    <div class="page-header">
-        <h1>Mentor Matematico</h1>
-        <div class="subtitle">Scegli un argomento per iniziare</div>
-    </div>
+<style>
+    .math-formula {
+        background-color: #1a365d;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin: 1.5rem 0;
+        font-family: 'Computer Modern', serif;
+        overflow-x: auto;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid #2d4a7c;
+    }
+    
+    .math-formula p {
+        margin: 0;
+        font-size: 1.1em;
+        line-height: 1.6;
+    }
+    
+    .math-formula pre {
+        margin: 0;
+        white-space: pre-wrap;
+    }
 
+    /* Spinner styles */
+    .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="max-w-7xl mx-auto px-4">
+    
     <!-- Progress Summary -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8 hidden" id="progress-summary">
         <h3 class="text-lg font-semibold mb-4">Il tuo progresso</h3>
@@ -47,11 +84,23 @@
             </div>
         </div>
         
-        <button id="generate-exercise" class="btn mt-6">
-            Genera Esercizio
+        <button id="start-lesson" class="btn mt-6">
+            Inizia Lezione
         </button>
-        <div id="loading" class="hidden">
-            <!-- Loading animation or message -->
+    </div>
+
+    <!-- Spinner -->
+    <div id="spinner" class="spinner hidden"></div>
+
+    <!-- Lesson Section -->
+    <div id="lesson-container" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
+        <div class="prose max-w-none">
+            <h3 class="text-xl font-semibold mb-4">Mini Lezione</h3>
+            <div id="lesson-content" class="text-lg mb-6"></div>
+            
+            <button id="start-exercise" class="btn mt-4">
+                Inizia Esercizio
+            </button>
         </div>
     </div>
 
@@ -61,9 +110,39 @@
             <h3 class="text-xl font-semibold mb-4">Esercizio</h3>
             <div id="exercise-content" class="text-lg mb-6"></div>
             
-            <div class="border-t pt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">La tua risposta</label>
-                <textarea id="answer-input" class="form-textarea" rows="3"></textarea>
+            <!-- Exercise Type Selection -->
+            <div id="exercise-type-selector" class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo di Esercizio</label>
+                <select id="exercise-type" class="form-select">
+                    <option value="fill">Esercizio Compilativo</option>
+                    <option value="text">Risposta Testuale</option>
+                    <option value="image">Carica Immagine</option>
+                </select>
+            </div>
+            
+            <!-- Answer Input Section -->
+            <div id="answer-section" class="border-t pt-4">
+                <!-- Fill-in-the-blank answer -->
+                <div id="fill-answer" class="answer-type">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">La tua risposta</label>
+                    <input type="text" id="fill-input" class="form-input" placeholder="Inserisci la tua risposta">
+                </div>
+                
+                <!-- Text answer -->
+                <div id="text-answer" class="answer-type hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">La tua risposta</label>
+                    <textarea id="text-input" class="form-textarea" rows="4" placeholder="Scrivi la tua risposta in italiano"></textarea>
+                </div>
+                
+                <!-- Image upload -->
+                <div id="image-answer" class="answer-type hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Carica l'immagine della tua soluzione</label>
+                    <input type="file" id="image-input" accept="image/*" class="form-input">
+                    <div id="image-preview" class="mt-4 hidden">
+                        <img id="preview-img" class="max-w-md rounded-lg shadow-md" alt="Anteprima">
+                    </div>
+                </div>
+                
                 <button id="check-answer" class="btn mt-4">
                     Verifica Risposta
                 </button>
@@ -74,6 +153,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 // Complete topic and exercise database
 const topicsDatabase = {
@@ -100,6 +180,12 @@ function updateTopics() {
     const subject = document.getElementById('subject-select').value;
     const topicSelect = document.getElementById('topic-select');
     
+    // Reset exercise container when changing topics
+    document.getElementById('exercise-container').classList.add('hidden');
+    document.getElementById('exercise-content').innerHTML = '';
+    document.getElementById('feedback').classList.add('hidden');
+    document.getElementById('feedback').innerHTML = '';
+    
     topicSelect.innerHTML = '';
     topicsDatabase[grade][subject].forEach(topic => {
         const option = document.createElement('option');
@@ -109,21 +195,153 @@ function updateTopics() {
     });
 }
 
-// Generate exercise
-document.getElementById('generate-exercise').addEventListener('click', async function() {
+// Handle exercise type changes
+document.getElementById('exercise-type').addEventListener('change', function() {
+    const type = this.value;
+    document.querySelectorAll('.answer-type').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`${type}-answer`).classList.remove('hidden');
+});
+
+// Handle image upload preview
+document.getElementById('image-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('preview-img');
+            preview.src = e.target.result;
+            document.getElementById('image-preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Format mathematical content
+function formatMathContent(content) {
+    // First, convert Markdown to HTML
+    let htmlContent = marked.parse(content);
+
+    // Then, find and wrap LaTeX formulas
+    // Regex to find inline LaTeX \(...\) and display LaTeX \[...\] or $$...$$
+    const latexRegex = /(\\\(.*?\\\)|\\[.*?\\]|\$\$.*?\$\$)/gs;
+    
+    return htmlContent.replace(latexRegex, (match) => {
+        // Remove the LaTeX delimiters before wrapping
+        let formula = match;
+        if (match.startsWith('\\(') && match.endsWith('\\)')) {
+            formula = match.slice(2, -2);
+        } else if (match.startsWith('\\[') && match.endsWith('\\]')) {
+            formula = match.slice(2, -2);
+        } else if (match.startsWith('$$') && match.endsWith('$$')) {
+            formula = match.slice(2, -2);
+        }
+        
+        return `<div class="math-formula">${formula}</div>`;
+    });
+}
+
+// Function to get a unique key for a lesson
+function getLessonKey(grade, subject, topic) {
+    return `lesson_${grade}_${subject}_${topic}`;
+}
+
+// Function to save a lesson to localStorage
+function saveLesson(grade, subject, topic, lesson) {
+    const key = getLessonKey(grade, subject, topic);
+    localStorage.setItem(key, JSON.stringify(lesson));
+}
+
+// Function to get a lesson from localStorage
+function getLesson(grade, subject, topic) {
+    const key = getLessonKey(grade, subject, topic);
+    const lesson = localStorage.getItem(key);
+    return lesson ? JSON.parse(lesson) : null;
+}
+
+// Start lesson
+document.getElementById('start-lesson').addEventListener('click', async function() {
     const btn = this;
     btn.disabled = true;
-    document.getElementById('loading').classList.remove('hidden');
+    const spinner = document.getElementById('spinner');
+    spinner.classList.remove('hidden');
     
     try {
         const grade = document.getElementById('grade-select').value;
         const subject = document.getElementById('subject-select').value;
         const topic = document.getElementById('topic-select').value;
 
+        // Check if lesson exists in localStorage
+        let lesson = getLesson(grade, subject, topic);
+        let isNewLesson = false;
+
+        if (!lesson) {
+            // Generate new lesson
+            const response = await fetch('/api/generate-lesson', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ grade, subject, topic })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || data.status === 'error') {
+                throw new Error(data.message || 'Errore nella generazione della lezione');
+            }
+            
+            if (data.status === 'success' && data.lesson) {
+                lesson = data.lesson;
+                saveLesson(grade, subject, topic, lesson);
+                isNewLesson = true;
+            } else {
+                throw new Error('Formato risposta non valido');
+            }
+        }
+
+        const formattedLesson = formatMathContent(lesson);
+        document.getElementById('lesson-content').innerHTML = formattedLesson;
+        document.getElementById('lesson-container').classList.remove('hidden');
+        
+        if(window.MathJax) {
+            MathJax.typeset();
+        }
+
+        // If it's a new lesson, show a message
+        if (isNewLesson) {
+            console.log('Nuova lezione generata e salvata.');
+        } else {
+            console.log('Lezione recuperata dal database.');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('lesson-content').innerHTML = `
+            <div class="text-red-600 p-4">
+                ${error.message}
+            </div>
+        `;
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+    }
+});
+
+// Start exercise
+document.getElementById('start-exercise').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    const spinner = document.getElementById('spinner');
+    spinner.classList.remove('hidden');
+    
+    try {
+        const grade = document.getElementById('grade-select').value;
+        const subject = document.getElementById('subject-select').value;
+        const topic = document.getElementById('topic-select').value;
+        const exerciseType = document.getElementById('exercise-type').value;
+
         const response = await fetch('/api/generate-exercise', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ grade, subject, topic })
+            body: JSON.stringify({ grade, subject, topic, exerciseType })
         });
         
         const data = await response.json();
@@ -132,114 +350,109 @@ document.getElementById('generate-exercise').addEventListener('click', async fun
             throw new Error(data.message || 'Errore nella generazione dell\'esercizio');
         }
         
-        document.getElementById('exercise-content').innerHTML = data.exercise;
+        const formattedExercise = formatMathContent(data.exercise);
+        document.getElementById('exercise-content').innerHTML = formattedExercise;
         document.getElementById('exercise-container').classList.remove('hidden');
         document.getElementById('exercise-content').dataset.correctAnswer = data.answer;
         
         if(window.MathJax) {
             MathJax.typeset();
         }
-    } catch(error) {
+    } catch (error) {
         console.error('Error:', error);
         document.getElementById('exercise-content').innerHTML = `
             <div class="text-red-600 p-4">
                 ${error.message}
             </div>
         `;
-        document.getElementById('exercise-container').classList.remove('hidden');
     } finally {
         btn.disabled = false;
-        document.getElementById('loading').classList.add('hidden');
+        spinner.classList.add('hidden');
     }
 });
 
 // Check answer
 document.getElementById('check-answer').addEventListener('click', async function() {
-    const grade = document.getElementById('grade-select').value;
-    const subject = document.getElementById('subject-select').value;
-    const topic = document.getElementById('topic-select').value;
-    const userAnswer = document.getElementById('answer-input').value.trim();
-    const correctAnswer = document.getElementById('exercise-content').dataset.correctAnswer;
+    const btn = this;
+    btn.disabled = true;
     
-    const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
-    
-    // Update progress via API
     try {
-        await fetch('/api/math/update-progress', {
+        const exerciseType = document.getElementById('exercise-type').value;
+        let answer;
+        
+        switch(exerciseType) {
+            case 'fill':
+                answer = document.getElementById('fill-input').value.trim();
+                break;
+            case 'text':
+                answer = document.getElementById('text-input').value.trim();
+                break;
+            case 'image':
+                const fileInput = document.getElementById('image-input');
+                if (!fileInput.files.length) {
+                    throw new Error('Per favore carica un\'immagine');
+                }
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                formData.append('exerciseType', exerciseType);
+                formData.append('correctAnswer', document.getElementById('exercise-content').dataset.correctAnswer);
+                
+                const response = await fetch('/api/check-image-answer', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (!response.ok || result.status === 'error') {
+                    throw new Error(result.message || 'Errore nella verifica dell\'immagine');
+                }
+                
+                showFeedback(result.isCorrect, result.feedback);
+                return;
+        }
+        
+        const response = await fetch('/api/check-answer', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                topic: `${grade}-${subject}-${topic}`,
-                is_correct: isCorrect
+                answer,
+                exerciseType,
+                correctAnswer: document.getElementById('exercise-content').dataset.correctAnswer
             })
         });
         
-        // Refresh progress stats
-        updateProgressStats();
+        const result = await response.json();
+        if (!response.ok || result.status === 'error') {
+            throw new Error(result.message || 'Errore nella verifica della risposta');
+        }
+        
+        showFeedback(result.isCorrect, result.feedback);
+        
     } catch (error) {
-        console.error('Error updating progress:', error);
+        console.error('Error:', error);
+        showFeedback(false, error.message);
+    } finally {
+        btn.disabled = false;
     }
-    
-    const feedback = document.getElementById('feedback');
-    
-    if (isCorrect) {
-        feedback.innerHTML = `<div class="p-4 bg-green-50 text-green-800 rounded">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            Risposta corretta!
-        </div>`;
-    } else {
-        feedback.innerHTML = `<div class="p-4 bg-red-50 text-red-800 rounded">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            Risposta errata. La soluzione corretta è: <strong>${correctAnswer}</strong>
-        </div>`;
-    }
-    
-    feedback.classList.remove('hidden');
 });
 
-// Add progress tracking functionality
-async function updateProgressStats() {
-    try {
-        const response = await fetch('/api/math/progress');
-        const progress = await response.json();
-        
-        const progressStats = document.getElementById('progress-stats');
-        progressStats.innerHTML = '';
-        
-        if (progress.length > 0) {
-            document.getElementById('progress-summary').classList.remove('hidden');
-            
-            progress.forEach(item => {
-                const completion = Math.round((item.correct / item.completed) * 100) || 0;
-                progressStats.innerHTML += `
-                    <div class="border rounded-lg p-4">
-                        <h4 class="font-medium">${item.topic}</h4>
-                        <div class="mt-2">
-                            <div class="flex justify-between text-sm">
-                                <span>Completati: ${item.completed}</span>
-                                <span>${completion}% corretti</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                                <div class="bg-green-600 h-2.5 rounded-full" style="width: ${completion}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-    } catch (error) {
-        console.error('Error fetching progress:', error);
-    }
+function showFeedback(isCorrect, message) {
+    const feedback = document.getElementById('feedback');
+    feedback.innerHTML = `
+        <div class="p-4 ${isCorrect ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'} rounded">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="${isCorrect ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}"/>
+            </svg>
+            ${message}
+        </div>
+    `;
+    feedback.classList.remove('hidden');
 }
 
-// Update initialize function
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateTopics();
-    updateProgressStats(); // Load progress stats
     document.getElementById('grade-select').addEventListener('change', updateTopics);
     document.getElementById('subject-select').addEventListener('change', updateTopics);
 });

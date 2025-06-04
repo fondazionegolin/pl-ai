@@ -2,26 +2,25 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4">
-    
     <!-- Header con titolo e link al tutorial -->
-    <div class="page-header">
-        <h1>Generazione Immagini</h1>
-        <div class="subtitle">Creazione contenuti visivi</div>
-    </div>
-    
-    <!-- Piccolo grafico di generazione immagini -->
-    <div class="w-20 h-20 bg-white rounded-lg flex items-center justify-center p-2">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
-            <!-- Icona generazione immagini stilizzata -->
-            <rect x="15" y="15" width="70" height="50" rx="5" fill="none" stroke="#000" stroke-width="2"/>
-            <circle cx="30" cy="30" r="8" fill="#333"/>
-            <path d="M15 55 L35 40 L55 50 L75 30 L85 40 L85 65 L15 65 Z" fill="#333"/>
-        </svg>
-    </div>
-    <div>
-        <a href="#" id="open-tutorial-modal" class="text-[#BABABA] hover:text-white underline transition-colors">
-            Come funziona? Apri il tutorial
-        </a>
+    <div class="w-[1200px] mx-auto py-2 px-6 mb-4">
+        <div class="flex items-center gap-4">
+            <!-- Piccolo grafico di generazione immagini -->
+            <div class="w-14 h-14 rounded-lg flex items-center justify-center p-1.5">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <!-- Icona generazione immagini stilizzata -->
+                    <rect x="15" y="15" width="70" height="50" rx="5" fill="none" stroke="#000" stroke-width="2"/>
+                    <circle cx="30" cy="30" r="8" fill="#333"/>
+                    <path d="M15 55 L35 40 L55 50 L75 30 L85 40 L85 65 L15 65 Z" fill="#333"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold mb-3 text-black">GENERAZIONE IMMAGINI</h1>
+                <a href="#" id="open-tutorial-modal" class="text-gray-600 hover:text-black underline transition-colors">
+                    Come funziona? Apri il tutorial
+                </a>
+            </div>
+        </div>
     </div>
     
     <!-- Prompt Input -->
@@ -34,7 +33,7 @@
                     placeholder="Es: Un gatto persiano che gioca con un gomitolo di lana al tramonto, stile acquerello"></textarea>
                 <div class="flex justify-end">
                     <button onclick="translateAndEnhancePrompt()" 
-                        class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                        class="bg-[#2c2063] text-white px-4 py-2 rounded-lg hover:bg-[#1c1043] transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clip-rule="evenodd" />
                         </svg>
@@ -48,14 +47,14 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
                 <label for="model" class="block text-sm font-medium text-gray-700 mb-2">Modello AI</label>
-                <select id="model" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                <select id="model" class="w-full px-3 py-2 border-0 rounded-xl bg-white shadow-sm appearance-none text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#FF385C] transition-all cursor-pointer">
                     <option value="stability">Stability AI</option>
                     <option value="dalle">DALL-E (OpenAI)</option>
                 </select>
             </div>
             <div>
                 <label for="style" class="block text-sm font-medium text-gray-700 mb-2">Stile Artistico</label>
-                <select id="style" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                <select id="style" class="w-full px-3 py-2 border-0 rounded-xl bg-white shadow-sm appearance-none text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#FF385C] transition-all cursor-pointer">
                     <option value="photographic">Fotografico</option>
                     <option value="digital-art">Digital Art</option>
                     <option value="oil-painting">Dipinto ad Olio</option>
@@ -65,8 +64,8 @@
                 </select>
             </div>
             <div>
-                <label for="aspect-ratio" class="block text-sm font-medium text-gray-700 mb-2">Proporzioni</label>
-                <select id="aspect-ratio" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black transition-colors duration-200">
+                <label for="size" class="block text-sm font-medium text-gray-700 mb-2">Proporzioni</label>
+                <select id="size" class="w-full px-3 py-2 border-0 rounded-xl bg-white shadow-sm appearance-none text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#FF385C] transition-all cursor-pointer">
                     <option value="1:1">Quadrata (1:1)</option>
                     <option value="3:2">Paesaggio (3:2)</option>
                     <option value="2:3">Ritratto (2:3)</option>
@@ -80,10 +79,10 @@
                 <input type="checkbox" id="high-quality" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded transition-colors duration-200">
                 <label for="high-quality" class="ml-2 block text-sm text-gray-700">Alta Qualità</label>
             </div>
-            <button onclick="generateImage()" 
-                class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+            <button onclick="generateImage()" id="generate-btn" 
+                class="bg-[#FF385C] text-white px-6 py-3 rounded-lg hover:bg-[#e01440] transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg hover:-translate-y-0.5 w-full">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
                 Genera Immagine
             </button>
@@ -106,15 +105,14 @@
             <div class="p-4">
                 <p id="prompt-text" class="text-gray-600 text-sm"></p>
                 <div class="mt-4 flex justify-end space-x-3">
-                    <button onclick="saveToResources(event)" 
-                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                    <button id="save-btn" onclick="saveToResources(event)" class="bg-[#0c0033] text-white px-4 py-2 rounded-lg hover:bg-[#1c1043] transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
                         </svg>
                         Salva nelle Risorse
                     </button>
-                    <button onclick="downloadImage()" 
-                        class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                    <button onclick="downloadImage()" id="download-btn" 
+                        class="bg-[#FF385C] text-white px-6 py-3 rounded-lg hover:bg-[#e01440] transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg hover:-translate-y-0.5 w-full">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>
@@ -205,7 +203,7 @@
         </div>
         
         <div class="p-6 border-t border-gray-200 flex justify-end">
-            <button id="close-tutorial-btn" class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors">
+            <button id="close-tutorial-btn" class="px-4 py-2 bg-[#0c0033] text-white rounded-md hover:bg-[#1c1043] transition-colors">
                 Chiudi tutorial
             </button>
         </div>
