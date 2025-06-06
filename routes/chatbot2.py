@@ -953,8 +953,9 @@ def chat():
                         completion = openai_client.chat.completions.create(
                             model="gpt-4" if model_name == 'gpt4' else "gpt-3.5-turbo",
                             messages=[
-                                {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. L'argomento è: {context.get('systemPrompt', '').split('L\'argomento è:')[1].split('.')[0] if 'L\'argomento è:' in context.get('systemPrompt', '') else 'argomento generale'}. Devi formulare una domanda pertinente per continuare l'interrogazione."}, 
-                                {"role": "user", "content": f"Ho appena risposto all'utente con: '{response}'. Genera una domanda pertinente per continuare l'interrogazione. La domanda deve essere breve (massimo 1-2 righe) e deve essere formulata in modo da continuare naturalmente la conversazione. Rispondi SOLO con la domanda, senza introduzioni o spiegazioni."}
+                                {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. L'argomento è: {(context.get('systemPrompt', '').split("L'argomento è:")[1].split('.')[0] if "L'argomento è:" in context.get('systemPrompt', '') else 'argomento generale')}. Devi formulare una domanda pertinente per continuare l'interrogazione."},
+ 
+                                {"role": "user", "content": f"Ho appena risposto all'utente con: \"{response}\". Genera una domanda pertinente per continuare l'interrogazione. La domanda deve essere breve (massimo 1-2 righe) e deve essere formulata in modo da continuare naturalmente la conversazione. Rispondi SOLO con la domanda, senza introduzioni o spiegazioni."}
                             ]
                         )
                         question = completion.choices[0].message.content.strip()
