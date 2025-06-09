@@ -950,11 +950,26 @@ def chat():
                     # Utilizziamo il modello per generare una domanda pertinente
                     if model_name.startswith('gpt'):
                         # Per i modelli OpenAI
+                        # Determine the argument for the system prompt more robustly
+                        system_prompt_str = context.get('systemPrompt', '')
+                        extracted_argomento = 'argomento generale'  # Default value
+                        try:
+                            if "L'argomento è:" in system_prompt_str:
+                                # Extract the part after "L'argomento è:"
+                                temp_argomento = system_prompt_str.split("L'argomento è:", 1)[1]
+                                # Extract the part before the first period, and strip whitespace
+                                extracted_argomento = temp_argomento.split('.', 1)[0].strip()
+                                if not extracted_argomento:  # Handle cases where split results in empty string
+                                    extracted_argomento = 'argomento generale'
+                        except IndexError:
+                            # This can happen if split doesn't find the delimiter or structure is unexpected
+                            extracted_argomento = 'argomento generale' 
+                            # You might want to log a warning here if needed
+
                         completion = openai_client.chat.completions.create(
                             model="gpt-4" if model_name == 'gpt4' else "gpt-3.5-turbo",
                             messages=[
-                                {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. L'argomento è: {(context.get('systemPrompt', '').split("L'argomento è:")[1].split('.')[0] if "L'argomento è:" in context.get('systemPrompt', '') else 'argomento generale')}. Devi formulare una domanda pertinente per continuare l'interrogazione."},
- 
+                                {"role": "system", "content": f"Sei un insegnante di {context.get('subject')} che sta conducendo un'interrogazione. L'argomento è: {extracted_argomento}. Devi formulare una domanda pertinente per continuare l'interrogazione."},
                                 {"role": "user", "content": f"Ho appena risposto all'utente con: \"{response}\". Genera una domanda pertinente per continuare l'interrogazione. La domanda deve essere breve (massimo 1-2 righe) e deve essere formulata in modo da continuare naturalmente la conversazione. Rispondi SOLO con la domanda, senza introduzioni o spiegazioni."}
                             ]
                         )

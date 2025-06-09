@@ -8,6 +8,55 @@ import uuid
 from datetime import datetime
 from .db import get_user_db, login_required, get_user_db_path, init_user_db
 from .openai_client import client
+from .chatbot2 import extract_text_from_pdf, extract_text_from_image # Specific extractors from chatbot2
+import docx # For .docx files
+import numpy as np
+import sqlite3 # For more direct DB control if needed
+import os # Ensure os is imported for path operations
+
+# Function to migrate topics table for existing users
+def migrate_topics_table(username):
+    """Ensure topics table has rag_document_id column."""
+    try:
+        db_path = get_user_db_path(username) 
+        if not os.path.exists(db_path):
+            return False  # Database doesn't exist yet
+            
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='topics'")
+        if not cursor.fetchone():
+            conn.close()
+            return False  # Table doesn't exist yet
+        
+        # Check if rag_document_id column exists
+        cursor.execute("PRAGMA table_info(topics)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'rag_document_id' not in columns:
+            print(f"Adding rag_document_id column to topics table for {username}")
+            cursor.execute("ALTER TABLE topics ADD COLUMN rag_document_id INTEGER REFERENCES rag_documents(id)")
+            conn.commit()
+            print(f"Added rag_document_id column to topics table for {username}")
+        
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error migrating topics table: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+# Helper function to create embeddings (adapted from app.py logic)
+def _create_embedding_for_lesson_doc(text):
+    try:
+        response = client.embeddings.create(input=text, model="text-embedding-ada-002")
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"Error creating embedding: {str(e)}")
+        return None
 
 learning = Blueprint('learning', __name__)
 
@@ -22,13 +71,43 @@ def generate_lesson():
     try:
         data = request.get_json()
         topic = data.get('topic', '').strip() if data else ''
+        rag_file_id = data.get('rag_file_id') if data else None
+
         if not topic:
             return jsonify({'success': False, 'error': 'L\'argomento è obbligatorio.'}), 400
+        
         username = session.get('username')
         if not username:
             return jsonify({'success': False, 'error': 'Utente non autenticato.'}), 401
+
+        document_context = None
+        if rag_file_id:
+            try:
+                db_path = get_user_db_path(username)
+                conn_rag = sqlite3.connect(db_path)
+                cursor_rag = conn_rag.cursor()
+                cursor_rag.execute("SELECT text_content FROM rag_documents WHERE id = ? AND text_content IS NOT NULL", (rag_file_id,))
+                row = cursor_rag.fetchone()
+                if row and row[0]:
+                    document_context = row[0]
+                    print(f"RAG Context: Found document context for file_id {rag_file_id}, length {len(document_context)}")
+                else:
+                    print(f"RAG Context: No text_content found for file_id {rag_file_id}")
+                conn_rag.close()
+            except Exception as e:
+                print(f"Error fetching RAG document {rag_file_id}: {str(e)}")
+                # Non bloccare la generazione, procedi senza contesto RAG
+
         # Prompt OpenAI per la mini-lezione
-        prompt_lesson = f"Scrivi una mini-lezione (max 15 righe) sull'argomento: {topic}. Usa un linguaggio chiaro e didattico."
+        if document_context:
+            prompt_lesson = f"Basandoti ESCLUSIVAMENTE sul seguente testo fornito, scrivi una mini-lezione (massimo 15-20 righe) sull'argomento: '{topic}'. \nAssicurati che la lezione sia estratta e sintetizzata fedelmente dal testo fornito e sia pertinente all'argomento richiesto. \nSe l'argomento '{topic}' non è trattato adeguatamente nel testo, segnalalo brevemente e non inventare informazioni.\nTesto fornito:\n--- TEXT START ---\n{document_context}\n--- TEXT END ---"
+            print("RAG: Using document context for lesson prompt.")
+        else:
+            prompt_lesson = f"Scrivi una mini-lezione (massimo 15 righe) sull'argomento: {topic}. Usa un linguaggio chiaro e didattico."
+            if rag_file_id:
+                print("RAG: rag_file_id provided but context not found or error occurred. Proceeding without RAG context.")
+            else:
+                print("RAG: No rag_file_id provided. Proceeding without RAG context.")
         lesson_resp = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt_lesson}]
@@ -49,9 +128,17 @@ def generate_lesson():
             return jsonify({'success': False, 'error': 'Errore parsing quiz.'}), 500
         # Salva nel DB
         conn = get_user_db(username)
+        
+        # Ensure the topics table has the rag_document_id column
+        migrate_topics_table(username)
+        
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO topics (title, content, created_at, status, quiz) VALUES (?, ?, ?, ?, ?)',
-            (topic, lesson_content, datetime.now().isoformat(), 'completed', pyjson.dumps(quiz)))
+        
+        # Determine rag_document_id to save: only if document_context was successfully used
+        rag_id_to_save = rag_file_id if document_context else None
+        
+        cursor.execute('INSERT INTO topics (title, content, created_at, status, quiz, rag_document_id) VALUES (?, ?, ?, ?, ?, ?)',
+            (topic, lesson_content, datetime.now().isoformat(), 'completed', pyjson.dumps(quiz), rag_id_to_save))
         topic_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -192,6 +279,137 @@ def generate_detailed_approfondimento():
         import traceback
         print('Errore in generate_detailed_approfondimento:', traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@learning.route('/process_lesson_document/<int:file_id>', methods=['POST'])
+@login_required
+def process_lesson_document(file_id):
+    username = session.get('username')
+    user_id = session.get('user_id') # Make sure user_id is consistently used for directory paths
+    db_path = get_user_db_path(username)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    try:
+        # Check if user_id column exists
+        columns = []
+        try:
+            cursor.execute("PRAGMA table_info(rag_documents)")
+            columns = [col[1] for col in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error checking schema: {e}")
+            # Proceed with fallback query if schema check fails
+            
+        # Query based on whether user_id exists    
+        try:
+            if 'user_id' in columns:
+                cursor.execute("SELECT file_path, file_type FROM rag_documents WHERE id = ? AND user_id = ?", (file_id, user_id))
+            else:
+                # Fallback - if no user_id column, just use document id (assuming single user system or accepted security risk)
+                print(f"Warning: No user_id column in rag_documents, proceeding without user verification")
+                cursor.execute("SELECT file_path, file_type FROM rag_documents WHERE id = ?", (file_id,))
+        except Exception as e:
+            print(f"Error querying document: {e}")
+            conn.close()
+            return jsonify({'success': False, 'error': f'Errore accesso documento: {str(e)}'}), 500
+        doc_info = cursor.fetchone()
+
+        if not doc_info:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Documento non trovato o non autorizzato.'}), 404
+
+        file_path, file_type = doc_info
+        extracted_text = ""
+        embedding = None
+        embedding_path_to_save = None # Path to be saved in DB
+
+        print(f"Processing file_id: {file_id}, path: {file_path}, type: {file_type} for user_id: {user_id}")
+        
+        # Text Extraction
+        if file_type == 'pdf':
+            extracted_text = extract_text_from_pdf(file_path)
+        elif file_type == 'docx':
+            try:
+                doc_obj = docx.Document(file_path)
+                extracted_text = "\n".join([paragraph.text for paragraph in doc_obj.paragraphs])
+            except Exception as e:
+                print(f"Error extracting DOCX for file {file_path}: {e}")
+                # Potentially return error or log and continue if partial extraction is acceptable
+        elif file_type == 'txt':
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    extracted_text = f.read()
+            except Exception as e:
+                print(f"Error extracting TXT for file {file_path}: {e}")
+        elif file_type in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']:
+            # Assuming extract_text_from_image is robust and handles its own errors/returns empty string
+            extracted_text = extract_text_from_image(file_path)
+        else:
+            print(f"Unsupported file type for RAG lesson: {file_type}")
+            conn.close()
+            return jsonify({'success': False, 'error': f'Tipo di file non supportato per la lezione RAG: {file_type}'}), 400
+
+        if not extracted_text or not extracted_text.strip():
+            print(f"No text extracted from {file_path} or text is empty.")
+            conn.close()
+            # It's important to distinguish between extraction failure and empty content
+            return jsonify({'success': False, 'error': 'Nessun contenuto testuale valido estratto dal documento.'}), 400
+        
+        print(f"Extracted text length: {len(extracted_text)}")
+
+        # Embedding Creation
+        embedding = _create_embedding_for_lesson_doc(extracted_text)
+        if embedding is None: # Check explicitly for None, as an empty list might be a valid (though unlikely) embedding
+            conn.close()
+            return jsonify({'success': False, 'error': 'Errore durante la creazione dell\'embedding.'}), 500
+
+        # Save embedding to a .npy file
+        # Ensure user_id is a string for path joining if it's not already
+        user_rag_processed_dir = os.path.join('user_data', str(user_id), 'rag_processed_lessons')
+        os.makedirs(user_rag_processed_dir, exist_ok=True)
+        
+        embedding_filename = f"embedding_lesson_doc_{file_id}.npy"
+        absolute_embedding_path = os.path.join(user_rag_processed_dir, embedding_filename)
+        np.save(absolute_embedding_path, np.array(embedding))
+        embedding_path_to_save = absolute_embedding_path # Store absolute path or relative as needed by your system
+        print(f"Embedding saved to: {embedding_path_to_save}")
+
+        # Check if user_id column exists for update
+        columns = []
+        try:
+            cursor.execute("PRAGMA table_info(rag_documents)")
+            columns = [col[1] for col in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error checking schema for update: {e}")
+            # Will proceed with fallback (no user_id) if schema check fails
+            
+        # Update based on whether columns exist
+        try:
+            if 'user_id' in columns and 'processed_for_lesson' in columns:
+                cursor.execute("UPDATE rag_documents SET text_content = ?, embedding_path = ?, processed_for_lesson = 1 WHERE id = ? AND user_id = ?", 
+                               (extracted_text, embedding_path_to_save, file_id, user_id))
+            elif 'user_id' in columns:
+                cursor.execute("UPDATE rag_documents SET text_content = ?, embedding_path = ? WHERE id = ? AND user_id = ?", 
+                               (extracted_text, embedding_path_to_save, file_id, user_id))
+            else:
+                # Fallback - no user_id validation
+                cursor.execute("UPDATE rag_documents SET text_content = ?, embedding_path = ? WHERE id = ?", 
+                              (extracted_text, embedding_path_to_save, file_id))
+        except Exception as e:
+            print(f"Error updating document: {e}")
+            conn.close()
+            return jsonify({'success': False, 'error': f'Errore aggiornamento documento: {str(e)}'}), 500
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Documento elaborato con successo per la lezione.', 'file_id': file_id})
+
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        import traceback
+        print(f"General error processing document {file_id}: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'An unexpected error occurred: {str(e)}'}), 500
+    finally:
+        if conn:
+            conn.close()
 
 @learning.route('/generate_quiz', methods=['POST'])
 @login_required

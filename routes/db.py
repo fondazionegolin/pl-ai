@@ -126,7 +126,9 @@ def init_user_db(username):
         content TEXT,
         created_at TEXT,
         status TEXT,
-        quiz TEXT
+        quiz TEXT,
+        rag_document_id INTEGER,
+        FOREIGN KEY (rag_document_id) REFERENCES rag_documents(id) ON DELETE SET NULL
     )
     ''')
 

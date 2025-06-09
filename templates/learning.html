@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+{% block head_scripts %}
+    {{ super() }}
+    <!-- Script per Dropzone.js (upload file) -->
+    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+{% endblock %}
+
 {% block content %}
 <div class="learningpage-container flex h-auto min-h-[80vh] w-full max-w-full mx-4 my-8 rounded-xl shadow-lg overflow-hidden bg-white">
     <style>
@@ -31,11 +38,20 @@
     <aside class="sidebar w-64 bg-gray-50 border-r flex flex-col p-3 overflow-y-auto">
         <div class="flex justify-between items-center mb-3 border-b pb-1">
             <h2 class="text-lg font-bold text-[#ff1649]">Lezioni salvate</h2>
-            <button id="delete-all-btn" class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-all" title="Elimina tutte le lezioni">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-            </button>
+            <div class="flex space-x-2">
+                <!-- Nuova Lezione button -->
+                <button id="new-lesson-btn" class="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50 transition-all" title="Nuova Lezione">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                </button>
+                <!-- Delete All button -->
+                <button id="delete-all-btn" class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-all" title="Elimina tutte le lezioni">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div id="lessons-list" class="flex-1 overflow-y-auto space-y-2">
             <div class="text-gray-400 text-center">Nessuna lezione</div>
@@ -60,6 +76,28 @@
     <!-- Main -->
     <main class="flex-1 flex flex-col justify-start pl-6 pr-6 main-content-left">
         <div class="w-full ml-0 mt-4 mb-2">
+            <!-- Sezione Caricamento Documento (Opzionale per RAG) -->
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h3 class="text-md font-semibold text-gray-700 mb-3">Opzionale: Genera lezione da un tuo documento (RAG)</h3>
+                <div id="learning-dropzone-container" class="border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <form id="learning-document-upload" class="dz-clickable">
+                        <div class="dz-message text-center">
+                            <div class="text-base font-medium text-gray-600">Trascina qui un file (.pdf, .txt, .docx) o clicca per caricare</div>
+                            <div class="text-xs text-gray-500 mt-1">Max 10MB. Il file verrà usato come base per la lezione.</div>
+                            <input type="file" id="learning-fallback-file-input" name="file" class="hidden" />
+                            <button type="button" id="learning-browse-files-btn" class="mt-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-1.5 px-3 rounded-md text-sm focus:outline-none focus:shadow-outline">
+                                Sfoglia file
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div id="learning-uploaded-file-info" class="mt-3 text-sm text-gray-700 hidden">
+                    <span class="font-medium">File caricato:</span> <span id="learning-uploaded-filename"></span>
+                    <button id="learning-remove-file-btn" class="ml-2 text-red-500 hover:text-red-700 text-xs">(Rimuovi)</button>
+                </div>
+                 <div id="learning-document-processing-status" class="mt-3 text-sm text-indigo-600 hidden"></div>
+            </div>
+
             <label for="topic-input" class="block text-lg font-medium text-gray-700 mb-2 text-left">Scrivi un argomento per generare una mini-lezione</label>
             <div class="flex gap-1 items-center">
                 <input id="topic-input" type="text" placeholder="Es: La fotosintesi clorofilliana" class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#ff1649] text-lg shadow-sm">
@@ -124,6 +162,12 @@
 .card-box { min-height: 120px; }
 </style>
 <script>
+// Global variables for RAG document handling
+let currentLessonRagFileId = null;
+let currentLessonRagFilename = null;
+let isProcessingLessonDocument = false;
+let isLessonDocumentReadyForRag = false;
+
 // Carica lo storico lezioni con stato
 function loadLessonsList(selectedId=null) {
     fetch('/lessons').then(r=>r.json()).then(data => {
@@ -275,6 +319,17 @@ function showLesson(id) {
 function handleGenerate() {
     const topicInput = document.getElementById('topic-input');
     const topic = topicInput.value.trim();
+    const payload = { topic };
+    
+    // Check if RAG variables are defined and set
+    if (typeof currentLessonRagFileId !== 'undefined' && currentLessonRagFileId && 
+        typeof isLessonDocumentReadyForRag !== 'undefined' && isLessonDocumentReadyForRag) {
+        payload.rag_file_id = currentLessonRagFileId;
+        console.log('Generating lesson with RAG file ID:', currentLessonRagFileId);
+    } else {
+        console.log('Generating lesson without RAG.');
+    }
+
     const btn = document.getElementById('generate-btn');
     const spinner = document.getElementById('generate-spinner');
     document.getElementById('error-message').classList.add('hidden');
@@ -291,7 +346,7 @@ function handleGenerate() {
     fetch('/generate_lesson', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ topic })
+        body: JSON.stringify(payload)
     })
     .then(r => r.json())
     .then(data => {
@@ -612,12 +667,46 @@ function showError(msg) {
     err.classList.remove('hidden');
 }
 
+// Function to start a new lesson
+function handleNewLesson() {
+    // Clear topic input and set focus
+    const topicInput = document.getElementById('topic-input');
+    topicInput.value = '';
+    topicInput.focus();
+    
+    // Hide any current lesson content
+    document.getElementById('lesson-section').classList.add('hidden');
+    
+    // Clear error messages
+    document.getElementById('error-message').classList.add('hidden');
+    document.getElementById('loading-message').classList.add('hidden');
+    
+    // Reset Dropzone if it exists
+    if (window.learningDropzone && learningDropzone.files.length > 0) {
+        learningDropzone.removeAllFiles();
+    }
+    
+    // Reset RAG document processing status
+    currentLessonRagFileId = null;
+    currentLessonRagFilename = null;
+    isLessonDocumentReadyForRag = false;
+    const statusEl = document.getElementById('learning-document-processing-status');
+    if (statusEl) statusEl.classList.add('hidden');
+    
+    // Reset process button state
+    const processBtn = document.getElementById('process-document-btn');
+    if (processBtn) processBtn.disabled = true;
+}
+
 // Event listeners
 document.getElementById('generate-btn').onclick = handleGenerate;
 
 document.getElementById('topic-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') handleGenerate();
 });
+
+// Add event listener for the new lesson button
+document.getElementById('new-lesson-btn').addEventListener('click', handleNewLesson);
 
 // Inizializzazione
 document.addEventListener('DOMContentLoaded', function() {
@@ -630,6 +719,155 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteAllBtn.addEventListener('click', deleteAllLessons);
     }
     setupTabs();
+
+// Variables now defined in global scope at the top of the script
+
+// Initialize Dropzone for learning page RAG
+if (document.getElementById('learning-dropzone-container')) {
+    const learningDropzone = new Dropzone("#learning-document-upload", {
+        url: "/upload_rag_document", // Re-use the existing RAG upload endpoint
+        paramName: "file",
+        maxFilesize: 10, // MB
+        maxFiles: 1,
+        acceptedFiles: ".pdf,.doc,.docx,.txt",
+        addRemoveLinks: false, // We'll handle removal manually
+        clickable: "#learning-dropzone-container", // Make the whole container clickable
+        dictDefaultMessage: "Trascina qui un file o clicca per caricare",
+        autoProcessQueue: true, // Process immediately on add
+        init: function() {
+            this.on("addedfile", function(file) {
+                if (this.files.length > 1) {
+                    this.removeFile(this.files[0]); // Keep only the latest file
+                }
+                document.getElementById('learning-document-processing-status').textContent = 'Caricamento in corso...';
+                document.getElementById('learning-document-processing-status').classList.remove('hidden');
+            });
+
+            this.on("success", function(file, response) {
+                if (response.success && response.file_id) {
+                    currentLessonRagFileId = response.file_id;
+                    currentLessonRagFilename = response.filename;
+                    document.getElementById('learning-uploaded-filename').textContent = response.filename;
+                    document.getElementById('learning-uploaded-file-info').classList.remove('hidden');
+                    document.getElementById('learning-dropzone-container').classList.add('hidden'); // Hide dropzone
+                    document.getElementById('learning-document-processing-status').textContent = 'File caricato: ' + response.filename + '. Pronto per essere processato per la lezione.';
+                    
+                    const processBtnContainer = document.getElementById('learning-uploaded-file-info').parentNode;
+                    let processBtn = document.getElementById('process-lesson-document-btn');
+                    if (!processBtn) {
+                        processBtn = document.createElement('button');
+                        processBtn.id = 'process-lesson-document-btn';
+                        processBtn.className = 'mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-md text-sm';
+                        processBtn.textContent = 'Prepara Documento per Lezione';
+                        processBtn.onclick = processLessonDocument;
+                        // Insert button after the file info, before the status message
+                        const statusDiv = document.getElementById('learning-document-processing-status');
+                        processBtnContainer.insertBefore(processBtn, statusDiv);
+                    } else {
+                        processBtn.disabled = false;
+                    }
+
+                } else {
+                    showError("Errore nel caricamento del file RAG: " + (response.error || 'Dettagli non disponibili'));
+                    this.removeFile(file);
+                    document.getElementById('learning-document-processing-status').textContent = 'Errore caricamento.';
+                }
+            });
+
+            this.on("error", function(file, message) {
+                let errorMessage = 'Errore Dropzone.';
+                if (typeof message === 'string') errorMessage = message;
+                else if (message && message.error) errorMessage = message.error;
+                else if (file.xhr && file.xhr.responseText) {
+                    try {
+                        const jsonResponse = JSON.parse(file.xhr.responseText);
+                        if (jsonResponse && jsonResponse.error) errorMessage = jsonResponse.error;
+                    } catch (e) { /* Ignore parsing error, use default */ }
+                }
+                showError(errorMessage);
+                this.removeFile(file);
+                document.getElementById('learning-document-processing-status').textContent = 'Errore caricamento: ' + errorMessage;
+            });
+        }
+    });
+
+    document.getElementById('learning-browse-files-btn').addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent form submission if it's part of a form
+        document.getElementById('learning-fallback-file-input').click(); 
+    });
+    document.getElementById('learning-fallback-file-input').addEventListener('change', function(e){
+        if(e.target.files.length){
+            learningDropzone.addFile(e.target.files[0]);
+        }
+    });
+
+    document.getElementById('learning-remove-file-btn').addEventListener('click', () => {
+        currentLessonRagFileId = null;
+        currentLessonRagFilename = null;
+        document.getElementById('learning-uploaded-filename').textContent = '';
+        document.getElementById('learning-uploaded-file-info').classList.add('hidden');
+        document.getElementById('learning-dropzone-container').classList.remove('hidden'); // Show dropzone again
+        if (learningDropzone) learningDropzone.removeAllFiles(true); // Clear Dropzone's internal list
+        document.getElementById('learning-document-processing-status').textContent = '';
+        document.getElementById('learning-document-processing-status').classList.add('hidden');
+        const processBtn = document.getElementById('process-lesson-document-btn');
+        if (processBtn) processBtn.remove();
+isLessonDocumentReadyForRag = false; // Reset flag when file is removed
+    });
+}
+
+function processLessonDocument() {
+    if (!currentLessonRagFileId) {
+        showError('Nessun file RAG caricato da processare.');
+        return;
+    }
+    if (isProcessingLessonDocument) {
+        showToast('Elaborazione documento già in corso.', 'info');
+        return;
+    }
+
+    isProcessingLessonDocument = true;
+    const statusEl = document.getElementById('learning-document-processing-status');
+    statusEl.textContent = 'Processazione documento per la lezione in corso... (estrazione testo e creazione embeddings)';
+    statusEl.classList.remove('hidden');
+    const processBtn = document.getElementById('process-lesson-document-btn');
+    if(processBtn) processBtn.disabled = true;
+
+    fetch(`/process_lesson_document/${currentLessonRagFileId}`, { method: 'POST' })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || `HTTP error! status: ${response.status}`); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                statusEl.textContent = 'Documento processato e pronto per generare la lezione RAG!';
+                showToast('Documento pronto per RAG.', 'success');
+                if(processBtn) {
+                    processBtn.textContent = 'Documento Pronto'; 
+                    processBtn.disabled = true; // Keep it disabled as it's processed
+                }
+                isLessonDocumentReadyForRag = true; // Set flag
+                // Potremmo voler disabilitare ulteriormente il bottone o cambiarne la funzione
+            } else {
+                statusEl.textContent = 'Errore durante la processazione del documento: ' + (data.error || 'Dettagli non disponibili');
+                showError('Errore processazione documento: ' + (data.error || 'Dettagli non disponibili'));
+                if(processBtn) processBtn.disabled = false;
+                isLessonDocumentReadyForRag = false; // Reset flag on processing error
+            }
+        })
+        .catch(err => {
+            statusEl.textContent = 'Errore di rete o server durante la processazione del documento: ' + err.message;
+            showError('Errore processazione documento: ' + err.message);
+            if(processBtn) processBtn.disabled = false;
+            isLessonDocumentReadyForRag = false; // Reset flag on network/server error
+        })
+        .finally(() => {
+            isProcessingLessonDocument = false;
+            // Button state is handled within success/error blocks now
+        });
+}
 });
 </script>
 {% endblock %}

@@ -2545,6 +2545,55 @@ def rag():
     init_rag_database(db_path)
     return render_template('rag.html')
 
+# Function to ensure columns exist in rag_documents table
+def migrate_rag_documents_table(username):
+    """Ensure rag_documents table has all required columns."""
+    try:
+        db_path = get_user_db_path(username) 
+        if not os.path.exists(db_path):
+            return False  # Database doesn't exist yet
+            
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='rag_documents'")
+        if not cursor.fetchone():
+            conn.close()
+            return False  # Table doesn't exist yet
+        
+        # Check and add user_id column if missing
+        cursor.execute("PRAGMA table_info(rag_documents)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        altered = False
+        if 'user_id' not in columns:
+            print(f"Adding user_id column to rag_documents for {username}")
+            cursor.execute("ALTER TABLE rag_documents ADD COLUMN user_id INTEGER")
+            altered = True
+            
+        if 'processed_for_lesson' not in columns:
+            print(f"Adding processed_for_lesson column to rag_documents for {username}")
+            cursor.execute("ALTER TABLE rag_documents ADD COLUMN processed_for_lesson BOOLEAN DEFAULT 0")
+            altered = True
+            
+        if altered:
+            # Backfill user_id for existing documents based on username
+            user_id = session.get('user_id')
+            if user_id:
+                cursor.execute("UPDATE rag_documents SET user_id = ? WHERE user_id IS NULL", (user_id,))
+                print(f"Backfilled user_id={user_id} for existing rag_documents")
+            
+            conn.commit()
+        
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error migrating rag_documents table: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 @app.route('/upload_rag_document', methods=['POST'])
 @login_required
 def upload_rag_document():
@@ -2558,6 +2607,7 @@ def upload_rag_document():
     
     # Crea directory per documenti RAG dell'utente se non esiste
     user_id = session.get('user_id')
+    username = session.get('username')
     user_rag_dir = os.path.join('user_data', str(user_id), 'rag_documents')
     os.makedirs(user_rag_dir, exist_ok=True)
     
@@ -2574,14 +2624,19 @@ def upload_rag_document():
         counter += 1
     
     try:
+        # Salva il file
         file.save(file_path)
         
         # Salva informazioni sul file nel database dell'utente
-        db_path = get_user_db_path(session.get('username'))
+        db_path = get_user_db_path(username)
+        
+        # Migrazione: assicura che la tabella rag_documents abbia le colonne necessarie
+        migrate_rag_documents_table(username)
+        
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # Crea tabella se non esiste
+        # Crea tabella se non esiste - con nuovo schema che include user_id
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS rag_documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2592,7 +2647,9 @@ def upload_rag_document():
             upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             processed BOOLEAN DEFAULT 0,
             text_content TEXT,
-            embedding_path TEXT
+            embedding_path TEXT,
+            user_id INTEGER,
+            processed_for_lesson BOOLEAN DEFAULT 0
         )
         ''')
         
@@ -2600,11 +2657,23 @@ def upload_rag_document():
         file_type = extension.lower().replace('.', '')
         file_size = os.path.getsize(file_path)
         
-        # Inserisci record nel database
-        cursor.execute('''
-        INSERT INTO rag_documents (filename, file_path, file_type, size)
-        VALUES (?, ?, ?, ?)
-        ''', (filename, file_path, file_type, file_size))
+        # Tenta l'inserimento con user_id
+        try:
+            cursor.execute('''
+            INSERT INTO rag_documents (filename, file_path, file_type, size, user_id)
+            VALUES (?, ?, ?, ?, ?)
+            ''', (filename, file_path, file_type, file_size, user_id))
+        except sqlite3.OperationalError as e:
+            # Se c'è un errore di colonna (nonostante la migrazione), fallback all'inserimento senza user_id
+            if 'no column named user_id' in str(e):
+                print(f"Warning: Fallback to insertion without user_id column for {username}")
+                cursor.execute('''
+                INSERT INTO rag_documents (filename, file_path, file_type, size)
+                VALUES (?, ?, ?, ?)
+                ''', (filename, file_path, file_type, file_size))
+            else:
+                # Rilancia altri errori SQLite
+                raise
         
         file_id = cursor.lastrowid
         conn.commit()
