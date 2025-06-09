@@ -1135,7 +1135,7 @@ def predict_image():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/generate-image', methods=['POST'])
-def generate_image():
+def generate_api_image():
     try:
         data = request.json
         prompt = data.get('prompt')
@@ -3518,9 +3518,9 @@ Formato richiesto:
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/generate-exercise', methods=['POST'])
+@app.route('/api/generate-exercise-v2', methods=['POST'])
 @login_required
-def generate_exercise():
+def generate_exercise_v2():
     try:
         data = request.get_json()
         if not data:
@@ -3610,9 +3610,9 @@ La lezione deve:
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/api/generate-exercise', methods=['POST'])
+@app.route('/api/generate-exercise-v3', methods=['POST'])
 @login_required
-def generate_exercise():
+def generate_exercise_v3():
     try:
         data = request.get_json()
         grade = data.get('grade')
